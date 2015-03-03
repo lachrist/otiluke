@@ -32,7 +32,7 @@ However, it is possible to intercept those constructs within the runtime evaluat
 
 1. Run the below command within the installation directory:
   ```
-  otiluke <test/test.html >test/out.html test/before.js runtime otiluke
+  otiluke <test/in.html >test/out.html test/before.js runtime otiluke
   ```
 
 2. Take a look at the files in the test directory (especially `out.html`).

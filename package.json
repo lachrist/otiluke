@@ -1,5 +1,5 @@
 { "name" : "otiluke"
-, "version" : "0.0.1"
+, "version" : "0.0.2"
 , "dependencies": {"htmlparser2":"*"}
 , "files" : ["convert.js", "entities.js", "main.js", "run.js", "template.js"]
 , "main": "main.js"
