@@ -1,3 +1,3 @@
 # Oliluke
 
-<img align="right" src="http://github.com/lachrist/oliluke/oliluke.js">
+![alt tag](https://raw.github.com/lachrist/oliluke/oliluke.png)
