@@ -1,10 +1,10 @@
 { "name" : "otiluke"
-, "version" : "0.0.0"
+, "version" : "0.0.1"
 , "dependencies": {"htmlparser2":"*"}
 , "files" : ["convert.js", "entities.js", "main.js", "run.js", "template.js"]
 , "main": "main.js"
 , "bin": "run.js"
-, "description" : "Otiluke intercepts every bit of JavaScript code within an HTML page"
+, "description" : "Otiluke intercepts every bit of JavaScript code within a HTML page"
 , "keywords" : ["JavaScript", "HTML", "Interception", "Catch", "script-tag"]
 , "homepage": "http://github.com/lachrist/otiluke"
 , "author" : {"name":"Laurent Christophe", "email":"lachrist@vub.ac.be"}
