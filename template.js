@@ -1,4 +1,11 @@
 
+//////////////////////
+// Begin-of-Otiluke //
+//////////////////////
+
+// This code is used to support external script file.
+// It is based on XMLHttpRequest technology.
+
 window.@OTILUKE = (function () {
 
   var ready = false
@@ -32,10 +39,14 @@ window.@OTILUKE = (function () {
         window.@RUNTIME(request.responseText)
       }
     },
-    catchup: function () {
+    after: function () {
       ready = true
       check()
     }
   }
 
 } ())
+
+////////////////////
+// End-of-Otiluke //
+////////////////////

@@ -1,17 +1,16 @@
-  <!DOCTYPE html>
-
-  <html>
-    <body></body>
-    <head>
+<!DOCTYPE html>
+<!-- node run.js runtime otiluke test/before.js <test/test.html >test/out.html --> 
+<html>
+  <head>
     <script>console.log("text1")</script>
     <script src="script1.js" defer>console.log("BOUM1")</script>
     <script src="script2.js">console.log("BOUM2")</script>
     <script src="script3.js" async>console.log("BOUM3")</script>
     <script src="script4.js" defer>console.log("BOUM4")</script>
     <script>console.log("text2")</script>
-    </head>
-    <body>
+  </head>
+  <body>
     <button onclick="console.log('&&&')">Button</button>
-    </body>
-  </html>
+  </body>
+</html>
 
