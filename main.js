@@ -9,22 +9,22 @@ var Convert = require("./convert.js")
 function isjsattribute (name) { return name.indexOf("on") === 0 }
 function testattribute (x) { return x || x==="" }
 
-module.exports = function (readable, writable, runtime, otiluke, before, onjs) {
+module.exports = function (readable, writable, before, runtime, otiluke, onjs) {
   runtime = runtime || "eval"
   otiluke = otiluke || "otiluke"
   onjs = onjs || function (code) { return ["window.", runtime, "(", JSON.stringify(code), ")"].join("") }
   FS.readFile(__dirname+"/template.js", {encoding:"utf8", flag:"r"}, function (err, template) {
     if (err) { throw err }
     var initializer = template.replace(/@OTILUKE/g, otiluke).replace(/@RUNTIME/g, runtime)
-    if (!before) { return compile(readable, writable, runtime, otiluke, initializer, onjs) }
+    if (!before) { return compile(readable, writable, initializer, runtime, otiluke, onjs) }
     FS.readFile(before, {encoding:"utf8", flag:"r"}, function (err, before) {
       if (err) { throw err }
-      compile(readable, writable, runtime, otiluke, before+initializer, onjs)
+      compile(readable, writable, before+initializer, runtime, otiluke, onjs)
     })
   })
 }
 
-function compile (readable, writable, runtime, otiluke, initializer, onjs) {
+function compile (readable, writable, initializer, runtime, otiluke, onjs) {
   var isjs = false
   var src = false
   readable.pipe(new HtmlParser.Parser({
