@@ -17,7 +17,7 @@ exports.attribute2js = function (attribute) {
     .replace(/&([A-Z]+;?)/ig, onnamematch)
 }
 
-exports.js2attribute = function  (js) { return js.replace(/&/g, "&#38").replace(/"/g, "&#34"); }
+exports.js2attribute = function  (js) { return js.replace(/&/g, "&#38;").replace(/"/g, "&#34;"); }
 
 ////////////
 // Script //

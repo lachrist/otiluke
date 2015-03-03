@@ -6,22 +6,24 @@ To run:
 
 ```otiluke [before] [runtime] [otiluke] <[in] >[out]```
 
-* `[in]`: the path to the input HTML file.
-* `[out]`: the path to the ouput HTML file.
-* `[before]`: A path to a initializing JavaScript file that will be executed before any script present on the input HTML file.
-* `[runtime]`: A JavaScript locator (e.g. `runtime`, `namespace.runtime`) that points to a function to be called at runtime with JavaScript code. You probably want to define such function inside the initializing JavaScript file.
-* `[otiluke]`: A JavaScript locator (e.g. `otiluke`, `namespace.otiluke`) that points to a safe runtime location where Otiluke can do its magic.
+* `[in]`: path to an input HTML file.
+* `[out]`: path to an ouput HTML file.
+* `[before]`: path to an initializing JavaScript file that will be executed before any JavaScript code present on the input HTML file.
+* `[runtime]`: JavaScript locator (e.g. `runtime` or `namespace.runtime`) that points to a runtime evaluation function that will be called with every bit of JavaScript code present on the HTML file. You probably want to define such function inside the initializing JavaScript file.
+* `[otiluke]`: JavaScript locator (e.g. `otiluke` or `namespace.otiluke`) that points to a safe runtime location where Otiluke can do its magic. If other JavaScript code mess around with this location, bad things will happen (e.g. deferred external script might disapear).
 
-
-
-N.B. The following (reasonable) assumptions should hold the input HTML page:
+N.B. The following (reasonable) assumptions should hold for the input HTML page:
 * there is exactly one `head` tag
 * there is exactly one `body` tag
 * the `head` tag occurs before the `body` tag
 * No javascript before the `head` tag or within its attributes
 * No javascript after the `body` tag
 
-
+DISCLAIMER: This module will intercept any JavaScript code that is statically present on the page ; this does not cover JavaScript code that is dynamically evaluated using evil stuff like:
+* `eval`
+* `Function`
+* `document.createElement('script')`
+However the runtime evaluation function can intercept those constructs so that dynamic code can still be controlled.
 
 ## Demo
 
