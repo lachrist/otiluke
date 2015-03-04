@@ -1,4 +1,4 @@
-# Otiluke <img align="right" src="https://github.com/lachrist/oliluke/blob/master/otiluke.gif">
+# Otiluke <img src="otiluke.png" align="right" alt="otiluke-logo" title="Resilient Sphere of Otiluke">
 
 Otiluke is a npm module that intercepts every bit of JavaScript code within a HTML page.
 To install, simply execute `npm install otiluke -g`.
