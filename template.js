@@ -45,7 +45,7 @@ window.@OTILUKE = (function () {
     }
   }
 
-} ())
+} ());
 
 ////////////////////
 // End-of-Otiluke //
