@@ -12,15 +12,18 @@ function testattribute (x) { return x || x==="" }
 module.exports = function (readable, writable, before, runtime, otiluke, onjs) {
   runtime = runtime || "eval"
   otiluke = otiluke || "otiluke"
+  before = before || []
   onjs = onjs || function (code) { return ["window.", runtime, "(", JSON.stringify(code), ")"].join("") }
   FS.readFile(__dirname+"/template.js", {encoding:"utf8", flag:"r"}, function (err, template) {
     if (err) { throw err }
-    var initializer = template.replace(/@OTILUKE/g, otiluke).replace(/@RUNTIME/g, runtime)
-    if (!before) { return compile(readable, writable, initializer, runtime, otiluke, onjs) }
-    FS.readFile(before, {encoding:"utf8", flag:"r"}, function (err, before) {
-      if (err) { throw err }
-      compile(readable, writable, before+initializer, runtime, otiluke, onjs)
-    })
+    var initializer = before.map(function (file) { return FS.readFileSync(file, {encoding:"utf8"}) });
+    initializer.push(template.replace(/@OTILUKE/g, otiluke).replace(/@RUNTIME/g, runtime));
+    compile(readable, writable, initializer, runtime, otiluke, onjs)
+    // if (!before) { return compile(readable, writable, initializer, runtime, otiluke, onjs) }
+    // FS.readFile(before, {encoding:"utf8", flag:"r"}, function (err, before) {
+    //   if (err) { throw err }
+    //   compile(readable, writable, initializer, runtime, otiluke, onjs)
+    // })
   })
 }
 
@@ -61,7 +64,7 @@ function compile (readable, writable, initializer, runtime, otiluke, onjs) {
         }
       } else if (tag === "head") {
         writable.write("<script>")
-        writable.write(initializer)
+        initializer.forEach(function (init) { writable.write(init) });
         writable.write("</script>")
       }
     },

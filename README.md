@@ -61,6 +61,6 @@ function onjs (code, location) {
   // Here we call the runtime evaluation function but it is not mandatory //
   return ['window.', runtimeName, '(', JSON.stringify(code), ')'].join('');
 }
-Otiluke(inputStream, outputStream, beforePath, runtimeName, otilukeName, onjs)
+Otiluke(inputStream, outputStream, [beforePath], runtimeName, otilukeName, onjs)
 ```
 
