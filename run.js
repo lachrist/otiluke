@@ -1,5 +1,18 @@
 #!/usr/bin/env node
 
-// usage: otiluke <in >out [before] [runtime] [otiluke] //
+var initialize = null;
+var namespace = null;
+var proxy = {};
+var hijack = {};
 
-require("./main.js")(process.stdin, process.stdout, [process.argv[2]], process.argv[3], process.argv[4], null);
+for (var i=2; i<process.argv.length; i++)
+  switch (process.argv[i]) {
+    case "--namespace": namespace = process.argv[i+1];
+    case "--initialize": initialize = fs.readFileprocess.argv[i+1];
+    case "--http-proxy": ports.http = process.argv[i+1];
+    case "--ssl-proxy": ports.ssl = process.argv[i+1];
+    case "--hijack-host": hijack.host = process.argv[i+1];
+    case "--hijack-port": hijack.port = process.argv[i+1];
+  }
+
+(require("./main.js"))(namespace, initialize, proxy, hijack);

@@ -1,52 +1,39 @@
 
-//////////////////////
-// Begin-of-Otiluke //
-//////////////////////
+window.@NAMESPACE.otiluke = (function () {
 
-// This code is used to support external script file.
-// It is based on XMLHttpRequest technology.
+  var ready = false;
+  var deferred = [];
 
-window.@OTILUKE = (function () {
+  function check () {
+    if (ready && deferred.indexOf(null) === -1)
+      deferred.forEach(window.@NAMESPACE.eval);
+  }
 
-  var ready = false
-  var deferred = []
-  var done = 0
+  window.addEventListener("load", function () {
+    ready = true;
+    check();
+  });
 
-  function check () { if (ready && done === deferred.length) { deferred.forEach(window.@RUNTIME) } }
-
-  return {
-    load: function (src, charset, async, defer) {
-      var request = new XMLHttpRequest()
-      request.open("GET", src, async||defer)
-      if (charset) { request.setRequestHeader("Accept-Charset", charset) }
-      request.send(null)
-      if (async) {
-        request.onreadystatechange = function () {
-          if (request.readyState === 4) {
-            window.@RUNTIME(request.responseText)
-          }
+  return function (src, async, defer) {
+    var request = new XMLHttpRequest()
+    request.open("GET", src, async||defer);
+    request.setRequestHeader("Content-Type", "text/javascript");
+    request.send();
+    if (async)
+      request.onreadystatechange = function () {
+        if (request.readyState === 4)
+          window.@NAMESPACE.eval(request.responseText);
+      };
+    else if (defer) {
+      var id = deferred.push(null) - 1;
+      request.onreadystatechange = function () {
+        if (request.readyState === 4) {
+          deferred[id] = request.responseText;
+          check();
         }
-      } else if (defer) {
-        var id = deferred.push(null) - 1
-        request.onreadystatechange = function () {
-          if (request.readyState === 4) {
-            deferred[id] = request.responseText
-            done++
-            check()
-          }
-        }
-      } else {
-        window.@RUNTIME(request.responseText)
-      }
-    },
-    after: function () {
-      ready = true
-      check()
-    }
+      };
+    } else
+      window.@NAMESPACE.eval(request.responseText);
   }
 
 } ());
-
-////////////////////
-// End-of-Otiluke //
-////////////////////
