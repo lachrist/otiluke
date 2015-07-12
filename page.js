@@ -8,12 +8,13 @@ var HtmlParser = require("htmlparser2")
 
 module.exports = function (namespace, initialize) {
   return function (out) {
-    var script = false;
+    var script = null;
     var src, async, defer;
     Object.getPrototypeOf(this).pipe.call(this, new HtmlParser.Parser({
+      onprocessinginstruction: function (name, data) { out.write("<"+data+">") },
       onopentag: function(tag, attributes) {
         if (tag === "script") {
-          script = true;
+          script = [];
           src = attributes.src;
           async = String("async" in attributes);
           defer = String("defer" in attributes);
@@ -31,19 +32,21 @@ module.exports = function (namespace, initialize) {
           out.write("</script>");
         }
       },
-      ontext: function(text) {
-        if (!script)
-          return out.write(text);
-        if (src)
-          return out.write(namespace+".otiluke("+JSON.stringify(src)+","+async+","+defer+")");
-        out.write(namespace+".eval(");
-        out.write(JSON.stringify(text));
-        out.write(")");
-      },
+      ontext: function(text) { script ? script.push(text) : out.write(text) },
       onclosetag: function(tag) {
+        if (script) {
+          if (src)
+            out.write(namespace+".otiluke("+JSON.stringify(src)+","+async+","+defer+")");
+          else {
+            out.write(namespace+".eval(");
+            out.write(JSON.stringify(script.join("")));
+            out.write(")");
+          }
+        }
         out.write("</"+tag+">");
-        script = false;
+        script = null;
       },
+      oncomment: function (data) { out.write("<!--"+data+"-->") },
       onend: function () { out.end() }
     }, {decodeEntities:true}));
   }

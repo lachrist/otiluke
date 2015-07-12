@@ -2,6 +2,7 @@
 var fs = require("fs");
 var url = require("url");
 var http = require("http");
+var https = require("https");
 var Page = require("./page.js")
 var template = fs.readFileSync(__dirname+"/template.js", {encoding:"utf8"});
 
@@ -16,21 +17,18 @@ module.exports = function (namespace, initialize, ports, origins) {
 
   var page = Page(namespace, initialize);
 
-  http.createServer(function(req, res) {
+  function forward (req, res) {
+    delete req.headers["accept-encoding"];
     var parts = url.parse(req.url);
-    var options = {
-      method: req.method,
-      hostname: parts.hostname,
-      port: parts.port,
-      path: parts.path,
-      headers: req.headers
-    };
-    var pReq = http.request(options, function (pRes) {
+    parts.method = req.method;
+    parts.headers = req.headers;
+    var pReq = http.request(parts, function (pRes) {
       if ("origin" in req.headers && origins.indexOf(req.headers.host) !== -1)
         pRes.headers["access-control-allow-origin"] = req.headers["origin"];
       var type = pRes.headers["content-type"];
       if (type && type.indexOf("text/html") !== -1) {
         delete pRes.headers["content-length"];
+        //delete pRes.headers["content-encoding"];
         pRes.pipe = page;
       }
       res.writeHead(pRes.statusCode, pRes.statusMessage, pRes.headers);
@@ -38,10 +36,12 @@ module.exports = function (namespace, initialize, ports, origins) {
     });
     pReq.on("error", function (err) {
       process.stderr.write("Error while forwarding request:"+err.message+"\n");
-      process.stderr.write(JSON.stringify(options));
+      process.stderr.write(JSON.stringify(parts));
       process.stderr.write("\n\n\n");
     });
     req.pipe(pReq);
-  }).listen(ports.http);
+  }
+
+  http.createServer(forward).listen(ports.http);
 
 }
