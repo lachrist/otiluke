@@ -1,4 +1,7 @@
 
+// TODO use DOM observers (with subtree options)
+// to intercept script tag insterted at runtime.
+
 window.@NAMESPACE.otiluke = (function () {
 
   var ready = false;

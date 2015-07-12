@@ -1,18 +1,45 @@
 #!/usr/bin/env node
 
+var fs = require("fs");
+
 var initialize = null;
 var namespace = null;
-var proxy = {};
-var hijack = {};
+var ports = {};
+var origins = null;
 
-for (var i=2; i<process.argv.length; i++)
-  switch (process.argv[i]) {
-    case "--namespace": namespace = process.argv[i+1];
-    case "--initialize": initialize = fs.readFileprocess.argv[i+1];
-    case "--http-proxy": ports.http = process.argv[i+1];
-    case "--ssl-proxy": ports.ssl = process.argv[i+1];
-    case "--hijack-host": hijack.host = process.argv[i+1];
-    case "--hijack-port": hijack.port = process.argv[i+1];
+var args = {
+  "--namespace":  function (i) { namespace = process.argv[i+1] },
+  "--initialize": function (i) { initialize = fs.readFileSync(process.argv[i+1], {encoding:"utf8"}) },
+  "--http-port":  function (i) { ports.http = process.argv[i+1] },
+  "--ssl-port":   function (i) { ports.ssl = process.argv[i+1] },
+  "--origins":    function (i) { origins = process.argv[i+1].split(/\s+/g) },
+  "--help":       function () {
+    console.log([
+      "Otiluke is forward proxy for intercepting every bit of JavaScript code",
+      "initially present in html pages and added later through script tags.",
+      "Recognized arguments:",
+      "  --namespace:  identifier of a global object that should contain an",
+      "                eval function and where otiluke set a property 'otiluke'.",
+      "  --initialize: path to JavaScript file to be executed first in the page.",
+      "  --http-port:  port to listen for http requests.",
+      "  --ssl-port:   port to listen for ssl-encrypted http requests.",
+      "  --origins:    space-separated list of allowed cross origin urls.",
+      "  --help:       prints this message.",
+      "",
+      "Example:",
+      "otiluke",
+      "  --namespace  __hidden__",
+      "  --initialize /path/to/init.js",
+      "  --http-port  8080",
+      "  --ssl-port   8443",
+      "  --origins    \"localhost:8000\""
+    ].join("\n"));
   }
+};
 
-(require("./main.js"))(namespace, initialize, proxy, hijack);
+process.argv.forEach(function (arg, i) {
+  if (arg in args)
+    args[arg](i);
+});
+
+(require("./main.js"))(namespace, initialize, ports, origins);
