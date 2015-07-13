@@ -4,39 +4,41 @@
 
 window.@NAMESPACE.otiluke = (function () {
 
-  var ready = false;
   var deferred = [];
 
-  function check () {
-    if (ready && deferred.indexOf(null) === -1)
-      deferred.forEach(window.@NAMESPACE.eval);
-  }
-
   window.addEventListener("load", function () {
-    ready = true;
-    check();
+    deferred.forEach(function (def) {
+      if (def)
+        window.@NAMESPACE.script(def.js, def.src);
+    });
+    deferred = null;
   });
 
   return function (src, async, defer) {
     var request = new XMLHttpRequest()
     request.open("GET", src, async||defer);
     request.setRequestHeader("Content-Type", "text/javascript");
+    if (defer || async) {
+      if (defer && deferred) {
+        var id = deferred.push(null) - 1;
+        request.onreadystatechange = function () {
+          if (request.readyState === 4) {
+            if (deferred)
+              deferred[id] = {js:request.responseText, src:src};
+            else
+              window.@NAMESPACE.script(request.responseText, src);
+          }
+        };
+      } else {
+        request.onreadystatechange = function () {
+          if (request.readyState === 4)
+            window.@NAMESPACE.script(request.responseText, src);
+        };
+      }
+      return request.send();
+    }
     request.send();
-    if (async)
-      request.onreadystatechange = function () {
-        if (request.readyState === 4)
-          window.@NAMESPACE.eval(request.responseText);
-      };
-    else if (defer) {
-      var id = deferred.push(null) - 1;
-      request.onreadystatechange = function () {
-        if (request.readyState === 4) {
-          deferred[id] = request.responseText;
-          check();
-        }
-      };
-    } else
-      window.@NAMESPACE.eval(request.responseText);
+    window.@NAMESPACE.script(request.responseText, src);
   }
 
 } ());

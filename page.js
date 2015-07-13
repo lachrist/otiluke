@@ -35,12 +35,12 @@ module.exports = function (namespace, initialize) {
       ontext: function(text) { script ? script.push(text) : out.write(text) },
       onclosetag: function(tag) {
         if (script) {
-          if (src)
+          if (src) {
             out.write(namespace+".otiluke("+JSON.stringify(src)+","+async+","+defer+")");
-          else {
-            out.write(namespace+".eval(");
+          } else {
+            out.write(namespace+".script(");
             out.write(JSON.stringify(script.join("")));
-            out.write(")");
+            out.write(",null)");
           }
         }
         out.write("</"+tag+">");
