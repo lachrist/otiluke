@@ -4,7 +4,7 @@
 , "author" : {"name":"Laurent Christophe", "email":"lachrist@vub.ac.be"}
 , "repository": "lachrist/otiluke"
 , "license" : "MIT"
-, "dependencies": {"htmlparser2":"*"}
+, "dependencies": {"htmlparser2":"*", "minimist":"*"}
 , "files" : ["convert.js", "entities.js", "main.js", "run.js", "template.js"]
 , "main": "main.js"
 , "bin": "run.js"

@@ -6,14 +6,13 @@ var https = require("https");
 var Page = require("./page.js")
 var template = fs.readFileSync(__dirname+"/template.js", {encoding:"utf8"});
 
-module.exports = function (namespace, initialize, ports, origins) {
+module.exports = function (namespace, initialize, ports) {
 
   namespace = namespace || "otiluke";
   initialize = (initialize || ("window."+namespace+" = {eval:eval};")) + template.replace(/@NAMESPACE/g, namespace);
   ports = ports || {};
   ports.http = ports.http || 8080;
   ports.ssl = ports.ssl || 8443;
-  origins = origins || [];
 
   var page = Page(namespace, initialize);
 
@@ -23,12 +22,9 @@ module.exports = function (namespace, initialize, ports, origins) {
     parts.method = req.method;
     parts.headers = req.headers;
     var pReq = http.request(parts, function (pRes) {
-      if ("origin" in req.headers && origins.indexOf(req.headers.host) !== -1)
-        pRes.headers["access-control-allow-origin"] = req.headers["origin"];
       var type = pRes.headers["content-type"];
       if (type && type.indexOf("text/html") !== -1) {
         delete pRes.headers["content-length"];
-        //delete pRes.headers["content-encoding"];
         pRes.pipe = page;
       }
       res.writeHead(pRes.statusCode, pRes.statusMessage, pRes.headers);
