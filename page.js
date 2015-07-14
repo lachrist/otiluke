@@ -8,12 +8,19 @@ var HtmlParser = require("htmlparser2")
 
 module.exports = function (namespace, initialize) {
   return function (out) {
+    var first = true;
     var script = null;
     var src, async, defer;
     Object.getPrototypeOf(this).pipe.call(this, new HtmlParser.Parser({
       onprocessinginstruction: function (name, data) { out.write("<"+data+">") },
       onopentag: function(tag, attributes) {
         if (tag === "script") {
+          if (first) {
+            first = false;
+            out.write("<script>");
+            out.write(initialize);
+            out.write("</script>");
+          }
           script = [];
           src = attributes.src;
           async = String("async" in attributes);
@@ -26,11 +33,6 @@ module.exports = function (namespace, initialize) {
         for (var name in attributes)
           out.write(" "+name+"=\""+attributes[name]+"\"")
         out.write(">")
-        if (tag === "head") {
-          out.write("<script>");
-          out.write(initialize);
-          out.write("</script>");
-        }
       },
       ontext: function(text) { script ? script.push(text) : out.write(text) },
       onclosetag: function(tag) {
