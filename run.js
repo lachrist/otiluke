@@ -10,20 +10,12 @@ if ("help" in args)
       "  --namespace:  identifier of a global object that should contain an",
       "                eval function and where otiluke set a property 'otiluke'.",
       "  --initialize: path to JavaScript file to be executed first in the page.",
-      "  --http-port:  port to listen for http requests.",
-      "  --ssl-port:   port to listen for ssl-encrypted http requests.",
+      "  --port:       port to listen for http(s) requests.",
       "  --help:       prints this message.",
       "",
-      "Example:",
-      "otiluke",
-      "  --namespace  __hidden__",
-      "  --initialize /path/to/init.js",
-      "  --http-port  8080",
-      "  --ssl-port   8443"
+      "otiluke --namespace  __hidden__ --initialize /path/to/init.js --port 8080",
     ].join("\n"));
 
-(require("./main.js"))(
-  args.namespace,
-  args.initialize ? require("fs").readFileSync(args.initialize) : null,
-  {http:args["http-port"], ssl:args["ssl-port"]}
-);
+var initialize = args.initialize ? require("fs").readFileSync(args.initialize) : null;
+
+(require("./main.js"))(args.namespace, initialize, args.port);

@@ -8,6 +8,6 @@ require("http").createServer(function (req, res) {
     "Content-Type": "text/plain",
     "Access-Control-Allow-Origin": "*"
   });
-  req.on("data", function (chunk) { out.write(chunk.toString("utf8")); });
+  req.on("data", function (chunk) { console.log(chunk.toString("utf8")); });
   req.on("end", function () { res.end("ok") })
 }).listen(process.argv[2]);
