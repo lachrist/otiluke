@@ -17,7 +17,6 @@ window.@NAMESPACE.otiluke = (function () {
   return function (src, async, defer) {
     var request = new XMLHttpRequest()
     request.open("GET", src, async||defer);
-    request.setRequestHeader("Content-Type", "text/javascript");
     if (defer || async) {
       if (defer && deferred) {
         var id = deferred.push(null) - 1;

@@ -30,13 +30,14 @@ module.exports = function (namespace, initialize) {
           defer = String("defer" in attributes);
         }
         out.write("<"+tag)
-        if (!("id" in attributes))
-          attributes.id = namespace+(++index);
         for (var name in attributes)
-          if (name.indexOf("on") === 0)
+          if (name.indexOf("on") === 0) {
+            if (!("id" in attributes))
+              out.write(" id=\""+(attributes.id = namespace+(++index))+"\"");
             handlers.push(namespace+".handler(document.getElementById("+JSON.stringify(attributes.id)+"),"+JSON.stringify(name)+","+JSON.stringify(attributes[name])+");\n");
-          else
+          } else {
             out.write(" "+name+"=\""+attributes[name]+"\"");
+          }
         out.write(">");
       },
       ontext: function(text) { script ? script.push(text) : out.write(text) },
