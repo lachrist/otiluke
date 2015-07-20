@@ -1,5 +1,7 @@
 
-var HtmlParser = require("htmlparser2")
+var fs = require("fs");
+var HtmlParser = require("htmlparser2");
+var template = fs.readFileSync(__dirname+"/template.js", {encoding:"utf8"});
 
 //var Convert = require("./convert.js")
 // // http://www.w3schools.com/tags/ref_eventattributes.asp
@@ -7,6 +9,7 @@ var HtmlParser = require("htmlparser2")
 // function isjsattribute (name) { return name.indexOf("on") === 0 }
 
 module.exports = function (namespace, initialize) {
+  initialize = (initialize+template).replace(/@NAMESPACE/g, namespace);
   return function (out) {
     var first = true;
     var script = null;

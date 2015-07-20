@@ -9,17 +9,19 @@
 //   Note that the proxy may forward the request on to another proxy or directly to the server specified by the absoluteURI.
 //   In order to avoid request loops, a proxy must be able to recognize all of its server names, including any aliases, local variations, and the numeric IP address.
 
-var util = require("util");
-var fs = require("fs");
+// openssl genrsa -out key.pem 2048
+// openssl req -new -sha256 -key ca-key.pem -out csr.pem
+// openssl x509 -req -in csr.pem -signkey key.pem -out cert.pem
+
+// openssl ca -keyfile
+
+var page = require("./page.js");
+var ca = require("./ca.js");
 var url = require("url");
 var http = require("http");
 var https = require("https");
 var protocols = {"http:":http, "https:":https};
 var net = require("net");
-var Page = require("./page.js");
-var template = fs.readFileSync(__dirname+"/template.js", {encoding:"utf8"});
-var key = fs.readFileSync(__dirname+"/certificate/key.pem", {encoding:"utf8"});
-var cert = fs.readFileSync(__dirname+"/certificate/cert.pem", {encoding:"utf8"});
 var definit = [
   "window.@NAMESPACE = {",
   "  script: function (js, src) { eval(js) },",
@@ -27,24 +29,23 @@ var definit = [
   "};"
 ].join("\n");
 
-var spawn = require('child_process').spawn;
-
 module.exports = function (namespace, initialize, port) {
 
   namespace = namespace||"otiluke";
-  initialize = ((initialize||definit)+template).replace(/@NAMESPACE/g, namespace);
+  initialize = initialize||definit;
   port = port || 8080;
 
-  function forward (opts, req, res) {
-    console.log("FORWARD: "+JSON.stringify(opts)+"\n");
+  // parts: {protocol:String, hostname:String, port:Number, path:String}
+  function forward (parts, req, res) {
+    console.log("FORWARD: "+JSON.stringify(parts)+"\n");
     delete req.headers["accept-encoding"];
-    opts.method = req.method;
-    opts.headers = req.headers;
-    var pReq = protocols[opts.protocol].request(opts, function (pRes) {
+    parts.method = req.method;
+    parts.headers = req.headers;
+    var pReq = protocols[parts.protocol].request(parts, function (pRes) {
       var type = pRes.headers["content-type"];
       if (type && type.indexOf("text/html") !== -1) {
         delete pRes.headers["content-length"];
-        pRes.pipe = page;
+        pRes.pipe = pipe;
       }
       res.writeHead(pRes.statusCode, pRes.statusMessage, pRes.headers);
       pRes.pipe(res);
@@ -56,24 +57,29 @@ module.exports = function (namespace, initialize, port) {
     req.pipe(pReq);
   }
 
-  var page = Page(namespace, initialize);
-  var proxy = http.createServer(function (req, res) {
-    forward(url.parse(req.url), req, res);
-  });
-  var servers = {};
+  var pipe = page(namespace, initialize);
+  var proxy = http.createServer(function (req, res) { forward(url.parse(req.url), req, res) });
+  var mocks = {};
 
   proxy.listen(port);
 
   proxy.on("connect", function (req, csk, head) {
     console.log("CONNECT: "+req.url+"\n");
-    if (req.url in servers)
+    if (req.url in mocks)
       return tunnel();
-    var parts = /^(.+):([0-9]+)$/.exec(req.url);
-    // We assume the connection is HTTPS which is not necessarly the case.
-    servers[req.url].listen(0, tunnel);
+    var parts = url.parse("https://"+req.url); // We assume the connection is HTTPS which is not necessarly the case.
+    ca(parts.hostname, function (err, key, cert) {
+      if (err) {
+        csk.write("HTTP/"+req.httpVersion+" 500 Failed to create certificate");
+        process.stderr.write("CERTIFICATE ERROR: "+err+"\n\n\n");
+      } else {
+        mocks[req.url] = https.createServer({key:key, cert:cert}, forward.bind(null, parts));
+        mocks[req.url].listen(0, tunnel);
+      }
+    });
     function tunnel () {
-      var opts = {host:"localhost", port:servers[req.url].address().port};
-      var psk = new net.createConnection(opts, function () {
+      var port = mocks[req.url].address().port;
+      var psk = new net.createConnection({host:"localhost", port:port}, function () {
         psk.write(head);
         csk.write("HTTP/"+req.httpVersion+" 200 Connection established\r\n\r\n");
       });

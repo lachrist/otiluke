@@ -5,7 +5,7 @@
 , "repository": "lachrist/otiluke"
 , "license" : "MIT"
 , "dependencies": {"htmlparser2":"*", "minimist":"*"}
-, "files" : ["convert.js", "certificate", "entities.js", "main.js", "page.js", "run.js", "template.js"]
+, "files" : ["convert.js", "ca", "entities.js", "main.js", "page.js", "run.js", "template.js"]
 , "main": "main.js"
 , "bin": "run.js"
 , "keywords" : ["JavaScript", "HTML", "Trap", "Catch", "Script", "Script-Tag", "Script-Attribute"]
