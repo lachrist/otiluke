@@ -1,0 +1,21 @@
+HOME = . # next, '.' points to the dir where this file lies
+
+[ ca ]
+default_ca = CA_default
+
+[ CA_default ]
+dir             = ./ca           # home dir
+certs           = $dir/crts      # where to put crt named by serial
+new_certs_dir   = $dir/crts      # alias for certs (version dependent)
+private_key     = $dir/cakey.pem # crt authority key
+certificate     = $dir/cacrt.pem # crt authority crt
+serial          = $dir/serial    # where to store unique crt id
+database        = $dir/index.txt # trace operations
+unique_subject  = yes            # unique DN common name
+default_days    = 3650           # crt validity
+default_md      = sha256         # signature algorithm
+copy_extensions = copy           # add extension from req to crt
+policy          = minimal        # which DN are mandatory, removed, etc
+
+[ minimal ]
+commonName = supplied

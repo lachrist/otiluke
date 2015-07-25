@@ -1,6 +1,7 @@
 
 // https://newspaint.wordpress.com/2012/11/05/node-js-http-and-https-proxy/
 // https://github.com/joeferner/node-http-mitm-proxy/blob/master/lib/proxy.js
+// http://blog.vanamco.com/proxy-requests-in-node-js/
 
 // http://www.w3.org/Protocols/HTTP/1.1/draft-ietf-http-v11-spec-01#Request-Line
 //   The absoluteURI form is only allowed when the request is being made to a proxy.
@@ -15,7 +16,7 @@
 
 // openssl ca -keyfile
 
-var page = require("./page.js");
+var html = require("./html.js");
 var ca = require("./ca.js");
 var url = require("url");
 var http = require("http");
@@ -57,36 +58,46 @@ module.exports = function (namespace, initialize, port) {
     req.pipe(pReq);
   }
 
-  var pipe = page(namespace, initialize);
-  var proxy = http.createServer(function (req, res) { forward(url.parse(req.url), req, res) });
+  var pipe = html(namespace, initialize);
+  var proxy = http.createServer();
   var mocks = {};
 
-  proxy.listen(port);
-
+  proxy.on("error", function (err) { process.stderr.write("Error on proxy "+err.message) });
+  proxy.on("request", function (req, res) { forward(url.parse(req.url), req, res) });
+  proxy.on("upgrade", function () { throw new Error("Upgrade not supported [proxy]") });
   proxy.on("connect", function (req, csk, head) {
     console.log("CONNECT: "+req.url+"\n");
     if (req.url in mocks)
       return tunnel();
     var parts = url.parse("https://"+req.url); // We assume the connection is HTTPS which is not necessarly the case.
-    ca(parts.hostname, function (err, key, cert) {
+    ca(parts.hostname, function (err, key, crt) {
       if (err) {
         csk.write("HTTP/"+req.httpVersion+" 500 Failed to create certificate");
         process.stderr.write("CERTIFICATE ERROR: "+err+"\n\n\n");
       } else {
-        mocks[req.url] = https.createServer({key:key, cert:cert}, forward.bind(null, parts));
+        mocks[req.url] = https.createServer({key:key, crt:crt});
+        mocks[req.url].on("error", function (err) { process.stderr.write("Error on mitm "+err.message) });
+        mocks[req.url].on("request", function (req, res) { forward(parts, req, res) });
+        mocks[req.url].on("upgrade", function () { throw new Error("Upgrade not supported [https]") });
+        mocks[req.url].on("connect", function () { throw new Error("Connect not supported [https]") });
         mocks[req.url].listen(0, tunnel);
       }
     });
     function tunnel () {
       var port = mocks[req.url].address().port;
-      var psk = new net.createConnection({host:"localhost", port:port}, function () {
+      console.log("TUNNEL "+port+" "+head);
+      var psk = new net.createConnection(port, "localhost", function () {
+        csk.on("error", function (err) { process.stderr.write("Error on client socket "+err.message) });
+        psk.on("error", function (err) { process.stderr.write("Error on proxy socket "+err.message) });
         psk.write(head);
+        console.log("HEAD: "+head);
         csk.write("HTTP/"+req.httpVersion+" 200 Connection established\r\n\r\n");
+        csk.pipe(psk);
+        psk.pipe(csk);
       });
-      psk.pipe(csk);
-      csk.pipe(psk);
     }
   });
+  proxy.listen(port);
 
 }
 
