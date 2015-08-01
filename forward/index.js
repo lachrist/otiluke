@@ -12,6 +12,7 @@ module.exports = function (log, nsp, ini) {
     var parts = Url.parse(req.url);
     parts.method = req.method;
     parts.headers = req.headers;
+    parts.rejectUnauthorized = false;
     log.info("forward: ", parts, "\n\n");
     var req2 = protocol.request(parts, function (res2) {
       if (res2.statusCode !== 200)

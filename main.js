@@ -39,6 +39,7 @@ module.exports = function (level, namespace, initialize, port) {
         csk.write("HTTP/"+req.httpVersion+" 500 Failed to create certificate");
         log.error("certificate ", err, "\n\n");
       } else {
+        // TODO check if we can remove rejectUnauthroized
         mocks[host] = Https.createServer({key:key, cert:crt, rejectUnauthorized:false});
         mocks[host].on("error", function (err) { log.error("mock ", host, " ", err.message+"\n\n") });
         mocks[host].on("request", function (req, res) {
