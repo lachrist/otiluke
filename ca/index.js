@@ -54,16 +54,16 @@ var fs = require("fs");
 var spawn = require("child_process").spawn;
 var options = {stdio:["ignore", "ignore", process.stderr]};
 var ca = {
-  crt: __dirname+"/ca/cacrt.pem",
-  key: __dirname+"/ca/cakey.pem",
-  ser: __dirname+"/ca/serial"
+  crt: __dirname+"/cacrt.pem",
+  key: __dirname+"/cakey.pem",
+  ser: __dirname+"/serial"
 };
 
 module.exports = function (hostname, callback) {
   var files = {
-    key: __dirname+"/ca/keys/"+hostname+".pem",
-    req: __dirname+"/ca/reqs/"+hostname+".pem",
-    crt: __dirname+"/ca/crts/"+hostname+".pem"
+    key: __dirname+"/keys/"+hostname+".pem",
+    req: __dirname+"/reqs/"+hostname+".pem",
+    crt: __dirname+"/crts/"+hostname+".pem"
   };
   function read (callback) {
     fs.readFile(files.key, function (err, key) {
