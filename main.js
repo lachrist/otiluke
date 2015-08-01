@@ -10,18 +10,12 @@
 //   Note that the proxy may forward the request on to another proxy or directly to the server specified by the absoluteURI.
 //   In order to avoid request loops, a proxy must be able to recognize all of its server names, including any aliases, local variations, and the numeric IP address.
 
-// openssl genrsa -out key.pem 2048
-// openssl req -new -sha256 -key ca-key.pem -out csr.pem
-// openssl x509 -req -in csr.pem -signkey key.pem -out cert.pem
-
-// openssl ca -keyfile
-
 var html = require("./html.js");
 var ca = require("./ca.js");
+var Log = require("./log.js");
 var url = require("url");
 var http = require("http");
 var https = require("https");
-var protocols = {"http:":http, "https:":https};
 var net = require("net");
 var definit = [
   "window.@NAMESPACE = {",
@@ -30,31 +24,36 @@ var definit = [
   "};"
 ].join("\n");
 
-module.exports = function (namespace, initialize, port) {
+module.exports = function (level, namespace, initialize, port) {
 
-  namespace = namespace||"otiluke";
-  initialize = initialize||definit;
+  log = Log(level || "warning");
+  namespace = namespace || "otiluke";
+  initialize = initialize || definit;
   port = port || 8080;
 
-  // parts: {protocol:String, hostname:String, port:Number, path:String}
-  function forward (parts, req, res) {
-    console.log("FORWARD: "+JSON.stringify(parts)+"\n");
+  function forward (protocol, host, req, res) {
     delete req.headers["accept-encoding"];
-    parts.method = req.method;
-    parts.headers = req.headers;
-    var pReq = protocols[parts.protocol].request(parts, function (pRes) {
+    var parts = host.split(":")
+    var opts = {
+      hostname: parts[0],
+      port: parts[1] || ((protocol===https)?443:80),
+      method: req.method,
+      path: url.parse(req.url).path,
+      headers: req.headers
+    };
+    log.info("forward: "+JSON.stringify(opts)+"\n\n");
+    var pReq = protocol.request(opts, function (pRes) {
       var type = pRes.headers["content-type"];
       if (type && type.indexOf("text/html") !== -1) {
         delete pRes.headers["content-length"];
         pRes.pipe = pipe;
       }
+      if (pRes.statusCode !== 200)
+        log.warning(pRes.statusCode+" "+pRes.statusMessage+" "+JSON.stringify(opts)+"\n\n");
       res.writeHead(pRes.statusCode, pRes.statusMessage, pRes.headers);
       pRes.pipe(res);
     });
-    pReq.on("error", function (err) {
-      process.stderr.write("Error while forwarding request: "+err.message+"\n");
-      process.stderr.write(req.url+"\n"+JSON.stringify(parts)+"\n\n");
-    });
+    pReq.on("error", function (err) { log.error("forward "+err.message+" "+JSON.stringify(opts)+"\n\n") });
     req.pipe(pReq);
   }
 
@@ -62,35 +61,35 @@ module.exports = function (namespace, initialize, port) {
   var proxy = http.createServer();
   var mocks = {};
 
-  proxy.on("error", function (err) { process.stderr.write("Error on proxy "+err.message) });
-  proxy.on("request", function (req, res) { forward(url.parse(req.url), req, res) });
-  proxy.on("upgrade", function () { throw new Error("Upgrade not supported [proxy]") });
+  proxy.on("error", function (err) { log.error("proxy "+err.message+"\n\n") });
+  proxy.on("request", function (req, res) { forward(http, req.headers.host, req, res) });
+  proxy.on("upgrade", function () { log.warning("upgrade on proxy\n\n") });
   proxy.on("connect", function (req, csk, head) {
-    console.log("CONNECT: "+req.url+"\n");
-    if (req.url in mocks)
+    var host = req.url;
+    log.info("connect "+host+"\n\n");
+    if (host in mocks)
       return tunnel();
-    var parts = url.parse("https://"+req.url); // We assume the connection is HTTPS which is not necessarly the case.
-    ca(parts.hostname, function (err, key, crt) {
+    ca(host.split(":")[0], function (err, key, crt) {
       if (err) {
         csk.write("HTTP/"+req.httpVersion+" 500 Failed to create certificate");
-        process.stderr.write("CERTIFICATE ERROR: "+err+"\n\n\n");
+        log.error("certificate "+err+"\n\n");
       } else {
-        mocks[req.url] = https.createServer({key:key, crt:crt});
-        mocks[req.url].on("error", function (err) { process.stderr.write("Error on mitm "+err.message) });
-        mocks[req.url].on("request", function (req, res) { forward(parts, req, res) });
-        mocks[req.url].on("upgrade", function () { throw new Error("Upgrade not supported [https]") });
-        mocks[req.url].on("connect", function () { throw new Error("Connect not supported [https]") });
-        mocks[req.url].listen(0, tunnel);
+        mocks[host] = https.createServer({key:key, cert:crt});
+        mocks[host].on("error", function (err) { log.error("mock "+host+" "+err.message+"\n\n") });
+        mocks[host].on("request", function (req, res) { forward(https, host, req, res) });
+        mocks[host].on("upgrade", function () { log.warning("upgrade on mock "+host+"\n\n") });
+        mocks[host].on("connect", function () { log.error("connect on mock "+host+"\n\n") });
+        mocks[host].listen(0, tunnel);
       }
     });
     function tunnel () {
-      var port = mocks[req.url].address().port;
-      console.log("TUNNEL "+port+" "+head);
+      var port = mocks[host].address().port;
+      log.info("tunnel "+port+"\n\n");
       var psk = new net.createConnection(port, "localhost", function () {
-        csk.on("error", function (err) { process.stderr.write("Error on client socket "+err.message) });
-        psk.on("error", function (err) { process.stderr.write("Error on proxy socket "+err.message) });
+        csk.on("error", function (err) { log.error("client-socket "+host+" "+err.message+"\n\n") });
+        psk.on("error", function (err) { log.error("proxy-socket "+host+" "+err.message+"\n\n") });
         psk.write(head);
-        console.log("HEAD: "+head);
+        log.info("head "+host+" "+head+"\n\n");
         csk.write("HTTP/"+req.httpVersion+" 200 Connection established\r\n\r\n");
         csk.pipe(psk);
         psk.pipe(csk);
@@ -100,28 +99,3 @@ module.exports = function (namespace, initialize, port) {
   proxy.listen(port);
 
 }
-
-
-    // csk.on("data", function (chunk) { psk.write(chunk) });
-    // csk.on("end", function () { psk.end() });
-    // csk.on("error", function (err) {
-    //   process.stderr.write("Error at Client TCP socket: "+err.message+"\n");
-    //   process.stderr.write(req.url+"\n\n\n");
-    //   psk.end();
-    // });
-    // psk.on("data", function (chunk) {
-    //   console.log(chunk.toString());
-    //   csk.write(chunk);
-    // });
-    // psk.on("end", function () { csk.end() });
-    // psk.on("error", function (err) {
-    //   process.stderr.write("Error at Proxy TCP socket: "+err.message+"\n");
-    //   process.stderr.write(req.url+"\n\n\n");
-    //   csk.end();
-    // });
-  
-
-  // Lets *not* support websocket right now! 
-  // server.on("upgrade", function (request, socket, head) {
-  //   console.log(request.headers);
-  // });

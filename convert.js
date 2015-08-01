@@ -7,14 +7,14 @@ var Entities = require("./entities.js");
 
 // cf: http://www.w3.org/TR/html-markup/syntax.html#attr-value-double-quoted //
 
-function ondecmatch (match, dec) { return String.fromCharCode(dec) }
-function onhexmatch (match, hex) { return String.fromCharCode("0"+hex) }
-function onnamematch (match, name) { return String.fromCharCode(Entities[name]) }
+function ondec (match, dec) { return String.fromCharCode(dec) }
+function onhex (match, hex) { return String.fromCharCode("0"+hex) }
+function onname (match, name) { return String.fromCharCode(Entities[name]) }
 exports.attribute2js = function (attribute) {
   return attribute
-    .replace(/&#([0-9]+);/g, ondecmatch)
-    .replace(/&#(x[0-9A-F]+);/ig, onhexmatch)
-    .replace(/&([A-Z]+;?)/ig, onnamematch)
+    .replace(/&#([0-9]+);/g, ondec)
+    .replace(/&#(x[0-9A-F]+);/ig, onhex)
+    .replace(/&([A-Z]+;?)/ig, onname)
 }
 
 exports.js2attribute = function  (js) { return js.replace(/&/g, "&#38;").replace(/"/g, "&#34;"); }

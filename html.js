@@ -1,6 +1,7 @@
 
 var fs = require("fs");
 var HtmlParser = require("htmlparser2");
+var Convert = require("./convert.js");
 var template = fs.readFileSync(__dirname+"/template.js", {encoding:"utf8"});
 
 //var Convert = require("./convert.js")

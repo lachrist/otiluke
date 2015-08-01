@@ -40,11 +40,24 @@
 // Write out database with 1 new entries
 // Data Base Updated
 
+// openssl req -nodes -newkey rsa:2048 -keyout example.key -out example.csr -subj "/C=GB/ST=London/L=London/O=Global Security/OU=IT Department/CN=example.com"
+
+// openssl req -nodes -newkey rsa:2048 -keyout example.key -out example.csr -subj "/C=GB/ST=London/L=London/O=Global Security/OU=IT Department/CN=example.com"
+
+
+// openssl genrsa -out key.pem 2048
+// openssl req -new -sha256 -key ca-key.pem -out csr.pem
+// openssl x509 -req -in csr.pem -signkey key.pem -out cert.pem
+
 
 var fs = require("fs");
 var spawn = require("child_process").spawn;
-var options = {stdio:["pipe", "ignore", process.stderr]};
-var ca = [fs.readFileSync(__dirname+"/ca/cacrt.pem")];
+var options = {stdio:["ignore", "ignore", process.stderr]};
+var ca = {
+  crt: __dirname+"/ca/cacrt.pem",
+  key: __dirname+"/ca/cakey.pem",
+  ser: __dirname+"/ca/serial"
+};
 
 module.exports = function (hostname, callback) {
   var files = {
@@ -66,18 +79,14 @@ module.exports = function (hostname, callback) {
   read(function (err, key, crt) {
     if (!err)
       return callback(null, key, crt);
-    spawn("openssl", ["genrsa", "-out", files.key, "2048"], options).on("exit", function (code, signal) {
+    spawn("openssl", ["req", "-sha256", "-nodes", "-newkey", "rsa:2048", "-keyout", files.key, "-out", files.req, "-subj", "/CN="+hostname], options).on("exit", function (code, signal) {
       if (code !== 0)
-        return callback(new Error("openssl genrsa failed; code: "+code+" signal: "+signal));
-      spawn("openssl", ["req", "-new", "-sha256", "-key", files.key, "-out", files.req], options).on("exit", function (code, signal) {
+        return callback(new Error("openssl req failed; code: "+code+" signal: "+signal));  
+      spawn("openssl", ["x509", "-CA", ca.crt, "-CAkey", ca.key, "-CAserial", ca.ser, "-req", "-in", files.req, "-out", files.crt], options).on("exit", function (code, signal) {
         if (code !== 0)
-          return callback(new Error("openssl req failed; code: "+code+" signal: "+signal));
-        spawn("openssl", ["ca", "-config", __dirname+"/ca/minimal-ca.cnf", "-in", files.req, "-out", files.crt], options).on("exit", function (code, signal) {
-          if (code !== 0)
-            return callback(new Error("openssl ca failed; code: "+code+" signal: "+signal));
-          read(callback);
-        }).stdin.write("y\ny\n", "utf8");
-      }).stdin.write("\n\n\n\n\n"+hostname+"\n\n\n\n", "utf8");
+          return callback(new Error("openssl ca failed; code: "+code+" signal: "+signal));
+        read(callback);
+      });
     });
   });
 };
