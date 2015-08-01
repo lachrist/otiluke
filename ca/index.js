@@ -40,15 +40,8 @@
 // Write out database with 1 new entries
 // Data Base Updated
 
-// openssl req -nodes -newkey rsa:2048 -keyout example.key -out example.csr -subj "/C=GB/ST=London/L=London/O=Global Security/OU=IT Department/CN=example.com"
-
-// openssl req -nodes -newkey rsa:2048 -keyout example.key -out example.csr -subj "/C=GB/ST=London/L=London/O=Global Security/OU=IT Department/CN=example.com"
-
-
-// openssl genrsa -out key.pem 2048
-// openssl req -new -sha256 -key ca-key.pem -out csr.pem
-// openssl x509 -req -in csr.pem -signkey key.pem -out cert.pem
-
+// openssl req -sha256 -nodes -newkey rsa:2048 -keyout key.pem -out csr.pem -subj "/C=GB/ST=London/L=London/O=Global Security/OU=IT Department/CN=example.com"
+// openssl x509 -CA  -req -in csr.pem -signkey key.pem -out crt.pem
 
 var fs = require("fs");
 var spawn = require("child_process").spawn;
