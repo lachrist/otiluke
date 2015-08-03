@@ -43,13 +43,21 @@ module.exports = function (log, nsp, ini) {
           async = String("async" in attributes);
           defer = String("defer" in attributes);
         }
-        est.write("<"+tag)
-        var id = ("id" in attributes) ? attributes.id : (attributes.id = nsp+(++index));
+        est.write("<"+tag);
         for (var name in attributes)
-          if (name.indexOf("on") === 0)
+          if (name.indexOf("on") === 0) {
+            if (!id) {
+              if ("id" in attributes) {
+                var id = attributes.id
+              } else {
+                var id = nsp+(++index);
+                est.write(" id=\""+id+"\"");
+              }
+            }
             handlers.push(nsp+".handler(document.getElementById(\""+id+"\"),\""+name+"\","+JSON.stringify(Convert.attribute2script(attributes[name]))+");\n");
-          else
+          } else {
             est.write(" "+name+"=\""+attributes[name]+"\"");
+          }
         est.write(">");
       },
       ontext: function(text) { script ? script.push(text) : est.write(text) },
@@ -58,11 +66,11 @@ module.exports = function (log, nsp, ini) {
           est.write(handlers.join(""));
           handlers = [];
           if (src) {
-            est.write(nsp+".otiluke("+JSON.stringify(src)+","+async+","+defer+")");
+            est.write(nsp+".otiluke("+JSON.stringify(src)+","+async+","+defer+");\n");
           } else {
             est.write(nsp+".script(");
             est.write(JSON.stringify(script.join("")));
-            est.write(",null)");
+            est.write(",null);\n");
           }
         } else if (tag === "body") {
           est.write("<script>");

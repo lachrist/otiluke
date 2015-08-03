@@ -3,7 +3,7 @@ function nil () {}
 var levels = {error:1, warning:2, info:3}
 
 module.exports = function (log) {
-  level = levels[log] || 0;
+  level = levels[log||"warning"] || 0;
   return {
     error:   (level >= 1) ? function () { write(process.stderr, "ERROR: ",   arguments) } : nil,
     warning: (level >= 2) ? function () { write(process.stdout, "Warning: ", arguments) } : nil,
@@ -14,7 +14,9 @@ module.exports = function (log) {
 function write(wst, prefix, args) {
   wst.write(prefix);
   for (var i=0; i<args.length; i++) {
-    if (typeof args[i] === "object")
+    if (args[i] instanceof Buffer)
+      wst.write(args[i].toString());
+    else if (typeof args[i] === "object")
       try { wst.write(JSON.stringify(args[i])) }
       catch (e) { wst.write(String(args[i])) }
     else

@@ -22,12 +22,16 @@ module.exports = function (log, nsp, ini) {
       if (ishtml)
         delete res2.headers["content-length"];
       res.writeHead(res2.statusCode, res2.statusMessage, res2.headers);
-      if (!ishtml)
-        return res2.pipe(res);
-      var parts = /(?:charset|encoding)\s*=\s*['"]? *([\w\-]+)/i.exec(type)
-      html(parts && parts[1], res2, res);
+      if (ishtml)
+        return html(charset(type), res2, res)
+      res2.pipe(res);
     });
     req2.on("error", function (err) { log.error("forward ", err.message, " ", parts, "\n\n") });
     req.pipe(req2);
   };
+}
+
+function charset (type) {
+  var parts = /(?:charset|encoding)\s*=\s*['"]? *([\w\-]+)/i.exec(type);
+  return parts && parts[1];
 }

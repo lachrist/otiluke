@@ -4,12 +4,13 @@ var Entities = require("./entities.js");
 exports.attribute2script = function (attribute) { return exports.js2script(exports.attribute2js(attribute)) }
 
 // cf: http://www.w3.org/TR/html-markup/syntax.html#attr-value-double-quoted //
-function ondec (match, dec) { return String.fromCharCode(dec) }
-function onhex (match, hex) { return String.fromCharCode("0"+hex) }
+function ondec (match, dec) { return String.fromCharCode(Number(dec)) }
+function onhex (match, hex) { return String.fromCharCode(Number("0"+hex)) }
 function onname (match, name) { return String.fromCharCode(Entities[name]) }
-exports.attribute2js = function (attribute) { return attribute.replace(/&#([0-9]+);/g, ondec).replace(/&#(x[0-9A-F]+);/ig, onhex).replace(/&([A-Z]+;?)/ig, onname) }
 
-exports.js2attribute = function (js) { return js.replace(/&/g, "&#38;").replace(/"/g, "&#34;"); }
+exports.attribute2js = function (attribute) { return attribute.replace(/&#([0-9]+);/g, ondec).replace(/&#(x[0-9A-F]+);/ig, onhex).replace(/(&[A-Z]+;?)/ig, onname) }
+
+exports.js2attribute = function (js) { return js.replace(/&/g, "&#38;").replace(/"/g, "&#34;") }
 
 exports.script2js = function (script) { return script }
 
