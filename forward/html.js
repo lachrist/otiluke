@@ -7,26 +7,25 @@ var Convert = require("./convert.js");
 var Iconv = require("iconv-lite");
 var Entities = require("./entities.js");
 var template = require("fs").readFileSync(__dirname+"/template.js", {encoding:"utf8"});
-var defini = [
-  "window.@NAMESPACE = {",
-  "  script: function (js, src) { eval(js) },",
-  "  handler: function (node, name, js) { node[name] = new Function('event', js) }",
-  "};"
-].join("\n");
+
 
 module.exports = function (log, nsp, ini) {
   nsp = nsp || "__hidden__";
-  initialize = Convert.js2script(((ini||defini)+template).replace(/@NAMESPACE/g, nsp));
+  initialize = [
+    "if (!("+JSON.stringify(nsp)+" in window))",
+    "(function () {",
+    Convert.js2script(((ini||defini)+template).replace(/@NAMESPACE/g, nsp)),
+    "} ());"
+  ].join("\n");
   return function (enc, inc, out) {
+    return inc.pipe(out);
     var first = true;
     var script = null;
     var src, async, defer;
     var handlers = [];
     var index = 0;
-    if (!Iconv.encodingExists(enc))
-      enc = "ISO-8859-1";
     var est = Iconv.encodeStream(enc);
-    est.pipe(out)[0];
+    est.pipe(out);
     inc.pipe(Iconv.decodeStream(enc)).pipe(new HtmlParser.Parser({
       onprocessinginstruction: function (name, data) { est.write("<"+data+">") },
       onopentag: function(tag, attributes) {
@@ -39,16 +38,18 @@ module.exports = function (log, nsp, ini) {
           }
           script = [];
           src = attributes.src;
-          delete attributes.src;
           async = String("async" in attributes);
           defer = String("defer" in attributes);
+          delete attributes.src;
+          delete attributes.async;
+          delete attributes.defer;
         }
         est.write("<"+tag);
         for (var name in attributes)
           if (name.indexOf("on") === 0) {
             if (!id) {
               if ("id" in attributes) {
-                var id = attributes.id
+                var id = attributes.id;
               } else {
                 var id = nsp+(++index);
                 est.write(" id=\""+id+"\"");
