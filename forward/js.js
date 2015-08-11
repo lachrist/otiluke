@@ -3,12 +3,14 @@ var Iconv = require("iconv-lite");
 
 module.exports = function (namespace, initialize) {
   namespace = namespace || "__hidden__";
-  initialize = initialize || [
-    "window."+namespace+" = {",
-    "  script: function (js, src) { eval(js) },",
-    "  handler: function (node, name, js) { node[name] = new Function('event', js) }",
-    "};"
-  ].join("\n");
+  initialize = (initialize || [
+    "if (!window."+namespace+")",
+    "  window."+namespace+" = {",
+    "    script: function (js, src) { eval(js) },",
+    "    handler: function (node, name, js) { node[name] = new Function('event', js) }",
+    "  };"
+  ].join("\n")).replace(/<\/script/g, "<\\/script");
+  // initialize = "if (!window."+namespace+")) { (function () {\n"+initialize+"\n} ()); }"
   return {
     internal: function (script) {
       if (script === null)

@@ -2,7 +2,9 @@
 // // Such rudimentory predicate might be inaccurate, to be verified
 // function isjsattribute (name) { return name.indexOf("on") === 0 }
 
-var Iconv = require("iconv-lite");var script = /(<script[\s\S]*?>)([\s\S]*?)(<\/script>)/gi;
+var Iconv = require("iconv-lite");
+var script = /(<script[\s\S]*?>)([\s\S]*?)(<\/script>)/gi;
+var comment = /<!--([\s\S]*?)-->/g;
 
 module.exports = function (logger, internal) {
   return function (encoding, incoming, outcoming) {
@@ -15,6 +17,6 @@ module.exports = function (logger, internal) {
       return prefix+open+script+close;
     }
     incoming.on("data", function (chunk) { chunks.push(Iconv.decode(chunk, encoding)) });
-    incoming.on("end", function () { outcoming.end(Iconv.encode(chunks.join("").replace(script, transform), encoding)) });
+    incoming.on("end", function () { outcoming.end(Iconv.encode(chunks.join("").replace(comment, "").replace(script, transform), encoding)) });
   };
 }

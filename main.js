@@ -42,6 +42,7 @@ module.exports = function (opts) {
       mcks[hst].on("upgrade", function (err) { log.warning("upgrade on record") });
       mcks[hst].on("connection", function (sck) { sck.setKeepAlive(true, 10*60*1000) });
       mcks[hst].on("request", function (req, res) {
+        log.info("logging ", req.headers.origin, "\n\n");
         res.writeHead(200, hdrs);
         req.on("data", function (chk) { wrs.write(chk) });
         req.on("end", function () { res.end() })
