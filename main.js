@@ -44,7 +44,7 @@ module.exports = function (opts) {
       mcks[hst].on("request", function (req, res) {
         log.info("logging ", req.headers.origin, "\n\n");
         res.writeHead(200, hdrs);
-        req.on("data", function (chk) { wrs.write(chk) });
+        req.on("data", function (chk) { wrs.write(chk); console.log(chk.toString("utf8")) });
         req.on("end", function () { res.end() })
       });
       mcks[hst].listen(opts.record.port, mitm);

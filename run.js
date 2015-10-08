@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
-var Minimist = require("minimist")
+var Minimist = require("minimist");
 var Fs = require("fs");
-var Main = require("./main.js")
+var Main = require("./main.js");
 
 var args = Minimist(process.argv.slice(2));
 if ("help" in args)
