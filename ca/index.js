@@ -43,42 +43,43 @@
 // openssl req -sha256 -nodes -newkey rsa:2048 -keyout key.pem -out csr.pem -subj "/C=GB/ST=London/L=London/O=Global Security/OU=IT Department/CN=example.com"
 // openssl x509 -CA  -req -in csr.pem -signkey key.pem -out crt.pem
 
-var fs = require("fs");
-var spawn = require("child_process").spawn;
+var Fs = require("fs");
+var ChildProcesss = require("child_process");
 var options = {stdio:["ignore", "ignore", process.stderr]};
 var ca = {
-  crt: __dirname+"/cacrt.pem",
+  cert: __dirname+"/cacert.pem",
   key: __dirname+"/cakey.pem",
   ser: __dirname+"/serial"
 };
+
+function read (files, callback) {
+  Fs.readFile(files.key, function (err, key) {
+    if (err)
+      return callback(new Error("cannot read key file "+files.key, +": "+err));
+    Fs.readFile(files.cert, function (err, cert) {
+      if (err)
+        return callback(new Error("cannot read cert file "+files.cert, +": "+err));
+      callback(null, key, cert);
+    });
+  });
+}
 
 module.exports = function (hostname, callback) {
   var files = {
     key: __dirname+"/keys/"+hostname+".pem",
     req: __dirname+"/reqs/"+hostname+".pem",
-    crt: __dirname+"/crts/"+hostname+".pem"
+    cert: __dirname+"/certs/"+hostname+".pem"
   };
-  function read (callback) {
-    fs.readFile(files.key, function (err, key) {
-      if (err)
-        return callback(new Error("cannot read key file "+files.key, +": "+err));
-      fs.readFile(files.crt, function (err, crt) {
-        if (err)
-          return callback(new Error("cannot read key file "+files.crt, +": "+err));
-        callback(null, key, crt);
-      });
-    });
-  }
-  read(function (err, key, crt) {
+  read(files, function (err, key, cert) {
     if (!err)
-      return callback(null, key, crt);
-    spawn("openssl", ["req", "-sha256", "-nodes", "-newkey", "rsa:2048", "-keyout", files.key, "-out", files.req, "-subj", "/CN="+hostname], options).on("exit", function (code, signal) {
+      return callback(null, key, cert);
+    ChildProcess.spawn("openssl", ["req", "-sha256", "-nodes", "-newkey", "rsa:2048", "-keyout", files.key, "-out", files.req, "-subj", "/CN="+hostname], options).on("exit", function (code, signal) {
       if (code !== 0)
         return callback(new Error("openssl req failed; code: "+code+" signal: "+signal));  
-      spawn("openssl", ["x509", "-CA", ca.crt, "-CAkey", ca.key, "-CAserial", ca.ser, "-req", "-in", files.req, "-out", files.crt], options).on("exit", function (code, signal) {
+      ChildProcess.spawn("openssl", ["x509", "-CA", ca.cert, "-CAkey", ca.key, "-CAserial", ca.ser, "-req", "-in", files.req, "-out", files.cert], options).on("exit", function (code, signal) {
         if (code !== 0)
           return callback(new Error("openssl ca failed; code: "+code+" signal: "+signal));
-        read(callback);
+        read(files, callback);
       });
     });
   });
