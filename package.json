@@ -1,12 +1,11 @@
 { "name" : "otiluke"
-, "description" : "Otiluke intercepts every bit of JavaScript code within a HTML page"
-, "version" : "0.0.19"
+, "description" : "Otiluke intercepts JavaScript code within HTML pages and Node modules"
+, "version" : "1.0.0"
 , "author" : {"name":"Laurent Christophe", "email":"lachrist@vub.ac.be"}
 , "repository": "lachrist/otiluke"
 , "license" : "MIT"
-, "dependencies": {"htmlparser2":"*", "minimist":"*", "iconv-lite":"*"}
-, "files" : ["ca", "forward", "log.js", "main.js", "run.js"]
+, "dependencies": {"browserify":"*"}
+, "files" : ["mitm", "main.js"]
 , "main": "main.js"
-, "bin": "run.js"
-, "keywords" : ["JavaScript", "HTML", "Trap", "Catch", "Script", "Script-Tag", "Script-Attribute"]
+, "keywords" : ["JavaScript", "Intercept", "Trap", "HTML", "HTTP", "MITM Proxy"]
 }
