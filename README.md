@@ -12,10 +12,12 @@ npm install otiluke
 ```javascript
 var Otiluke = require("otiluke");
 function intercept (url) {
+  console.log("Intercepting " + url);
   return function (js) {
-    return "console.log('Executing' + " + JSON.stringify(url) + ");" + js;
+    return "console.log('Executing ' + " + JSON.stringify(url) + ");\n" + js;
   }
 }
+
 Otiluke({
   setup: ".absolute/path/to/setup.js",
   intercept: intercept,
