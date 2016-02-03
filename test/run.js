@@ -18,9 +18,9 @@ var Main = require("./main.js");
 // });
 
 Main({
-  input: "./test/node/main.js",
-  output: "./test/node/bundle.js",
-  setup: "console.log('setup');",
+  input: "./node/main.js",
+  output: "./node/bundle.js",
+  setup: "./setup.js",
   intercept: function (url) {
     console.log(url);
     return function (js) { return js };

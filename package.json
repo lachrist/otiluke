@@ -5,7 +5,7 @@
 , "repository": "lachrist/otiluke"
 , "license" : "MIT"
 , "dependencies": {"browserify":"*"}
-, "files" : ["mitm", "main.js"]
+, "files" : ["mitm", "main.js", "node.js", "page.js"]
 , "main": "main.js"
 , "keywords" : ["JavaScript", "Intercept", "Trap", "HTML", "HTTP", "MITM Proxy"]
 }
