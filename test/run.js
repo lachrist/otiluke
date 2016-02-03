@@ -1,4 +1,4 @@
-var Main = require("./main.js");
+var Main = require("../main.js");
 
 // Main({
 //   port:8080,
@@ -18,9 +18,9 @@ var Main = require("./main.js");
 // });
 
 Main({
-  input: "./node/main.js",
-  output: "./node/bundle.js",
-  setup: "./setup.js",
+  main: __dirname + "/node/main.js",
+  out: __dirname + "/node/bundle.js",
+  setup: __dirname + "/setup.js",
   intercept: function (url) {
     console.log(url);
     return function (js) { return js };

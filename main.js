@@ -11,7 +11,7 @@ module.exports = function (options) {
     var main = Page;
   if (!options.setup)
     return main(new Buffer(), options);
-  Browserify({detectGlobals:false, builtins:[]})
+  Browserify({builtins:[]})
     .add(options.setup)
     .bundle(function (err, buf) {
       if (err)

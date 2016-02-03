@@ -20,15 +20,15 @@ Otiluke({
   setup: ".absolute/path/to/setup.js",
   intercept: intercept,
   main: "/absolute/path/to/main.js",
-  out: "/absolute/path/to/out.js"
+  out: "/absolute/path/to/bundle.js"
 });
 ```
 
 Under the hood, [Browserfiy](http://browserify.org/) explores the require graph starting from the entry point `options.main`.
-When ever a new file is required, the function `options.intercept` is called with the url path to that file.
+Whenever a new file is required, the function `options.intercept` is called with the url path to that file.
 If this function returns a false value, no transformation is applied to the content of the file.
-If the intercept functions returns a true value, it should be a transformation function.
-The transformed code is bundled and preceded by `options.setup` which may points to the entry point of a node module.
+If the intercept functions returns a true value, it should be function that transform JavaScript code.
+The transformed code is bundled and preceded by `options.setup` which may itself points to the entry point of a node module.
 The result is output to `options.out` or `stdout` if this option is no provided.
 
 ## Intercept JavaScript within HTML pages:
@@ -42,9 +42,10 @@ Otiluke({
 });
 ```
 
-To intercept JavaScript code within HTML pages, Otiluke is deploying an MITM Proxy on local port `options.port` that intercepts every requests and transform their responses.
+To intercept JavaScript code within HTML pages, Otiluke deploy an MITM Proxy on local port `options.port`.
+This proxy intercepts every requests and transform their responses.
 The options `setup` and `intercept` are similar to the ones of the Node mode.
-Two modifications should be done on your browser -- here Firefox but should works on other browsers as well -- to make .
+Two modifications should be done on your browser -- here Firefox but should works on other browsers as well -- before deploying the MITM proxy:
  
 1. You have to indicate Firefox that you trust Otiluke's root certificate.
    Go to `about:preferences#advanced` then click on *Certificates* then *View Certificates*.
@@ -59,8 +60,8 @@ Two modifications should be done on your browser -- here Firefox but should work
 
 2. You have to redirect all Firefox requests to the local port where the MITM proxy is deployed.
    Go again to `about:preferences#advanced` then click on *Network* then *Settings...*.
-   You can now tick the checkbox *Manual proxy configuration* and *Use this proxy for all protocols*.
-   The HTTP proxy fields should be the localhost `127.0.0.1` and the port you gave in the options.
+   You can now tick the checkbox *Manual proxy configuration* and *Use this proxy server for all protocols*.
+   The HTTP proxy fields should be the localhost `127.0.0.1` and the port given in the options.
 
    <img src="img/firefox-proxy.png" align="center" alt="demo-screenshot" title="Firefox's proxy settings"/>
 
