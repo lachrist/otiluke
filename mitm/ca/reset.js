@@ -7,22 +7,21 @@ Fs.writeFileSync(__dirname+"/index.txt", "");
     Fs.unlinkSync(__dirname+"/"+dirname+"/"+filename);
   });
 });
-if (process.argv[2] === "--hard") {
-  Fs.writeFileSync(__dirname+"/serial", "01");
-  ChildProcess.spawnSync("openssl", [
-    "genrsa",
-    "-out", __dirname+"/cakey.pem",
-    "2048"]);
-  ChildProcess.spawnSync("openssl", [
-    "req",
-    "-new",
-    "-sha256",
-    "-key", __dirname+"/cakey.pem",
-    "-out", __dirname+"/careq.pem"]);
-  ChildProcess.spawnSync("openssl", [
-    "x509",
-    "-req",
-    "-in", __dirname+"/careq.pem",
-    "-signkey", __dirname+"/cakey.pem",
-    "-out", __dirname+"/cacert.pem"]);
-}
+Fs.writeFileSync(__dirname+"/serial", "01");
+ChildProcess.spawnSync("openssl", [
+  "genrsa",
+  "-out", __dirname+"/cakey.pem",
+  "2048"]);
+ChildProcess.spawnSync("openssl", [
+  "req",
+  "-new",
+  "-sha256",
+  "-subj", "/CN=otiluke/O=Otiluke",
+  "-key", __dirname+"/cakey.pem",
+  "-out", __dirname+"/careq.pem"]);
+ChildProcess.spawnSync("openssl", [
+  "x509",
+  "-days", "3600",
+  "-req", "-in", __dirname+"/careq.pem",
+  "-signkey", __dirname+"/cakey.pem",
+  "-out", __dirname+"/cacert.pem"]);

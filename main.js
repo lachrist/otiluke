@@ -2,9 +2,12 @@
 var Browserify = require("browserify");
 var Page = require("./page.js");
 var Node = require("./node.js");
+var Reset = require("./mitm/ca/reset.js");
 
 // options: {setup:Path, intercept:Function, port:Number, main:Path, out:Path}
 module.exports = function (options) {
+  if (options.reset)
+    Reset();
   if (options.main)
     var main = Node;
   if (options.port)

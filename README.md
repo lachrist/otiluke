@@ -17,7 +17,6 @@ function intercept (url) {
     return "console.log('Executing ' + " + JSON.stringify(url) + ");\n" + js;
   }
 }
-
 Otiluke({
   setup: ".absolute/path/to/setup.js",
   intercept: intercept,
@@ -66,5 +65,4 @@ Two modifications should be done on your browser -- here Firefox but should work
    The HTTP proxy fields should be the localhost `127.0.0.1` and the port given in the options.
 
    <img src="img/firefox-proxy.png" align="center" alt="demo-screenshot" title="Firefox's proxy settings"/>
-
 

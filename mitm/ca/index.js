@@ -39,8 +39,7 @@ module.exports = function (hostname, callback) {
       "req",
       "-sha256",
       "-nodes",
-      "-newkey",
-      "rsa:2048",
+      "-newkey", "rsa:2048",
       "-keyout", files.key,
       "-out", files.req,
       "-subj", "/CN="+hostname]).on("close", function (code) {
@@ -51,8 +50,8 @@ module.exports = function (hostname, callback) {
           "-CA", ca.cert,
           "-CAkey", ca.key,
           "-CAserial", ca.serial,
-          "-req",
-          "-in", files.req,
+          "-days", "3600",
+          "-req", "-in", files.req,
           "-out", files.cert]).on("close", function (code) {
             if (code)
               return Log("openssl x509")(new Error(code));
