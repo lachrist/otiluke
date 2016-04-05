@@ -1,5 +1,6 @@
 var Module = require("module");
 var Fs = require("fs");
+var Path = require("path");
 
 // VERBATIM https://github.com/nodejs/node/blob/v5.10.0/lib/module.js
 // Module._extensions['.js'] = function(module, filename) {
@@ -20,10 +21,10 @@ function stripBOM(content) {
 }
 
 module.exports = function (options) {
-  var transform = require(options.transform);
+  var transform = require(Path.resolve(options.transform));
   Module._extensions[".js"] = function (module, filename) {
     var content = Fs.readFileSync(filename, "utf8");
     module._compile(transform(stripBOM(content), filename), filename);
   }
-  require(options.main);
+  require(Path.resolve(options.main));
 };

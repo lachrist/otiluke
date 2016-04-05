@@ -1,5 +1,6 @@
 
 var Stream = require("stream");
+var Path = require("path");
 var Browserify = require("browserify");
 var Mitm = require("./mitm");
 var Reset = require("./mitm/ca/reset.js");
@@ -16,7 +17,7 @@ module.exports = function (options) {
     Reset();
   var name = "__otiluke__"
   var stream = new Stream.Readable();
-  stream.push("global."+name+"||(global."+name+"=require("+JSON.stringify(options.transform)+"));");
+  stream.push("global."+name+"||(global."+name+"=require("+JSON.stringify(Path.resolve(options.transform))+"));");
   stream.push(null);
   Browserify(stream).bundle(function (error, buffer) {
     if (error)
