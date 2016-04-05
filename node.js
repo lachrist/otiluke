@@ -1,30 +1,29 @@
-
-var Browserify = require("browserify");
+var Module = require("module");
 var Fs = require("fs");
-var Stream = require("stream");
 
-module.exports = function (setup, options) {
-  var out = options.out ? Fs.createWriteStream(options.out) : process.stdout;
-  out.write(setup);
-  Browserify({detectGlobals:false, builtins:[]}).transform(function (file) {
-    var transform = options.intercept("file://"+file);
-    if (!transform)
-      return new Stream.Transform({transform:transparent});
-    var data = "";
-    return new Stream.Transform({
-      transform: function (chunk, encoding, callback) {
-        data += chunk;
-        callback();
-      },
-      flush: function (callback) { callback
-        this.push(transform(data));
-        callback();
-      }
-    });
-  }, {global:true}).add(options.main).bundle().pipe(out);
+// VERBATIM https://github.com/nodejs/node/blob/v5.10.0/lib/module.js
+// Module._extensions['.js'] = function(module, filename) {
+//   var content = fs.readFileSync(filename, 'utf8');
+//   module._compile(internalModule.stripBOM(content), filename);
+// };
+// VERBATIM https://github.com/nodejs/node/blob/v5.10.0/lib/internal/module.js
+/**
+ * Remove byte order marker. This catches EF BB BF (the UTF-8 BOM)
+ * because the buffer-to-string conversion in `fs.readFileSync()`
+ * translates it to FEFF, the UTF-16 BOM.
+ */
+function stripBOM(content) {
+  if (content.charCodeAt(0) === 0xFEFF) {
+    content = content.slice(1);
+  }
+  return content;
 }
 
-function transparent (chunk, encoding, callback) {
-  this.push(chunk);
-  callback();
-}
+module.exports = function (options) {
+  var transform = require(options.transform);
+  Module._extensions[".js"] = function (module, filename) {
+    var content = Fs.readFileSync(filename, "utf8");
+    module._compile(transform(stripBOM(content), filename), filename);
+  }
+  require(options.main);
+};

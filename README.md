@@ -1,5 +1,7 @@
 # Otiluke <img src="img/otiluke.png" align="right" alt="otiluke-logo" title="Resilient Sphere of Otiluke">
 
+TODO: sec_error_reused_issuer_and_serial
+
 Otiluke is a npm module that intercepts JavaScript within HTML pages and Node modules.
 To install:
 

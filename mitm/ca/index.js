@@ -9,7 +9,7 @@ var ChildProcess = require("child_process");
 var ca = {
   cert: __dirname+"/cacert.pem",
   key: __dirname+"/cakey.pem",
-  serial: __dirname+"/serial"
+  serial: __dirname+"/ca.srl"
 };
 
 function read (files, callback) {

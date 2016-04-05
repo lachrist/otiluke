@@ -1,24 +1,3 @@
 
-var Browserify = require("browserify");
-var Page = require("./page.js");
-var Node = require("./node.js");
-var Reset = require("./mitm/ca/reset.js");
-
-// options: {setup:Path, intercept:Function, port:Number, main:Path, out:Path}
-module.exports = function (options) {
-  if (options.reset)
-    Reset();
-  if (options.main)
-    var main = Node;
-  if (options.port)
-    var main = Page;
-  if (!options.setup)
-    return main(new Buffer(), options);
-  Browserify({builtins:[]})
-    .add(options.setup)
-    .bundle(function (err, buf) {
-      if (err)
-        throw err;
-      main(buf, options);
-    });
-};
+exports.node = require("./node.js");
+exports.mitm = require("./page.js");
