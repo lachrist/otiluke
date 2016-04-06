@@ -5,12 +5,6 @@ var Browserify = require("browserify");
 var Mitm = require("./mitm");
 var Reset = require("./mitm/ca/reset.js");
 
-// function random (length) {
-//   return String.fromCharCode.call(String, new Array(length).map(function () {
-//     return Math.floor(Math.random() * (90 - 65)) + 65;
-//   }));
-// }
-
 // options: {reset:Boolean, transform:Path, port:Number}
 module.exports = function (options) {
   if (options.reset)
@@ -30,9 +24,7 @@ module.exports = function (options) {
       if (type.indexOf("html") !== -1)
         return function (html) {
           return "<script>" + setup + "</script>" + html.replace(regexes.script, function (match, p1, p2, p3, offset) {
-            var string = (regexes.external.test(p1)) ? match : p1 + transform(url+"#"+offset, p2) + p3;
-            //console.log(string);
-            return string;
+            return (regexes.external.test(p1)) ? match : p1 + transform(url+"#"+offset, p2) + p3;
           });
         };
     });

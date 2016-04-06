@@ -4,7 +4,8 @@ var ChildProcess = require("child_process");
 module.exports = function () {
   ["certs", "keys", "reqs"].forEach(function (dirname) {
     Fs.readdirSync(__dirname+"/"+dirname).forEach(function (filename) {
-      Fs.unlinkSync(__dirname+"/"+dirname+"/"+filename);
+      if (filename !== ".gitignore")
+        Fs.unlinkSync(__dirname+"/"+dirname+"/"+filename);
     });
   });
   Fs.writeFileSync(__dirname+"/ca.srl", "01");

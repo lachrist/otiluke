@@ -9,45 +9,41 @@ To install:
 npm install otiluke
 ```
 
-## Intercept JavaScript within Node modules:
+In any case, Otiluke expects a path to a CommonJS module exporting a JavaScript transformation function.
+For instance:
 
 ```javascript
-var Otiluke = require("otiluke");
-function intercept (url) {
-  console.log("Intercepting " + url);
-  return function (js) {
-    return "console.log('Executing ' + " + JSON.stringify(url) + ");\n" + js;
-  }
-}
-Otiluke({
-  setup: ".absolute/path/to/setup.js",
-  intercept: intercept,
-  main: "/absolute/path/to/main.js",
-  out: "/absolute/path/to/bundle.js"
-});
+module.exports = function (code, url) { return code }
 ```
 
-Under the hood, [Browserfiy](http://browserify.org/) explores the require graph starting from the entry point `options.main`.
-Whenever a new file is required, the function `options.intercept` is called with the url path to that file.
-If this function returns a false value, no transformation is applied to the content of the file.
-If the intercept functions returns a true value, it should be function that transform JavaScript code.
-The transformed code is bundled and preceded by `options.setup` which may itself points to the entry point of a node module.
-The result is output to `options.out` or `stdout` if this option is no provided.
+See [./usage](./usage) for examples.
+
+## Transforming Node modules on-the-fly
+
+```javascript
+require("../main.js").node({transform:"path/to/transform.js", main:"/path/to/main.js"});
+```
+
+Or alternatively, if Otiluke is installed globally:
+
+```bash
+otiluke --node --transform path/to/transform.js --main path/to/main.js
+```
 
 ## Intercept JavaScript within HTML pages:
 
 ```javascript
-var Otiluke = require("otiluke");
-Otiluke({
-  setup: "/absolute/path/to/setup.js",
-  intercept: intercept
-  port: 8080
-});
+require("../main.js").mitm({transform:"path/to/transform.js", port:8080});
+```
+
+Or alternatively, if Otiluke is installed globally:
+
+```bash
+otiluke --mitm --transform path/to/transform.js --port 8080
 ```
 
 To intercept JavaScript code within HTML pages, Otiluke deploy an MITM Proxy on local port `options.port`.
 This proxy intercepts every requests and transform their responses.
-The options `setup` and `intercept` are similar to the ones of the Node mode.
 Two modifications should be done on your browser -- here Firefox but should works on other browsers as well -- before deploying the MITM proxy:
  
 1. You have to indicate Firefox that you trust Otiluke's root certificate.

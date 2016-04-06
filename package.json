@@ -8,5 +8,5 @@
 , "files" : ["mitm", "main.js", "node.js", "page.js", "run.js"]
 , "main": "main.js"
 , "bin": "run.js"
-, "keywords" : ["JavaScript", "Intercept", "Trap", "HTML", "HTTP", "MITM Proxy", "Node"]
+, "keywords" : ["JavaScript", "Intercept", "Trap", "HTML", "HTTP", "MITM Proxy", "Node", "CommonJS"]
 }

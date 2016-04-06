@@ -1,0 +1,20 @@
+TRANSFORMING http://127.0.0.1:8000/#61
+BEGIN http://127.0.0.1:8000/#61
+internal-1
+END http://127.0.0.1:8000/#61
+TRANSFORMING http://127.0.0.1:8000/script2.js
+BEGIN http://127.0.0.1:8000/script2.js
+script2
+END http://127.0.0.1:8000/script2.js
+TRANSFORMING http://127.0.0.1:8000/script3.js
+BEGIN http://127.0.0.1:8000/script3.js
+script3
+END http://127.0.0.1:8000/script3.js
+TRANSFORMING http://127.0.0.1:8000/#237
+BEGIN http://127.0.0.1:8000/#237
+internal-2
+END http://127.0.0.1:8000/#237
+TRANSFORMING http://127.0.0.1:8000/script1.js
+BEGIN http://127.0.0.1:8000/script1.js
+script1
+END http://127.0.0.1:8000/script1.js
