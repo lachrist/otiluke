@@ -1,10 +1,10 @@
 { "name" : "otiluke"
 , "description" : "Otiluke intercepts JavaScript code within HTML pages and Node modules"
-, "version" : "1.0.2"
+, "version" : "1.0.3"
 , "author" : {"name":"Laurent Christophe", "email":"lachrist@vub.ac.be"}
 , "repository": "lachrist/otiluke"
 , "license" : "MIT"
-, "dependencies": {"browserify":"*"}
+, "dependencies": {"browserify":"*", "minimist":"*"}
 , "files" : ["mitm", "main.js", "node.js", "page.js", "run.js"]
 , "main": "main.js"
 , "bin": "run.js"

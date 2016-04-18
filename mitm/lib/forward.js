@@ -12,6 +12,9 @@ module.exports = function (intercept, protocol, parts, req1, res1) {
     var transform = intercept(Url.format(parts), res2.headers["content-type"] || "");
     if (transform)
       delete res2.headers["content-length"];
+    res2.headers["Access-Control-Allow-Origin"] = "*";
+    res2.headers["Access-Control-Allow-Credentials"] = true;
+    res2.headers["Access-Control-Allow-Methods"] = "*";
     res1.writeHead(res2.statusCode, res2.statusMessage, res2.headers);
     if (!transform)
       return res2.pipe(res1);
