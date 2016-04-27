@@ -3,6 +3,7 @@
 Otiluke is a toolbox for JavaScript source-to-source compilers (also called transpiler) which are written as [CommonJS modules](http://www.commonjs.org/).
 Otiluke is itself an npm module and can be installed with `npm install otiluke -g`.
 With Otiluke you can:
+
 1. Debug and benchmark your JavaScript transpiler [--test](./usage/test.js)
 2. Demonstrate how awesome your JavaScript transpilers are [--demo](./usage/demo.js)
 3. Deploy your JavaScript transpiler on node modules [--node](./usage/node.js)
