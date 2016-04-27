@@ -1,15 +1,16 @@
 # Otiluke <img src="img/otiluke.png" align="right" alt="otiluke-logo" title="Resilient Sphere of Otiluke">
 
-Otiluke is a toolbox for JavaScript source-to-source compilers which are written as [CommonJS modules](http://www.commonjs.org/).
-Otiluke is itself an npm module and can be installed with:
+Otiluke is a toolbox for JavaScript source-to-source compilers (also called transpiler) which are written as [CommonJS modules](http://www.commonjs.org/).
+Otiluke is itself an npm module and can be installed with `npm install otiluke -g`.
+With Otiluke you can:
+1. Debug and benchmark your JavaScript transpiler [--test](./usage/test.js)
+2. Demonstrate how awesome your JavaScript transpilers are [--demo](./usage/demo.js)
+3. Deploy your JavaScript transpiler on node modules [--node](./usage/node.js)
+4. Deploy your JavaScript transpiler on online HTML pages [--mitm](./usage/mitm.js)
 
-```sh
-npm install otiluke -g
-```
-
-Otiluke expects the source-to-source compiler to be a CommonJS module exporting a JavaScript transformation function.
+Otiluke expects the JavaScript transpiler to be a CommonJS module exporting a transformation function.
 This transformation module will always be executed side-to-side with the program targetted for transformation.
-Such online compilation process enables easy support for dynamic code evaluation.
+Such online transformation process enables easy support for dynamic code evaluation.
 Below is the Otiluke's demo tool; see [usage](./usage) for more examples.
 
 <img src="img/demo.png" align="center" alt="demonstration" title="Otiluke's demo tool"/>
