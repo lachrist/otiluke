@@ -4,10 +4,10 @@ Otiluke is a toolbox for JavaScript source-to-source compilers (also called tran
 Otiluke is itself an npm module and can be installed with `npm install otiluke -g`.
 With Otiluke you can:
 
-1. Debug and benchmark your JavaScript transpiler [--test](./usage/test.js)
-2. Demonstrate how awesome your JavaScript transpilers are [--demo](./usage/demo.js)
-3. Deploy your JavaScript transpiler on node modules [--node](./usage/node.js)
-4. Deploy your JavaScript transpiler on online HTML pages [--mitm](./usage/mitm.js)
+1. Debug and benchmark your JavaScript transpiler: [`--test`](#test-tool)
+2. Demonstrate how awesome your JavaScript transpilers are: [`--demo`](#demo-tool)
+3. Deploy your JavaScript transpiler on node modules: [`--node`](#node-tool)
+4. Deploy your JavaScript transpiler on online HTML pages: [`--mitm`](#mitm-tool)
 
 Otiluke expects the JavaScript transpiler to be a CommonJS module exporting a transformation function.
 This transformation module will always be executed side-to-side with the program targetted for transformation.
@@ -16,7 +16,7 @@ Below is the Otiluke's demo tool; see [usage](./usage) for more examples.
 
 <img src="img/demo.png" align="center" alt="demonstration" title="Otiluke's demo tool"/>
 
-## Test a transformation module within a browser: `--test`
+## Test Tool
 
 The `--test` tool deploys a local HTTP server at the given port, it is usefull to debug and benchmark a transformation module. 
 On receiving an HTTP request, the server [browserify](http://browserify.org/) the given transformation module and bundle the target(s) pointed by the request's URL.
@@ -29,7 +29,7 @@ otiluke --test --transform /path/to/transform.js --port 8080
 require("otiluke").test({transform:"/path/to/transform.js", port:8080});
 ```
 
-## Demonstrate transformation modules within a browser : `--demo`
+## Demo Tool
 
 The `--demo` tool [browserifies](http://browserify.org/) the given transformation module(s) inside a standlone html page and writes it into the given output file.
 The transform option can point to a single transformation module or a directory exclusively containing transformation modules.
@@ -43,7 +43,7 @@ otiluke --demo --transform /path/to/transform.js --out ./bundle.html
 require("otiluke").demo({transform:"/path/to/transform.js", port:8080});
 ```
 
-## Transform and execute a node module: `--node`
+## Node Tool
 
 The `--node` tool first executes the given transformation module.
 The main file and its dependencies are then transformed before being executed.
@@ -55,7 +55,7 @@ otiluke --node --transform /path/to/transform.js --main /path/to/main.js
 require("otiluke").node({transform:"/path/to/transform.js", main:"/path/to/main.js"});
 ```
 
-## Transform every scripts your browser is loading: `--mitm`
+## MITM Tool
 
 The `--mitm` tool deploys a HTTP proxy at the given port which effectively implements the man-in-the-middle attack.
 The given transformation module is [browserified](http://browserify.org/) into every requested HTML page while the JavaScript traffic is stringified and passed to the transformation function.
