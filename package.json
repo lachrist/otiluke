@@ -5,8 +5,8 @@
 , "repository": "lachrist/otiluke"
 , "license" : "MIT"
 , "dependencies": {"browserify":"*", "minimist":"*", "js-beautify":"*"}
-, "files" : ["mitm", "main.js", "node.js", "page.js", "run.js"]
+, "files" : ["demo", "img/otiluke.png", "mitm", "node", "test", "util", "main.js", "run.js"]
 , "main": "main.js"
 , "bin": "run.js"
-, "keywords" : ["JavaScript", "Intercept", "Trap", "HTML", "HTTP", "MITM Proxy", "Node", "CommonJS"]
+, "keywords" : ["JavaScript", "Toolbox", "Source-to-Source Compiler", "Transpiler", "HTML", "HTTP", "MITM", "Proxy", "Node", "CommonJS"]
 }
