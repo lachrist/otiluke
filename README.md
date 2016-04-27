@@ -43,8 +43,8 @@ require("otiluke").demo({transform:"/path/to/transform.js", port:8080});
 
 ## Transform and execute a node module: `--node`
 
-The `--node` first execute the given transformation module.
-Subsequent requires are intercepted and tranformed before being executed.
+The `--node` tool first executes the given transformation module.
+Subsequent requires are then intercepted and tranformed before being executed.
 
 ```shell
 otiluke --node --transform /path/to/transform.js --main /path/to/main.js
