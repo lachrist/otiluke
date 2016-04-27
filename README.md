@@ -10,7 +10,7 @@ npm install otiluke -g
 Otiluke expects the source-to-source compiler to be a CommonJS module exporting a JavaScript transformation function.
 This transformation module will always be executed side-to-side with the program targetted for transformation.
 Such online compilation process enables easy support for dynamic code evaluation.
-See [./usage](./usage) for .
+See [./usage](./usage) for examples.
 
 <img src="img/demo.png" align="center" alt="demonstration" title="Otiluke's --demo tool"/>
 
@@ -53,7 +53,7 @@ otiluke --node --transform /path/to/transform.js --main /path/to/main.js
 require("otiluke").node({transform:"/path/to/transform.js", main:"/path/to/main.js"});
 ```
 
-## Intercept and transform every scripts your browser is loading: `--mitm`
+## Transform every scripts your browser is loading: `--mitm`
 
 The `--mitm` tool deploy a HTTP proxy at the given port which effectively implement the man-in-the-middle attack.
 The given transformation module is [browserified](http://browserify.org/) into every HTML page while the javascript traffic is stringified and passed to the transformation function.
