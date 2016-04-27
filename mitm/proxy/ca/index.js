@@ -3,7 +3,7 @@
 // openssl x509 -CA  -req -in csr.pem -signkey key.pem -out crt.pem
 
 var Fs = require("fs");
-var Log = require("../log.js");
+var Log = require("../../../util/log.js");
 var ChildProcess = require("child_process");
 
 var ca = {

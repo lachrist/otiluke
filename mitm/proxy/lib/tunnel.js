@@ -1,6 +1,6 @@
 
 var Net = require("net");
-var Log = require("../log.js");
+var Log = require("../../../util/log.js");
 
 module.exports = function (port) {
   return function (socket1, head) {

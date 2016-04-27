@@ -1,48 +1,74 @@
 # Otiluke <img src="img/otiluke.png" align="right" alt="otiluke-logo" title="Resilient Sphere of Otiluke">
 
-Otiluke is a npm module that intercepts JavaScript within HTML pages and Node modules.
-To install:
+Otiluke is a toolbox for JavaScript source-to-source compilers which are written as [CommonJS modules](http://www.commonjs.org/).
+Otiluke is itself an npm module and can be installed with:
 
 ```sh
-npm install otiluke
+npm install otiluke -g
 ```
 
-In any case, Otiluke expects a path to a CommonJS module exporting a JavaScript transformation function.
-For instance:
+Otiluke expects the source-to-source compiler to be a CommonJS module exporting a JavaScript transformation function.
+This transformation module will always be executed side-to-side with the program targetted for transformation.
+Such online compilation process enables easy support for dynamic code evaluation.
+See [./usage](./usage) for .
 
+<img src="img/demo.png" align="center" alt="demonstration" title="Otiluke's --demo tool"/>
+
+## Test a transformation module within a browser: `--test`
+
+The `--test` tool deploy a local HTTP server at the given port, it is usefull to debug and benchmark transformation modules. 
+On receiving an HTTP request, the server [browserify](http://browserify.org/) the given transformation module and bundle the target(s) pointed by the request's url.
+The request's url can point to a single target javascript file or a directory exclusively containing target javascript files.
+
+```shell
+otiluke --test --transform /path/to/transform.js --port 8080
+```
 ```javascript
-module.exports = function (code, url) { return code }
+require("otiluke").test({transform:"/path/to/transform.js", port:8080});
 ```
 
-See [./usage](./usage) for examples.
+## Demonstrate transformation modules within a browser : `--demo`
 
-## Transforming Node modules on-the-fly
+The `--demo` tool [browserify](http://browserify.org/) the given transformation module(s) inside a standlone html page and write it into the given output file.
+The transform option can point to a single transformation module or a directory exclusively containing transformation modules.
+Use this tool to demonstrate how awesome are your transformation modules.
+Note that only the dependencies initially present in the given transformation modules will be bundled into the page, therefore arbitrary requires are not supported.
 
+```shell
+otiluke --demo --transform /path/to/transform.js --out ./bundle.html
+```
 ```javascript
-require("../main.js").node({transform:"path/to/transform.js", main:"/path/to/main.js"});
+require("otiluke").demo({transform:"/path/to/transform.js", port:8080});
 ```
 
-Or alternatively, if Otiluke is installed globally:
+## Transform and execute a node module: `--node`
 
-```bash
-otiluke --node --transform path/to/transform.js --main path/to/main.js
+The `--node` first execute the given transformation module.
+Subsequent requires are intercepted and tranformed before being executed.
+
+```shell
+otiluke --node --transform /path/to/transform.js --main /path/to/main.js
 ```
-
-## Intercept JavaScript within HTML pages:
-
 ```javascript
-require("../main.js").mitm({transform:"path/to/transform.js", port:8080});
+require("otiluke").node({transform:"/path/to/transform.js", main:"/path/to/main.js"});
 ```
 
-Or alternatively, if Otiluke is installed globally:
+## Intercept and transform every scripts your browser is loading: `--mitm`
 
-```bash
-otiluke --mitm --transform path/to/transform.js --port 8080
+The `--mitm` tool deploy a HTTP proxy at the given port which effectively implement the man-in-the-middle attack.
+The given transformation module is [browserified](http://browserify.org/) into every HTML page while the javascript traffic is stringified and passed to the transformation function.
+Note that inline event handlers are NOT intercepted (yet).
+
+```shell
+otiluke --mitm --transform /path/to/transform.js --port 8080
+```
+```javascript
+require("otiluke").mitm({transform:"/path/to/transform.js", port:"/path/to/main.js"});
 ```
 
 To intercept JavaScript code within HTML pages, Otiluke deploy an MITM Proxy on local port `options.port`.
 This proxy intercepts every requests and transform their responses.
-Note that inline event handler are NOT intercepted (yet).
+
 Two modifications should be done on your browser -- here Firefox but should works on other browsers as well -- before deploying the MITM proxy:
 
 1. You have to indicate Firefox that you trust Otiluke's root certificate.
@@ -50,11 +76,14 @@ Two modifications should be done on your browser -- here Firefox but should work
    You can now import Otiluke's root certificate which can be found at `/path/otiluke/mitm/ca/cacert.pem`.
    Note that you can reset all Otiluke's certificates with
 
-   ```sh
-   node /path/to/otiluke/mitm/ca/reset.js --hard
-   ```
+    ```shell
+    otiluke --mitm --reset
+    ```
+    ```javascript
+    require("otiluke").mitm({reset:true});
+    ```
 
-   <img src="img/firefox-cert.png" align="center" alt="demo-screenshot" title="Firefox's certificate"/>
+   <img src="img/firefox-cert.png" align="center" alt="firefox certificate" title="Firefox's certificate"/>
 
    After changes in certificates' trust, restart Firefox to avoid `sec_error_reused_issuer_and_serial` error.
 
@@ -63,5 +92,5 @@ Two modifications should be done on your browser -- here Firefox but should work
    You can now tick the checkbox *Manual proxy configuration* and *Use this proxy server for all protocols*.
    The HTTP proxy fields should be the localhost `127.0.0.1` and the port given in the options.
 
-   <img src="img/firefox-proxy.png" align="center" alt="demo-screenshot" title="Firefox's proxy settings"/>
+   <img src="img/firefox-proxy.png" align="center" alt="firefox proxy" title="Firefox's proxy settings"/>
 

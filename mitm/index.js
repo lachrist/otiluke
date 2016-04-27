@@ -1,44 +1,38 @@
 
-var Http = require("http");
-var Https = require("https");
+var Stream = require("stream");
+var Path = require("path");
+var Browserify = require("browserify");
+var Proxy = require("./proxy");
+var Reset = require("./proxy/ca/reset.js");
 
-var Ca = require("./ca");
-var Log = require("./log.js")
-var Extract = require("./lib/extract.js");
-var Forward = require("./lib/forward.js");
-var Idles = require("./lib/idles.js");
-var Queue = require("./lib/queue.js");
-var Tunnel = require("./lib/tunnel.js");
-
-module.exports = function (port, intercept) {
-  var mocks = Idles(2*60*1000);
-  var proxy = Http.createServer();
-  proxy.listen(port);
-  proxy.on("error", Log("proxy"));
-  proxy.on("request", function (req, res) { Forward(intercept, Http, Extract(req), req, res) });
-  proxy.on("connect", function (req, socket, head) {
-    (mocks.get(req.url)||mock(req.url, mocks, intercept)).tunnel(socket, head);
+// options: {reset:Boolean, transform:Path, port:Number}
+module.exports = function (options) {
+  if (options.reset)
+    Reset();
+  var name = "__otiluke__"
+  var stream = new Stream.Readable();
+  stream.push("global."+name+"||(global."+name+"=require("+JSON.stringify(Path.resolve(options.transform))+"));");
+  stream.push(null);
+  Browserify(stream).bundle(function (error, buffer) {
+    if (error)
+      throw error;
+    var setup = buffer.toString("utf8");
+    function transform (url, js) { return "eval("+name+"("+JSON.stringify(js)+","+JSON.stringify(url)+"))" }
+    Proxy(options.port, function (url, type) {
+      if (type.indexOf("javascript") !== -1)
+        return transform.bind(null, url);
+      if (type.indexOf("html") !== -1)
+        return function (html) {
+          return "<script>" + setup + "</script>" + html.replace(regexes.script, function (match, p1, p2, p3, offset) {
+            return (regexes.external.test(p1)) ? match : p1 + transform(url+"#"+offset, p2) + p3;
+          });
+        };
+    });
   });
+  
 };
 
-function mock (host, mocks, intercept) {
-  var hostname = host.split(":")[0];
-  var port = host.split(":")[1];
-  Ca(hostname, function (key, cert) {
-    var server = Https.createServer({key:key, cert:cert, rejectUnauthorized:false});
-    server.on("request", function (req, res) {
-      var parts = Extract(req);
-      parts.protocol = "https:";
-      parts.hostname = hostname;
-      parts.port = port;
-      Forward(intercept, Https, parts, req, res);
-    });
-    server.on("error", Log(host));
-    server.listen(0, function () {
-      var tunnel = Tunnel(server.address().port);
-      mocks.get(host).purge(tunnel);
-      mocks.set(host, {tunnel:tunnel, close:server.close.bind(server)});
-    });
-  });
-  return mocks.set(host, Queue());
-}
+var regexes = {
+  script: /(<script[^>]*>)([\s\S]*?)(<\/script>)/gi,
+  external: /^<script[\s\S]*?src[\s]*?=[\s\S]*?>$/i
+};

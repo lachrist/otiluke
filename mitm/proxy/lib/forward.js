@@ -1,5 +1,5 @@
 
-var Log = require("../log.js");
+var Log = require("../../../util/log.js");
 var Url = require("url");
 
 // var Iconv = require("iconv-lite");

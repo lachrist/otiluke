@@ -1,9 +1,9 @@
 
-module.exports = function (code, url) {
-  console.log("TRANSFORMING "+url);
+module.exports = function (script, source) {
+  console.log("TRANSFORMING "+source);
   return [
-    "console.log('BEGIN '+"+JSON.stringify(url)+");",
-    code,
-    "console.log('END '+"+JSON.stringify(url)+")"
+    "console.log('BEGIN '+"+JSON.stringify(source)+");",
+    script,
+    "console.log('END '+"+JSON.stringify(source)+");"
   ].join("\n");
-}
+};

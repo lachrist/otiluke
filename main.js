@@ -1,3 +1,5 @@
 
-exports.node = require("./node.js");
-exports.mitm = require("./page.js");
+exports.test = require("./test");
+exports.demo = require("./demo");
+exports.node = require("./node");
+exports.mitm = require("./mitm");
