@@ -10,7 +10,7 @@ npm install otiluke -g
 Otiluke expects the source-to-source compiler to be a CommonJS module exporting a JavaScript transformation function.
 This transformation module will always be executed side-to-side with the program targetted for transformation.
 Such online compilation process enables easy support for dynamic code evaluation.
-See [./usage](./usage) for examples.
+See [usage](./usage) for examples.
 
 <img src="img/demo.png" align="center" alt="demonstration" title="Otiluke's --demo tool"/>
 
@@ -66,10 +66,7 @@ otiluke --mitm --transform /path/to/transform.js --port 8080
 require("otiluke").mitm({transform:"/path/to/transform.js", port:"/path/to/main.js"});
 ```
 
-To intercept JavaScript code within HTML pages, Otiluke deploy an MITM Proxy on local port `options.port`.
-This proxy intercepts every requests and transform their responses.
-
-Two modifications should be done on your browser -- here Firefox but should works on other browsers as well -- before deploying the MITM proxy:
+Two modifications should be done on your browser (here Firefox but should works on other browsers as well) before deploying the MITM proxy:
 
 1. You have to indicate Firefox that you trust Otiluke's root certificate.
    Go to `about:preferences#advanced` then click on *Certificates* then *View Certificates*.
