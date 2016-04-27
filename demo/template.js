@@ -35,7 +35,7 @@ function benchmark (code, result, error, time) {
     t2 = performance.now();
     document.getElementById(error).textContent = Print(e);
   } finally {
-    document.getElementById(time).textContent = Math.ceil(t2 - t1);
+    document.getElementById(time).textContent = (t2 - t1 <= 1) ? "< 1ms" : Math.ceil(t2 - t1) + "ms";
   }
 }
 
