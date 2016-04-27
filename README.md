@@ -10,15 +10,15 @@ npm install otiluke -g
 Otiluke expects the source-to-source compiler to be a CommonJS module exporting a JavaScript transformation function.
 This transformation module will always be executed side-to-side with the program targetted for transformation.
 Such online compilation process enables easy support for dynamic code evaluation.
-See [usage](./usage) for examples.
+Below is the Otiluke's demo tool; see [usage](./usage) for more examples.
 
-<img src="img/demo.png" align="center" alt="demonstration" title="Otiluke's --demo tool"/>
+<img src="img/demo.png" align="center" alt="demonstration" title="Otiluke's demo tool"/>
 
 ## Test a transformation module within a browser: `--test`
 
-The `--test` tool deploy a local HTTP server at the given port, it is usefull to debug and benchmark transformation modules. 
-On receiving an HTTP request, the server [browserify](http://browserify.org/) the given transformation module and bundle the target(s) pointed by the request's url.
-The request's url can point to a single target javascript file or a directory exclusively containing target javascript files.
+The `--test` tool deploys a local HTTP server at the given port, it is usefull to debug and benchmark a transformation module. 
+On receiving an HTTP request, the server [browserify](http://browserify.org/) the given transformation module and bundle the target(s) pointed by the request's URL.
+The request's URL can point to a single target JavaScript file or a directory exclusively containing target JavaScript files.
 
 ```shell
 otiluke --test --transform /path/to/transform.js --port 8080
@@ -29,10 +29,10 @@ require("otiluke").test({transform:"/path/to/transform.js", port:8080});
 
 ## Demonstrate transformation modules within a browser : `--demo`
 
-The `--demo` tool [browserify](http://browserify.org/) the given transformation module(s) inside a standlone html page and write it into the given output file.
+The `--demo` tool [browserifies](http://browserify.org/) the given transformation module(s) inside a standlone html page and writes it into the given output file.
 The transform option can point to a single transformation module or a directory exclusively containing transformation modules.
 Use this tool to demonstrate how awesome are your transformation modules.
-Note that only the dependencies initially present in the given transformation modules will be bundled into the page, therefore arbitrary requires are not supported.
+Note that only the dependencies initially present in the given transformation modules will be bundled into the page, therefore arbitrary requires are not supported in the demo page.
 
 ```shell
 otiluke --demo --transform /path/to/transform.js --out ./bundle.html
@@ -44,7 +44,7 @@ require("otiluke").demo({transform:"/path/to/transform.js", port:8080});
 ## Transform and execute a node module: `--node`
 
 The `--node` tool first executes the given transformation module.
-Subsequent requires are then intercepted and tranformed before being executed.
+The main file and its dependencies are then transformed before being executed.
 
 ```shell
 otiluke --node --transform /path/to/transform.js --main /path/to/main.js
@@ -55,8 +55,8 @@ require("otiluke").node({transform:"/path/to/transform.js", main:"/path/to/main.
 
 ## Transform every scripts your browser is loading: `--mitm`
 
-The `--mitm` tool deploy a HTTP proxy at the given port which effectively implement the man-in-the-middle attack.
-The given transformation module is [browserified](http://browserify.org/) into every HTML page while the javascript traffic is stringified and passed to the transformation function.
+The `--mitm` tool deploys a HTTP proxy at the given port which effectively implements the man-in-the-middle attack.
+The given transformation module is [browserified](http://browserify.org/) into every requested HTML page while the JavaScript traffic is stringified and passed to the transformation function.
 Note that inline event handlers are NOT intercepted (yet).
 
 ```shell
@@ -66,10 +66,11 @@ otiluke --mitm --transform /path/to/transform.js --port 8080
 require("otiluke").mitm({transform:"/path/to/transform.js", port:"/path/to/main.js"});
 ```
 
-Two modifications should be done on your browser (here Firefox but should works on other browsers as well) before deploying the MITM proxy:
+The `--mitm` tools requires [openssl](https://www.openssl.org/) to be accessible via the PATH.
+Also, two modifications should be done on your browser (here Firefox but should works on other browsers as well) before deploying the MITM proxy:
 
 1. You have to indicate Firefox that you trust Otiluke's root certificate.
-   Go to `about:preferences#advanced` then click on *Certificates* then *View Certificates*.
+   Go to [about:preferences#advanced](about:preferences#advanced) then click on *Certificates* then *View Certificates*.
    You can now import Otiluke's root certificate which can be found at `/path/otiluke/mitm/ca/cacert.pem`.
    Note that you can reset all Otiluke's certificates with
 
@@ -85,7 +86,7 @@ Two modifications should be done on your browser (here Firefox but should works 
    After changes in certificates' trust, restart Firefox to avoid `sec_error_reused_issuer_and_serial` error.
 
 2. You have to redirect all Firefox requests to the local port where the MITM proxy is deployed.
-   Go again to `about:preferences#advanced` then click on *Network* then *Settings...*.
+   Go again to [about:preferences#advanced](about:preferences#advanced) then click on *Network* then *Settings...*.
    You can now tick the checkbox *Manual proxy configuration* and *Use this proxy server for all protocols*.
    The HTTP proxy fields should be the localhost `127.0.0.1` and the port given in the options.
 
