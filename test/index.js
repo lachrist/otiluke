@@ -10,6 +10,7 @@ var js = Fs.readFileSync(__dirname+"/template.js", "utf8");
 var html = Fs.readFileSync(__dirname+"/template.html", "utf8").replace("@ICON", Icon);
 
 module.exports = function (options) {
+  html = html.replace("@TITLE", function () { return "Test " + options.transform });
   Http.createServer(function (req, res) {
     if (req.url.endsWith(".js"))
       Fs.readFile(process.cwd()+req.url, "utf8", function (error, target) {

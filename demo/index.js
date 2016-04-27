@@ -6,7 +6,10 @@ var Browserify = require("browserify");
 var Path = require("path");
 var Stream = require("stream");
 
+var html = Fs.readFileSync(__dirname+"/template.html", "utf8").replace("@ICON", Icon);
+
 module.exports = function (options) {
+  html = html.replace("@TITLE", function () { return "Demo " + options.transform });
   if (/\.js$/.test(options.transform))
     Fs.readFile(options.transform, "utf8", assume(function (content) {
       var files = {};
@@ -38,8 +41,6 @@ function bundle (basedir, files, out) {
   }));
   readable.push(null);
   Browserify(readable, {basedir:__dirname}).require(dependencies, {basedir:basedir}).bundle(assume(function (bundle) {
-    var html = Fs.readFileSync(__dirname+"/template.html", "utf8");
-    html = html.replace("@ICON", Icon).replace("@BUNDLE", function () { return bundle.toString("utf8") });
-    Fs.writeFileSync(out, html, "utf8");
+    Fs.writeFileSync(out, html.replace("@BUNDLE", function () { return bundle.toString("utf8") }), "utf8");
   }));
 }
