@@ -30,7 +30,7 @@ function benchmark (code, row) {
 
 window.onload = function () {
   var table = document.getElementById("output");
-  var keys = Object.keys(targets);
+  var keys = Object.keys(targets).sort();
   function run (i) {
     if (i < keys.length) {
       setTimeout(run, 10, i+1);

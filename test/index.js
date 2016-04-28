@@ -1,5 +1,6 @@
 
 var Fs = require("fs");
+var Path = require("path");
 var Icon = require("../util/icon.js");
 var AllJs = require("../util/alljs");
 var Browserify = require("browserify");
@@ -31,10 +32,10 @@ function signal (res, code, msg) {
 function perform (res, transform, targets) {
   var readable = new Stream.Readable();
   readable.push(js
-    .replace("@TRANSFORM", function () { return JSON.stringify(transform) })
+    .replace("@TRANSFORM", function () { return JSON.stringify(Path.resolve(transform)) })
     .replace("@TARGETS", function () { return JSON.stringify(targets) }));
   readable.push(null);
-  Browserify(readable, {basedir:process.cwd()}).bundle(function (error, bundle) {
+  Browserify(readable, {basedir:__dirname}).bundle(function (error, bundle) {
     if (error)
       return signal(res, 400, error.message);
     res.writeHead(200, {"Content-Type":"text/html"});

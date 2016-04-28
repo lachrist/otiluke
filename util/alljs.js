@@ -8,6 +8,8 @@ module.exports = function (path, cb) {
       return cb(error);
     var files = {};
     names = names.filter(isjs);
+    if (!names.length)
+      cb(null, {});
     names.forEach(function (name) {
       Fs.readFile(path + "/" + name, "utf8", function (error, content) {
         error ? cb(error) : files[name] = content;

@@ -63,7 +63,7 @@ window.addEventListener("load", function () {
     benchmark(editors.target.getValue(), "target-result-span", "target-error-span", "target-time-span");
     var module = {};
     try { (new Function("module", "global", editors.transform.getValue()))(module, window) }
-    catch (error) { return console.dir("Failed to evaluate the transform module: " + error) }
+    catch (error) { return console.log("Failed to evaluate the transform module: " + error) }
     if (typeof module.exports !== "function")
       return console.log("The transform module does not 'module.exports' a function");
     try { var transformed = module.exports(editors.target.getValue(), "target.js") }

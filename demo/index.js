@@ -5,6 +5,8 @@ var AllJs = require("../util/alljs");
 var Browserify = require("browserify");
 var Path = require("path");
 var Stream = require("stream");
+var Module = require("module");
+var Resolve = require("resolve");
 
 var html = Fs.readFileSync(__dirname+"/template.html", "utf8").replace("@ICON", Icon);
 
@@ -31,16 +33,20 @@ function assume (then) {
 }
 
 function bundle (basedir, files, out) {
-  var dependencies = [];
-  function register (_, d) { dependencies.push(JSON.parse(d)) }
-  for (var name in files)
-    files[name].replace(/[^a-zA-Z_$]require\s*\(\s*((\"[^"]*\")|(\'[^']*\'))\s*\)/g, register);
   var readable = new Stream.Readable();
   readable.push(Fs.readFileSync(__dirname+"/template.js", "utf8").replace("@TRANSFORMS", function () {
     return JSON.stringify(files);
   }));
   readable.push(null);
-  Browserify(readable, {basedir:__dirname}).require(dependencies, {basedir:basedir}).bundle(assume(function (bundle) {
+  var browserify = Browserify(readable, {basedir:__dirname});
+  Object.keys(files).forEach(function (name) {
+    function add (_, dependency) {
+      dependency = JSON.parse(dependency);
+      browserify.require(Resolve.sync(dependency, {basedir:basedir}), {expose:dependency});
+    }
+    files[name].replace(/[^a-zA-Z_$]require\s*\(\s*((\"[^"]*\")|(\'[^']*\'))\s*\)/g, add);
+  });
+  browserify.bundle(assume(function (bundle) {
     Fs.writeFileSync(out, html.replace("@BUNDLE", function () { return bundle.toString("utf8") }), "utf8");
   }));
 }
