@@ -5,24 +5,25 @@ var Transform = require(@TRANSFORM);
 var JsBeautify = require("js-beautify").js_beautify;
 var Print = require("../util/print.js");
 
-function cell (text, color) {
+function cell (text, color, onclick) {
   var td = document.createElement("td");
   td.textContent = text;
   color && (td.style.color = color);
+  onclick && (td.onclick = onclick, td.style.cursor = "pointer");
   return td;
 }
 
 function benchmark (code, row) {
-  row.appendChild(cell(code.length));
+  row.appendChild(cell(code.length, undefined, function () { console.log(code) }));
   try {
     var time1 = performance.now();
     var result = window.eval(code);
     var time2 = performance.now();
-    row.appendChild(cell(Print(result), "green"));
+    row.appendChild(cell(Print(result), "green", function () { console.dir(result) }));
   } catch (e) {
     var time2 = performance.now();
     var error = e;
-    row.appendChild(cell(Print(error), "red"));
+    row.appendChild(cell(Print(error), "red", function () { console.dir(error) }));
   }
   row.appendChild(cell(Math.ceil(time2-time1)));
   return error;

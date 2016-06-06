@@ -4,7 +4,7 @@
 , "author" : {"name":"Laurent Christophe", "email":"lachrist@vub.ac.be"}
 , "repository": "lachrist/otiluke"
 , "license" : "MIT"
-, "dependencies": {"browserify":"*", "minimist":"*", "js-beautify":"*", "resolve":"*"}
+, "dependencies": {"browserify":"13.0.x", "minimist":"1.2.x", "js-beautify":"1.6.x", "resolve":"1.1.x"}
 , "files" : ["demo", "img/otiluke.png", "mitm", "node", "test", "util", "main.js", "run.js"]
 , "main": "main.js"
 , "bin": "run.js"
