@@ -10,8 +10,10 @@ var Log = require("../util/log.js");
 var Hijack = require("./hijack.js");
 
 module.exports = function (options) {
-  var splitter = Crypto.randomBytes(128).toString("hex");
   options.reset && Reset();
+  if (!options.transpile)
+    return;
+  var splitter = Crypto.randomBytes(128).toString("hex");
   var stream = new Stream.Readable();
   stream.push(Fs.readFileSync(__dirname+"/template.js", "utf8")
     .replace(/@NAMESPACE/g, function () { return JSON.stringify(options.namespace) })
