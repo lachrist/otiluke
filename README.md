@@ -1,31 +1,31 @@
 # Otiluke <img src="img/otiluke.png" align="right" alt="otiluke-logo" title="Resilient Sphere of Otiluke">
 
-Otiluke is a toolbox for JavaScript source-to-source compilers (also called transpiler) which are written as [CommonJS modules](http://www.commonjs.org/).
+Otiluke is a toolbox for JavaScript source-to-source compilers -- here called transpilers -- which are written as [CommonJS modules](http://www.commonjs.org/).
 Otiluke is itself an npm module and should be installed with `npm install otiluke -g`.
 With Otiluke you can:
 
-1. Debug and benchmark your JavaScript transpiler: [`--test`](#otiluke---test)
-2. Demonstrate how awesome is your JavaScript transpiler: [`--demo`](#otiluke---demo)
-3. Deploy your JavaScript transpiler on node modules: [`--node`](#otiluke---node)
-4. Deploy your JavaScript transpiler on online HTML pages: [`--mitm`](#otiluke---node)
+1. Debug and benchmark your JavaScript transpilers: [`--test`](#otiluke---test)
+2. Demonstrate how awesome are your JavaScript transpilers: [`--demo`](#otiluke---demo)
+3. Deploy your JavaScript transpilers on node modules: [`--node`](#otiluke---node)
+4. Deploy your JavaScript transpiler on online HTML pages: [`--mitm`](#otiluke---mitm)
 
 Otiluke expects the transpiler to be a CommonJS module exporting a function compiling JavaScript to JavaScript.
 The transpiler module will always be executed side-by-side with the program targetted for transpilation.
-Such online transpilation process enables easy support for dynamic code evaluation -- e.g. [`eval`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/eval).
-Otiluke provides a channel -- `Otiluke.log(string)` by default -- to log information gathered during the transpilation process or later, while executing the transpiled program
+Such online transpilation process enables easy support of dynamic code evaluations such as [`eval(script)`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/eval).
+As illustrated below, Otiluke provides a channel -- `Otiluke.log(string)` by default -- to log information gathered during the transpilation process or later, while executing the transpiled program:
 
-<img src="img/demo.png" align="center" alt="demo" title="Otiluke's demo tool"/>
+<img src="img/demo.png" align="center" alt="demo" title="otiluke --demo"/>
 
 Otiluke's tools often understand the following important arguments:
 `--transpile` which points to the transpilation module,
 `--main` which points to the entry point of the program to be transpiled,
-and `--log` which points to a log file collecting the data sent by `Otiluke.log(string)`.
-As demonstreated below, Otiluke's tools can often perform several transpilatations at once if these arguments points to directory instead of files.
-Otiluke essentially performs a [cartesian product](https://en.wikipedia.org/wiki/Cartesian_product) of the JavaScript files directly contained inside the `--transpile` and `--main` directory.
+and `--log` which points to a log file for collecting the data sent through `Otiluke.log(string)`.
+As demonstrated below, Otiluke's tools can often perform several transpilatations at once if these arguments points to directory instead of files.
+In such case, the resulting transpilations are the results of a [cartesian product](https://en.wikipedia.org/wiki/Cartesian_product) of the JavaScript files directly contained inside the `--transpile` and `--main` directory.
 If `--log` points to a directory, Otiluke creates a new file inside of it for every transpilation.
-Otiluke does its best to give meaningfull name to these files by following an URL format escaped with hexadecimal sequences.
+Otiluke provide meaningfull URL does its best to give meaningfull name to these files by following an URL format escaped with hexadecimal sequences.
 
-<img src="img/test.png" align="center" alt="test" title="Otiluke's test tool"/>
+<img src="img/test.png" align="center" alt="test" title="otiluke --test"/>
 
 ==Argument==  | Shortcut | ====Tool====      | Description
 --------------|----------|-------------------|-----------------------------------------------------------------------------------------------------------------------------------------------
@@ -96,8 +96,8 @@ require("otiluke").node({
 
 ## `otiluke --mitm`
 
-`otiluke --mitm` deploys a forward HTTP proxy at the given port which effectively implements the man-in-the-middle attack.
-The given transpilation module is [browserified](http://browserify.org/) into every requested HTML page while the JavaScript traffic is stringified and passed to the transpiler.
+`otiluke --mitm` deploys a forward HTTP proxy at the given port which effectively carry out a man-in-the-middle attack.
+The given transpilation module is [browserified](http://browserify.org/) into every requested HTML page and receive the entire JavaScript traffic.
 Note that inline event handlers are NOT intercepted (yet).
 
 ```shell
