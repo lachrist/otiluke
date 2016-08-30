@@ -24,7 +24,7 @@ The names of the log files created by Otiluke are URLs containing [hexadecimal e
 
 <img src="img/test.png" align="center" alt="test" title="otiluke --test"/>
 
-Argument&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Shortcut | Tool&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Description
+Argument&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Shortcut | Tool&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Description
 --------------|----------|-------------------|-----------------------------------------------------------------------------------------------------------------------------------------------
 `--transpile` | `-t`     | all but `--mitm`  | Can either point directly to a transpiler or a directory of transpilers.
 `--transpile` | `-t`     | `--mitm`          | Path to a transpiler.
