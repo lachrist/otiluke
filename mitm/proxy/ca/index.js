@@ -3,7 +3,7 @@
 // openssl x509 -CA  -req -in csr.pem -signkey key.pem -out crt.pem
 
 var Fs = require("fs");
-var Log = require("../../../util/log.js");
+var Error = require("../../../util/error.js");
 var ChildProcess = require("child_process");
 
 var ca = {
@@ -15,10 +15,10 @@ var ca = {
 function read (files, callback) {
   Fs.readFile(files.key, function (err, key) {
     if (err)
-      return Log("readFile " + files.key)(err);
+      return Error("readFile " + files.key)(err);
     Fs.readFile(files.cert, function (err, cert) {
       if (err)
-        return Log("readFile " + files.cert)(err);
+        return Error("readFile " + files.cert)(err);
       callback(key, cert);
     });
   });
@@ -32,7 +32,7 @@ module.exports = function (hostname, callback) {
   };
   Fs.readdir(__dirname+"/keys", function (err, filenames) {
     if (err)
-      return Log("readdir ./ca/keys")(err);
+      return Error("readdir ./ca/keys")(err);
     if (filenames.indexOf(hostname+".pem") !== -1)
       return read(files, callback);
     ChildProcess.spawn("openssl", [
@@ -44,7 +44,7 @@ module.exports = function (hostname, callback) {
       "-out", files.req,
       "-subj", "/CN="+hostname]).on("close", function (code) {
         if (code)
-          return Log("openssl req")(new Error(code));
+          return Error("openssl req")(new Error(code));
         ChildProcess.spawn("openssl", [
           "x509",
           "-CA", ca.cert,
@@ -54,7 +54,7 @@ module.exports = function (hostname, callback) {
           "-req", "-in", files.req,
           "-out", files.cert]).on("close", function (code) {
             if (code)
-              return Log("openssl x509")(new Error(code));
+              return Error("openssl x509")(new Error(code));
             read(files, callback)
           });
       });

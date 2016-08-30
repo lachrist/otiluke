@@ -5,22 +5,42 @@
   <title>@TITLE</title>
   <link rel="icon" href=@ICON>
   <style>
-  td {border:1px solid black}
-  table {border-collapse:collapse}
+  #main {
+    width: 900px;
+    margin: auto;
+    font-family: "Lucida Console", Monaco, monospace;
+    font-size: 12px;
+  }
+  table {
+    width: inherit;
+    border-collapse: collapse;
+  }
+  td, th {
+    border: 1px solid black;
+    padding: 5px;
+  }
+  textarea {
+    margin-top: 30px;
+    width: inherit;
+    height: 200px;
+    font-family: inherit;
+    font-size: inherit;
+  }
   </style>
 </head>
 <body>
-  <script type="text/javascript">@BUNDLE</script>
-  <table id="output">
-    <tr>
-      <th>Target</th>
-      <th>Length</th>
-      <th>(Result|Error)</th>
-      <th>Time</th>
-      <th>Length*</th>
-      <th>(Result|Error)*</th>
-      <th>Time*</th>
-    </tr>
-  </table>
+  <div id=main>
+    <script type="text/javascript">@BUNDLE</script>
+    <table id="table">
+      <tr>
+        <th>Main</th>
+        <th>Transpile</th>
+        <th>Length</th>
+        <th>(Result|Error)</th>
+        <th>Time[&mu;s]</th>
+      </tr>
+    </table>
+    <textarea id="json"></textarea>
+  </div>
 </body>
 </html>

@@ -1,46 +1,50 @@
 
 var Fs = require("fs");
 var Path = require("path");
-var Icon = require("../util/icon.js");
-var AllJs = require("../util/alljs");
-var Browserify = require("browserify");
 var Http = require("http");
 var Stream = require("stream");
 
-var js = Fs.readFileSync(__dirname+"/template.js", "utf8");
-var html = Fs.readFileSync(__dirname+"/template.html", "utf8").replace("@ICON", Icon);
+var Ws = require("ws");
+
+var Icon = require("../util/icon.js");
+var Childeren = require("../util/children.js");
+var Collect = require("../util/collect.js");
+var Browserify = require("browserify");
+var Assume = require("../util/assume.js");
+var Log = require("../util/log.js");
+
 
 module.exports = function (options) {
-  html = html.replace("@TITLE", function () { return "Test " + options.transform });
-  Http.createServer(function (req, res) {
-    if (req.url.endsWith(".js"))
-      Fs.readFile(process.cwd()+req.url, "utf8", function (error, target) {
-        error ? signal(res, 404, error.message) : perform(res, options.transform, {main:target});
-      });
-    else
-      AllJs(process.cwd()+req.url, function (error, targets) {
-        error ? signal(res, 404, error.message) : perform(res, options.transform, targets);
-      });
-  }).listen(options.port || 8000);
-};
-
-function signal (res, code, msg) {
-  res.writeHead(code, {"Content-Type": "text/plain"});
-  res.end(msg);
-}
-
-function perform (res, transform, targets) {
-  var readable = new Stream.Readable();
-  readable.push(js
-    .replace("@TRANSFORM", function () { return JSON.stringify(Path.resolve(transform)) })
-    .replace("@TARGETS", function () { return JSON.stringify(targets) }));
-  readable.push(null);
-  Browserify(readable, {basedir:__dirname}).bundle(function (error, bundle) {
-    if (error)
-      return signal(res, 400, error.message);
-    res.writeHead(200, {"Content-Type":"text/html"});
-    res.end(html.replace("@BUNDLE", function () {
-      return bundle.toString("utf8").replace(/<\/script>/gi, function () { return "<\\/script>" });
+  var log = Log(options.log);
+  var server = Http.createServer(function (request, response) {
+    try {
+      var mains = Collect(process.cwd()+request.url, /\.js$/);
+    } catch (error) {
+      response.writeHead(404, {"Content-Type": "text/plain"});
+      return response.end(error.message);
+    }
+    var readable = new Stream.Readable();
+    readable.push("var namespace = "+JSON.stringify(options.namespace)+";\n");
+    readable.push("var transpiles = {\n"+Childeren(options.transpile, /\.js$/).map(function (transpile) {
+      return "  "+JSON.stringify(Path.basename(transpile))+": require("+JSON.stringify(transpile)+")";
+    }).join(",\n")+"\n}\n;");
+    readable.push("var mains = "+JSON.stringify(mains, null, 2)+";\n");
+    readable.push(Fs.readFileSync(__dirname+"/template.js", "utf8"));
+    readable.push(null);
+    Browserify(readable, {basedir:__dirname}).bundle(Assume(function (bundle) {
+      response.writeHead(200, {"Content-Type":"text/html"});
+      response.end(Fs.readFileSync(__dirname+"/template.html", "utf8")
+        .replace("@ICON", function () { return Icon })
+        .replace("@TITLE", function () { return "Test "+options.transpile })
+        .replace("@BUNDLE", function () {
+          return bundle.toString("utf8").replace(/<\/script>/gi, function () { return "<\\/script>" });
+      }));
     }));
   });
-}
+  Ws.Server({server:server}).on("connection", function (ws) {
+    ws.on("message", log(ws.upgradeReq.url));
+  });
+  server.listen(options.port || 0, function () {
+    process.stdout.write("Serving localhost:"+server.address().port+" from: "+process.cwd()+"\n");
+  });
+};

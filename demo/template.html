@@ -5,7 +5,7 @@
     <title>@TITLE</title>
     <link rel="icon" href=@ICON>
     <style>
-      #main {
+      body {
         font-family: Helvetica, 'Open Sans', Arial, sans-serif;
         font-weight: lighter;
         width: 1000px;
@@ -17,10 +17,6 @@
         width: 480px;
         display: inline-block;
         vertical-align: top;
-      }
-      label {
-        display: block;
-        height: 25px;
       }
       button {
         padding: 12px;
@@ -37,6 +33,8 @@
         font-size: 12px;
       }
       .editor {
+        margin-top: 10px;
+        margin-bottom: 10px;
         resize: both;
         overflow: auto;
         width: 480px;
@@ -48,34 +46,26 @@
     <script>@BUNDLE</script>
   </head>
   <body>
-    <div id="main">
-      <div class="sub">
-        <label>Transform: <select id="transform-select"></select></label>
-        <div class="editor code" id="transform-editor"></div>
-      </div>
-      <div class="sub">
-        <label>Logger: </label>
-        <textarea class="editor code" id="logger"></textarea>
-      </div>
-      <button id="run-button">Run</button>
-      <div class="sub">
-        <label>Target: </label>
-        <div class="editor code" id="target-editor"></div>
-      </div>
-      <div class="sub">
-        <label>Transformed: </label>
-        <div class="editor code" id="transformed-editor"></div>
-      </div>
-      <div class="sub">
-        <label>Target result: <span id="target-result-span" class="code"></span></label>
-        <label>Target error: <span id="target-error-span" class="code"></span></label>
-        <label>Target time: <span id="target-time-span" class="code"></span></label>
-      </div>
-      <div class="sub">
-        <label>Transformed result: <span id="transformed-result-span" class="code"></span></label>
-        <label>Transformed error: <span id="transformed-error-span" class="code"></span></label>
-        <label>Transformed time: <span id="transformed-time-span" class="code"></span></label>
-      </div>
+    <div class="sub">
+      <span>Transpile: </span>
+      <select id="transpile-select"></select>
+      <div class="editor code" id="transpile-editor"></div>
+    </div>
+    <div class="sub">
+      <span>Logger: </span>
+      <div class="editor code" id="logger-editor"></div>
+    </div>
+    <button id="run-button">Run</button>
+    <div class="sub">
+      <span>Main: </span>
+      <select id="main-select"></select>
+      <span id="main-span" class="code"></span>
+      <div class="editor code" id="main-editor"></div>
+    </div>
+    <div class="sub">
+      <span>Transpiled: </span>
+      <span id="transpiled-span" class="code"></span>
+      <div class="editor code" id="transpiled-editor"></div>
     </div>
   </body>
 </html>

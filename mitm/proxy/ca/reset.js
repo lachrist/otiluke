@@ -27,4 +27,3 @@ module.exports = function () {
     "-signkey", __dirname+"/cakey.pem",
     "-out", __dirname+"/cacert.pem"]);
 }
-
