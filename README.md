@@ -2,7 +2,7 @@
 
 Otiluke is a toolbox for JavaScript source-to-source compilers -- here called transpilers -- which are written as [CommonJS modules](http://www.commonjs.org/).
 Otiluke is itself a npm module and as such, should be installed through `npm install otiluke -g`.
-With Otiluke you can:
+As demonstrated in [usage](./usage), Otiluke can:
 
 1. Debug and benchmark your JavaScript transpiler(s): [`--test`](#otiluke---test)
 2. Demonstrate how awesome are your JavaScript transpiler(s): [`--demo`](#otiluke---demo)
@@ -20,28 +20,28 @@ Otiluke's tools often understand the following important arguments: `--transpile
 As demonstrated below, Otiluke's tools can often perform several transpilations at once if these arguments point to directories instead of files.
 In such case, the resulting transpilations are the results of a [cartesian product](https://en.wikipedia.org/wiki/Cartesian_product) of the JavaScript files directly contained inside the `--transpile` and `--main` directory.
 If `--log` points to a directory, Otiluke creates a new log file inside of it for every transpilations.
-The names of the log files created by Otiluke are URLs containing [hexadecimal escape sequence](https://mathiasbynens.be/notes/javascript-escapes#hexadecimal).
+The names of these log files are URLs containing [hexadecimal escape sequence](https://mathiasbynens.be/notes/javascript-escapes#hexadecimal).
 
 <img src="img/test.png" align="center" alt="test" title="otiluke --test"/>
 
 &nbsp;&nbsp;&nbsp;Argument&nbsp;&nbsp;&nbsp; | Shortcut | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tool&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Description
 --------------|----------|-------------------|-----------------------------------------------------------------------------------------------------------------------------------------------
-`--transpile` | `-t`     | all but `--mitm`  | Can either point directly to a transpiler or a directory of transpilers.
+`--transpile` | `-t`     | all but `--mitm`  | Path to a transpiler or a directory of transpilers.
 `--transpile` | `-t`     | `--mitm`          | Path to a transpiler.
-`--port`      | `-p`     | `--test`          | Port to deploy a HTTP server; if omitted, a random unused port is used.
+`--port`      | `-p`     | `--test`          | Port to deploy a HTTP server; if omitted, a free random port is used.
 `--port`      | `-p`     | `--mitm`          | Port to deploy a forward HTTP proxy; if omitted a free random port is used. 
-`--main`      | `-m`     | `--demo`          | Can either point directly to a standalone script or a directory of standalone scripts.
-`--main`      | `-m`     | `--node`          | Can either point directly to a node entry point file or directory of node entry points.
+`--main`      | `-m`     | `--demo`          | Path to a standalone script or a directory of standalone scripts.
+`--main`      | `-m`     | `--node`          | Path to a node main file or directory of node main files.
 `--namespace` | `-n`     | all               | Rename the global variable holding Otiluke's helper functions (only `log` for the moment).
-`--log`       | `-l`     | all but `--demo`  | Can either point to a log file or a directory to be populated with log files; if omitted, all logs are redirected to `process.stdout`.
-`--out`       | `-o`     | `--demo`          | Path to output the bundled HTML file.
+`--log`       | `-l`     | all but `--demo`  | Path to a log file or a directory to be populated with log files; if omitted, all logs are redirected to `process.stdout`.
+`--out`       | `-o`     | `--demo`          | Path to output the bundled html page.
 `--reset`     | `-r`     | `--mitm`          | Reset all certificates created while performing past man-in-the-middle attacks 
 
 ## `otiluke --test`
 
-`otiluke --test` deploys a local HTTP server for debugging and benchmarking transpilation modules. 
-On receiving HTTP requests, the server [browserifies](http://browserify.org/) the given transpilations modules and bundles the standalone scripts pointed by the request's URL.
-So essentially, the `--main` argument is provided later as URL of incoming HTTP requests.
+`otiluke --test` deploys a local http server for debugging and benchmarking transpiler(s). 
+On receiving http requests, the server [browserifies](http://browserify.org/) the given transpiler(s) and bundles the standalone script(s) pointed by the request's URL.
+So essentially, the `--main` argument is provided later as URL of incoming http requests.
 
 ```shell
 otiluke --test --transpile path/to/transpile[.js] --port 8080 --namespace Otiluke --log path/to/log[.txt] 
@@ -57,9 +57,9 @@ require("otiluke").test({
 
 ## `otiluke --demo`
 
-`otiluke --demo` [browserifies](http://browserify.org/) the given transpilation module(s) and bundles the standalone script(s) into a standalone html page.
-This page serves as a demonstration to this awesome transpilation module of yours.
-Note that only the dependencies initially present in the given transpilation modules will be bundled into the page, therefore arbitrary requires are not supported in the demo page.
+`otiluke --demo` [browserifies](http://browserify.org/) the given transpiler(s) and bundles the standalone script(s) into a standalone html page.
+This page serves as a demonstration to these awesome transpiler(s) of yours.
+Note that only the dependencies initially present in the given transpiler(s) will be bundled into the page, therefore arbitrary requires are not supported in the demo page.
 
 ```shell
 otiluke --demo --transpile path/to/transpile[.js] --main path/to/main[.js] --namespace Otiluke --out path/to/bundle.html
@@ -75,7 +75,7 @@ require("otiluke").demo({
 
 ## `otiluke --node`
 
-`otiluke --node` deploys transpilation module(s) on node application(s).
+`otiluke --node` deploys transpiler(s) on node application(s).
 Before being executed, every required module is intercepted and passed to the transpiler.
 This transpilation process should work just fine in most cases but may not resist (yet) throughout introspection of the node module system.
 For process lovers: `require("child_process").fork` is used with inherited standard streams.
