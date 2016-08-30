@@ -16,7 +16,7 @@ Below is the Otiluke's demo tool; see [usage](./usage) for more examples.
 
 <img src="img/demo.png" align="center" alt="demonstration" title="Otiluke's demo tool"/>
 
-## Otiluke --test
+## `otiluke --test`
 
 The `--test` tool deploys a local HTTP server at the given port, it is usefull to debug and benchmark a transformation module. 
 On receiving an HTTP request, the server [browserify](http://browserify.org/) the given transformation module and bundle the target(s) pointed by the request's URL.
