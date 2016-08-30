@@ -27,7 +27,7 @@ Otiluke does its best to give meaningfull name to these files by following an UR
 
 <img src="img/test.png" align="center" alt="test" title="Otiluke's test tool"/>
 
- __Argument__ | Shortcut | ____Tool____      | Description
+___Argument___ | Shortcut | ____Tool____      | Description
 --------------|----------|-------------------|-----------------------------------------------------------------------------------------------------------------------------------------------
 `--transpile` | `-t`     | all but `--mitm`  | Can either point directly to a transpilation module or a directory of transpilation modules.
 `--transpile` | `-t`     | `--mitm`          | Path to a transpilation modules.
