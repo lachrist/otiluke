@@ -23,8 +23,7 @@ If `--log` points to a directory, Otiluke creates a new log file inside of it fo
 The names of the log files created by Otiluke are URLs containing [hexadecimal escape sequence](https://mathiasbynens.be/notes/javascript-escapes#hexadecimal).
 
 <img src="img/test.png" align="center" alt="test" title="otiluke --test"/>
-
-Argument&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Shortcut | Tool&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Description
+&nbsp;&nbsp;&nbsp;Argument&nbsp;&nbsp;&nbsp; | Shortcut | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tool&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Description
 --------------|----------|-------------------|-----------------------------------------------------------------------------------------------------------------------------------------------
 `--transpile` | `-t`     | all but `--mitm`  | Can either point directly to a transpiler or a directory of transpilers.
 `--transpile` | `-t`     | `--mitm`          | Path to a transpiler.
