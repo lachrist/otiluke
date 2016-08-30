@@ -28,7 +28,7 @@ Otiluke does its best to give meaningfull name to these files by following an UR
 <img src="img/test.png" align="center" alt="test" title="Otiluke's test tool"/>
 
 Argument      | Shortcut | Tool              | Description
---------------|----------|-------------------|-------------------------------------------
+--------------|----------|-------------------|-----------------------------------------------------------------------------------------------------------------------------------------------
 `--transpile` | `-t`     | all but `--mitm`  | Can either point directly to a transpilation module or a directory of transpilation modules.
 `--transpile` | `-t`     | `--mitm`          | Path to a transpilation modules.
 `--port`      | `-p`     | `--test`          | Port to deploy a HTTP server; if omited, a random unused port is used.
@@ -36,8 +36,9 @@ Argument      | Shortcut | Tool              | Description
 `--main`      | `-m`     | `--demo`          | Can either point directly to a standalone script or a directory of standalone scripts.
 `--main`      | `-m`     | `--node`          | Can either point directly to a node entry point file or directory of node entry points.
 `--namespace` | `-n`     | all               | Rename the global variable hodling Otiluke's helper functions (only `log` for the moment).
-`--log`       | `-l`     | all but `--demo`  | Can either point directly to a log file or a directory in which case Otiluke will use URLs as file names; if omitted, all logs are redirected to `process.stdout`.
+`--log`       | `-l`     | all but `--demo`  | Can either point to a log file or a directory to be populated with log files; if omitted, all logs are redirected to `process.stdout`.
 `--out`       | `-o`     | `--demo`          | Path to output the bundled html file.
+`--reset`     | `-r`     | `--mitm`          | Reset all certificates created while performing past man-in-the-middle attacks 
 
 ## `otiluke --test`
 
