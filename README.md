@@ -1,43 +1,40 @@
 # Otiluke <img src="img/otiluke.png" align="right" alt="otiluke-logo" title="Resilient Sphere of Otiluke">
 
 Otiluke is a toolbox for JavaScript source-to-source compilers -- here called transpilers -- which are written as [CommonJS modules](http://www.commonjs.org/).
-Otiluke is itself an npm module and should be installed with `npm install otiluke -g`.
+Otiluke is itself a npm module and as such, should be installed through `npm install otiluke -g`.
 With Otiluke you can:
 
-1. Debug and benchmark your JavaScript transpilers: [`--test`](#otiluke---test)
-2. Demonstrate how awesome are your JavaScript transpilers: [`--demo`](#otiluke---demo)
-3. Deploy your JavaScript transpilers on node modules: [`--node`](#otiluke---node)
+1. Debug and benchmark your JavaScript transpiler(s): [`--test`](#otiluke---test)
+2. Demonstrate how awesome are your JavaScript transpiler(s): [`--demo`](#otiluke---demo)
+3. Deploy your JavaScript transpiler(s) on node module(s): [`--node`](#otiluke---node)
 4. Deploy your JavaScript transpiler on online HTML pages: [`--mitm`](#otiluke---mitm)
 
-Otiluke expects the transpiler to be a CommonJS module exporting a function compiling JavaScript to JavaScript.
-The transpiler module will always be executed side-by-side with the program targetted for transpilation.
+Otiluke expects the transpiler to be a CommonJS module exporting receiving and returning JavaScript code.
+The transpiler module will always be executed side-by-side with the program targeted for transpilation.
 Such online transpilation process enables easy support of dynamic code evaluations such as [`eval(script)`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/eval).
-As illustrated below, Otiluke provides a channel -- `Otiluke.log(string)` by default -- to log information gathered during the transpilation process or later, while executing the transpiled program:
+As illustrated below, Otiluke provides a channel -- `Otiluke.log(string)` by default -- to log information gathered during the transpilation process or later, while executing the transpiled program.
 
 <img src="img/demo.png" align="center" alt="demo" title="otiluke --demo"/>
 
-Otiluke's tools often understand the following important arguments:
-`--transpile` which points to the transpilation module,
-`--main` which points to the entry point of the program to be transpiled,
-and `--log` which points to a log file for collecting the data sent through `Otiluke.log(string)`.
-As demonstrated below, Otiluke's tools can often perform several transpilatations at once if these arguments points to directory instead of files.
+Otiluke's tools often understand the following important arguments: `--transpile` which points to the transpiler, `--main` which points to the entry point of the program to be transpiled, and `--log` which points to a log file for collecting the data sent through `Otiluke.log(string)`.
+As demonstrated below, Otiluke's tools can often perform several transpilations at once if these arguments point to directories instead of files.
 In such case, the resulting transpilations are the results of a [cartesian product](https://en.wikipedia.org/wiki/Cartesian_product) of the JavaScript files directly contained inside the `--transpile` and `--main` directory.
-If `--log` points to a directory, Otiluke creates a new file inside of it for every transpilation.
-Otiluke provide meaningfull URL does its best to give meaningfull name to these files by following an URL format escaped with hexadecimal sequences.
+If `--log` points to a directory, Otiluke creates a new log file inside of it for every transpilations.
+The names of the log files created by Otiluke are URLs containing [hexadecimal escape sequence](https://mathiasbynens.be/notes/javascript-escapes#hexadecimal).
 
 <img src="img/test.png" align="center" alt="test" title="otiluke --test"/>
 
-==Argument==  | Shortcut | ====Tool====      | Description
+&nbsp;&nbsp;&nbsp;&nbsp;Argument | Shortcut | ====Tool====      | Description
 --------------|----------|-------------------|-----------------------------------------------------------------------------------------------------------------------------------------------
-`--transpile` | `-t`     | all but `--mitm`  | Can either point directly to a transpilation module or a directory of transpilation modules.
-`--transpile` | `-t`     | `--mitm`          | Path to a transpilation modules.
-`--port`      | `-p`     | `--test`          | Port to deploy a HTTP server; if omited, a random unused port is used.
-`--port`      | `-p`     | `--mitm`          | Port to deploy a forward HTTP proxy; if omited a random unsused port is used. 
+`--transpile` | `-t`     | all but `--mitm`  | Can either point directly to a transpiler or a directory of transpilers.
+`--transpile` | `-t`     | `--mitm`          | Path to a transpiler.
+`--port`      | `-p`     | `--test`          | Port to deploy a HTTP server; if omitted, a random unused port is used.
+`--port`      | `-p`     | `--mitm`          | Port to deploy a forward HTTP proxy; if omitted a free random port is used. 
 `--main`      | `-m`     | `--demo`          | Can either point directly to a standalone script or a directory of standalone scripts.
 `--main`      | `-m`     | `--node`          | Can either point directly to a node entry point file or directory of node entry points.
-`--namespace` | `-n`     | all               | Rename the global variable hodling Otiluke's helper functions (only `log` for the moment).
+`--namespace` | `-n`     | all               | Rename the global variable holding Otiluke's helper functions (only `log` for the moment).
 `--log`       | `-l`     | all but `--demo`  | Can either point to a log file or a directory to be populated with log files; if omitted, all logs are redirected to `process.stdout`.
-`--out`       | `-o`     | `--demo`          | Path to output the bundled html file.
+`--out`       | `-o`     | `--demo`          | Path to output the bundled HTML file.
 `--reset`     | `-r`     | `--mitm`          | Reset all certificates created while performing past man-in-the-middle attacks 
 
 ## `otiluke --test`
@@ -81,6 +78,7 @@ require("otiluke").demo({
 `otiluke --node` deploys transpilation module(s) on node application(s).
 Before being executed, every required module is intercepted and passed to the transpiler.
 This transpilation process should work just fine in most cases but may not resist (yet) throughout introspection of the node module system.
+For process lovers: `require("child_process").fork` is used with inherited standard streams.
 
 ```shell
 otiluke --demo --transpile /path/to/transpile[.js] --main /path/to/main[.js] --namespace Otiluke --log path/to/log[.txt]
