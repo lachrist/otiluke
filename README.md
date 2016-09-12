@@ -125,7 +125,7 @@ Also, two modifications should be done on your browser (here Firefox but should 
     require("otiluke").mitm({reset:true});
     ```
 
-   <img src="img/firefox-cert.png" align="center" alt="firefox certificate" title="Firefox's certificate"/>
+<img src="img/demo.png" align="center" alt="demo" title="otiluke --demo"/>
 
    After changes in certificates' trust, restart Firefox to avoid `sec_error_reused_issuer_and_serial` error.
 
@@ -134,5 +134,4 @@ Also, two modifications should be done on your browser (here Firefox but should 
    You can now tick the checkbox *Manual proxy configuration* and *Use this proxy server for all protocols*.
    The HTTP proxy fields should be the localhost `127.0.0.1` and the port given in the options.
 
-   <img src="img/firefox-proxy.png" align="center" alt="firefox proxy" title="Firefox's proxy settings"/>
-
+<img src="img/firefox-proxy.png" align="center" alt="firefox proxy" title="Firefox's proxy settings"/>
