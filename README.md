@@ -118,14 +118,14 @@ Also, two modifications should be done on your browser (here Firefox but should 
    You can now import Otiluke's root certificate which can be found at `/path/otiluke/mitm/ca/cacert.pem`.
    Note that you can reset all Otiluke's certificates with
 
-    ```shell
-    otiluke --mitm --reset
-    ```
-    ```javascript
-    require("otiluke").mitm({reset:true});
-    ```
+   ```shell
+   otiluke --mitm --reset
+   ```
+   ```javascript
+   require("otiluke").mitm({reset:true});
+   ```
 
-<img src="img/firefox-cert.png" align="center" alt="firefox certificate" title="Firefox's certificate"/>
+   ![screenshot of firefox certificates](img/firefox-cert.png)
 
    After changes in certificates' trust, restart Firefox to avoid `sec_error_reused_issuer_and_serial` error.
 
