@@ -125,7 +125,7 @@ Also, two modifications should be done on your browser (here Firefox but should 
    require("otiluke").mitm({reset:true});
    ```
 
-   ![screenshot of firefox certificates](img/firefox-cert.png)
+    ![screenshot of firefox certificates](img/firefox-cert.png)
 
    After changes in certificates' trust, restart Firefox to avoid `sec_error_reused_issuer_and_serial` error.
 
