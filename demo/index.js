@@ -22,7 +22,7 @@ module.exports = function (options) {
   options.transpile && (function (basedir) {
     for (var key in transpiles)
       transpiles[key].replace(/[^a-zA-Z_$]require\s*\(\s*((\"[^"]*\")|(\'[^']*\'))\s*\)/g, function (_, dependency) {
-        browserify.require(Resolve.sync(dependency, {basedir:basedir}), {expose:JSON.parse(dependency)});
+        browserify.require(Resolve.sync(JSON.parse(dependency), {basedir:basedir}));
       });
   } (/\.js$/.test(options.transpile) ? Path.dirname(options.transpile) : options.transpile));
   browserify.bundle(Assume(function (bundle) {
