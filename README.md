@@ -113,7 +113,9 @@ require("otiluke").node({
 `otiluke --mitm` requires [openssl](https://www.openssl.org/) to be accessible via the PATH.
 Also, two modifications should be done on your browser (here Firefox but should works on other browsers as well) before deploying the MITM proxy:
 
-1) You have to indicate Firefox that you trust Otiluke's root certificate.
+### Trust Otiluke's root certificate
+
+First, you have to indicate Firefox that you trust Otiluke's root certificate.
 Go to `about:preferences#advanced` then click on *Certificates* then *View Certificates*.
 You can now import Otiluke's root certificate which can be found at `/path/otiluke/mitm/ca/cacert.pem`.
 After changes in certificates' trust, restart Firefox to avoid `sec_error_reused_issuer_and_serial` error.
@@ -128,7 +130,9 @@ require("otiluke").mitm({reset:true});
 
 <img src="img/firefox-cert.png" align="center" alt="firefox proxy" title="Firefox's proxy settings"/>
 
-2) You have to redirect all Firefox requests to the local port where the MITM proxy is deployed.
+### Redirect requests to the MITM proxy
+
+Second, you have to redirect all Firefox requests to the local port where the MITM proxy is deployed.
 Go again to `about:preferences#advanced` then click on *Network* then *Settings...*.
 You can now tick the checkbox *Manual proxy configuration* and *Use this proxy server for all protocols*.
 The HTTP proxy fields should be the localhost `127.0.0.1` and the port given in the options.
