@@ -26,7 +26,9 @@ module.exports = function (options) {
         // Source: https://github.com/nodejs/node/blob/v5.10.0/lib/module.js
         //         https://github.com/nodejs/node/blob/v5.10.0/lib/internal/module.js
         // require("module")._resolveFilename(module, {paths:[basedir]})
-        browserify.require(Resolve.sync(JSON.parse(dependency), {basedir:basedir}));
+        browserify.require(
+          Resolve.sync(JSON.parse(dependency), {basedir:basedir}),
+          {expose:JSON.parse(dependency)});
       });
   } (/\.js$/.test(options.transpile) ? Path.dirname(options.transpile) : options.transpile));
   browserify.bundle(Assume(function (bundle) {

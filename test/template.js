@@ -1,4 +1,4 @@
-// The variables 'transpiles' and 'mains' should be defined //
+// The variables 'socket', 'transpiles' and 'mains' should be defined //
 
 function cell (text, color, onclick) {
   var td = document.createElement("td");
@@ -34,12 +34,6 @@ window.onload = function () {
   var keysT = Object.keys(transpiles).sort();
   var keysM = Object.keys(mains).sort();
   var experiments = [];
-  var socket = null;
-  Object.defineProperty(this, namespace, {
-    value: {
-      log: function (message) { socket.send(message) }
-    }
-  });
   function loop (t, m) {
     socket && socket.close();
     (m === keysM.length) && (m = 0, t++);
