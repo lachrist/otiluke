@@ -22,8 +22,8 @@ function benchmark (code, row, output) {
     row.appendChild(cell(output.result = ""+result, "green", function () { console.dir(result) }));
   } catch (error) {
     var time2 = performance.now();
-    setTimeout(function () { throw e }, 10);
-    row.appendChild(cell(output.error = ""+error, "red", function () { console.dir(experror) }));
+    setTimeout(function () { throw error }, 10);
+    row.appendChild(cell(output.error = ""+error, "red", function () { console.dir(error) }));
   }
   row.appendChild(cell(output.time = Math.ceil(1000*(time2-time1))));
   return output;
