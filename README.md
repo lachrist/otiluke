@@ -2,6 +2,7 @@
 
 Otiluke is a toolbox for JavaScript source-to-source compilers - here called transpilers - which are written as [CommonJS modules](http://www.commonjs.org/).
 Otiluke is itself a npm module and as such, should be installed through `npm install otiluke -g`.
+You can try out Otiluke [here](http://rawgit.com/lachrist/otiluke/master/usage/demo.html).
 As demonstrated in [usage](./usage), Otiluke can:
 
 1. Debug and benchmark your JavaScript transpiler(s): [`--test`](#otiluke---test)
@@ -11,7 +12,7 @@ As demonstrated in [usage](./usage), Otiluke can:
 
 The transpiler module will always be executed side-by-side with the program targeted for transpilation.
 Such online transpilation process enables easy support of dynamic code evaluations such as [`eval(script)`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/eval).
-As illustrated below, Otiluke provides a log channel in the options argument to trace information gathered during the transpilation process or later, while executing the transpiled program.
+As illustrated below and [here](http://rawgit.com/lachrist/otiluke/master/usage/demo.html), Otiluke provides a log channel in the options argument to trace information gathered during the transpilation process or later, while executing the transpiled program.
 
 <img src="img/demo.png" align="center" alt="demo" title="otiluke --demo"/>
 
@@ -20,17 +21,20 @@ As demonstrated below, Otiluke's tools can often perform several transpilations 
 In such case, the resulting transpilations are the results of a [cartesian product](https://en.wikipedia.org/wiki/Cartesian_product) of the JavaScript files directly contained inside the `--transpile` and `--main` directory.
 If `--log` points to a directory, Otiluke creates a new log file inside of it for every transpilations.
 The names of these log files are URLs containing [hexadecimal escape sequences](https://mathiasbynens.be/notes/javascript-escapes#hexadecimal).
+This illustrated below with Otiluke's test:
 
 <img src="img/test.png" align="center" alt="test" title="otiluke --test"/>
 
 ```javascript
-> require("fs").readdirSync("./").map(function (name) { return eval("'"+name+"'") })
+> require("fs").readdirSync("./usage/log").map(function (name) { return eval("'"+name+"'") })
 [ '.gitignore',
   '/fac.js?transpile=identity.js#0',
   '/fac.js?transpile=logsource.js#0',
   '/fibo.js?transpile=identity.js#0',
   '/fibo.js?transpile=logsource.js#0' ]
 ```
+
+The table below recapitulates the options understood by Otiluke's tools:
 
 &nbsp;&nbsp;&nbsp;Argument&nbsp;&nbsp;&nbsp; | Shortcut | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tool&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Description
 --------------|----------|-------------------|-----------------------------------------------------------------------------------------------------------------------------------------------
@@ -40,10 +44,9 @@ The names of these log files are URLs containing [hexadecimal escape sequences](
 `--port`      | `-p`     | `--mitm`          | Port to deploy a forward HTTP proxy; if omitted a free random port is used. 
 `--main`      | `-m`     | `--demo`          | Path to a standalone script or a directory of standalone scripts.
 `--main`      | `-m`     | `--node`          | Path to a node main file or directory of node main files.
-`--namespace` | `-n`     | all               | Rename the global variable holding Otiluke's helper functions (only `log` for the moment).
 `--log`       | `-l`     | all but `--demo`  | Path to a log file or a directory to be populated with log files; if omitted, all logs are redirected to `process.stdout`.
 `--out`       | `-o`     | `--demo`          | Path to output the bundled html page.
-`--reset`     | `-r`     | `--mitm`          | Reset all certificates created while performing past man-in-the-middle attacks 
+`--reset`     | `-r`     | `--mitm`          | Reset all certificates created while performing previous man-in-the-middle attacks 
 
 ## Otiluke --test
 
@@ -68,6 +71,7 @@ require("otiluke").test({
 `otiluke --demo` [browserifies](http://browserify.org/) the given transpiler(s) and bundles the standalone script(s) into a standalone html page.
 This page serves as a demonstration to these awesome transpiler(s) of yours.
 Note that only the dependencies initially present in the given transpiler(s) will be bundled into the page, therefore arbitrary requires are not supported in the demo page.
+**Make sure your browser's cache is disabled before loading new pages!**
 
 ```shell
 otiluke --demo --transpile path/to/transpile[.js] --main path/to/main[.js] --namespace Otiluke --out path/to/bundle.html
