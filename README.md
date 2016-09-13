@@ -11,7 +11,7 @@ As demonstrated in [usage](./usage), Otiluke can:
 
 The transpiler module will always be executed side-by-side with the program targeted for transpilation.
 Such online transpilation process enables easy support of dynamic code evaluations such as [`eval(script)`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/eval).
-As illustrated below, Otiluke provides a log channel in the options to trace information gathered during the transpilation process or later, while executing the transpiled program.
+As illustrated below, Otiluke provides a log channel in the options argument to trace information gathered during the transpilation process or later, while executing the transpiled program.
 
 <img src="img/demo.png" align="center" alt="demo" title="otiluke --demo"/>
 
@@ -19,9 +19,18 @@ Otiluke's tools often understand the following important arguments: `--transpile
 As demonstrated below, Otiluke's tools can often perform several transpilations at once if these arguments point to directories instead of files.
 In such case, the resulting transpilations are the results of a [cartesian product](https://en.wikipedia.org/wiki/Cartesian_product) of the JavaScript files directly contained inside the `--transpile` and `--main` directory.
 If `--log` points to a directory, Otiluke creates a new log file inside of it for every transpilations.
-The names of these log files are URLs containing [hexadecimal escape sequence](https://mathiasbynens.be/notes/javascript-escapes#hexadecimal).
+The names of these log files are URLs containing [hexadecimal escape sequences](https://mathiasbynens.be/notes/javascript-escapes#hexadecimal).
 
 <img src="img/test.png" align="center" alt="test" title="otiluke --test"/>
+
+```shell
+> require("fs").readdirSync("./").map(function (name) { return eval("'"+name+"'") })
+[ '.gitignore',
+  '/fac.js?transpile=identity.js#0',
+  '/fac.js?transpile=logsource.js#0',
+  '/fibo.js?transpile=identity.js#0',
+  '/fibo.js?transpile=logsource.js#0' ]
+```
 
 &nbsp;&nbsp;&nbsp;Argument&nbsp;&nbsp;&nbsp; | Shortcut | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tool&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Description
 --------------|----------|-------------------|-----------------------------------------------------------------------------------------------------------------------------------------------

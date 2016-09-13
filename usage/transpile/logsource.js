@@ -1,11 +1,11 @@
 module.exports = function (options) {
-  global.__hidden_log__ = options.log;
+  global._hidden_ = options.log;
   return function (script, source) {
     options.log("TRANSPILING "+source+"\n");
     return [
-      "__hidden_log__("+JSON.stringify("BEGIN "+source+"\n")+");",
+      "_hidden_("+JSON.stringify(">> "+source+"\n")+");",
       script,
-      "__hidden_log__("+JSON.stringify("END "+source+"\n")+");",
+      "_hidden_("+JSON.stringify("<< "+source+"\n")+");",
     ].join("\n");
   };
 };

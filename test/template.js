@@ -40,7 +40,7 @@ window.onload = function () {
     (m === keysM.length) && (m = 0, t++);
     if (t === keysT.length)
       return document.getElementById("json").textContent = JSON.stringify(experiments, null, 2);
-    var socket = new WebSocket("ws"+location.protocol.substring(4)+"//"+location.host+"/"+encodeURIComponent(keysM[m])+"?"+encodeURIComponent(keysT[t]));
+    var socket = new WebSocket("ws"+location.protocol.substring(4)+"//"+location.host+"/"+encodeURIComponent(keysM[m])+"?transpile="+encodeURIComponent(keysT[t]));
     socket.onopen = function () {
       var row = document.createElement("tr");
       table.appendChild(row);
