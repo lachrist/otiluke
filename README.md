@@ -23,7 +23,7 @@ The names of these log files are URLs containing [hexadecimal escape sequences](
 
 <img src="img/test.png" align="center" alt="test" title="otiluke --test"/>
 
-```shell
+```javascript
 > require("fs").readdirSync("./").map(function (name) { return eval("'"+name+"'") })
 [ '.gitignore',
   '/fac.js?transpile=identity.js#0',
@@ -45,7 +45,7 @@ The names of these log files are URLs containing [hexadecimal escape sequences](
 `--out`       | `-o`     | `--demo`          | Path to output the bundled html page.
 `--reset`     | `-r`     | `--mitm`          | Reset all certificates created while performing past man-in-the-middle attacks 
 
-## `otiluke --test`
+## Otiluke --test
 
 `otiluke --test` deploys a local http server for debugging and benchmarking transpiler(s). 
 On receiving http requests, the server [browserifies](http://browserify.org/) the given transpiler(s) and bundles the standalone script(s) pointed by the request's URL.
@@ -63,7 +63,7 @@ require("otiluke").test({
 });
 ```
 
-## `otiluke --demo`
+## Otiluke --demo
 
 `otiluke --demo` [browserifies](http://browserify.org/) the given transpiler(s) and bundles the standalone script(s) into a standalone html page.
 This page serves as a demonstration to these awesome transpiler(s) of yours.
@@ -81,7 +81,7 @@ require("otiluke").demo({
 });
 ```
 
-## `otiluke --node`
+## Otiluke --node
 
 `otiluke --node` deploys transpiler(s) on node application(s).
 Before being executed, every required module is intercepted and passed to the transpiler.
@@ -100,7 +100,7 @@ require("otiluke").node({
 });
 ```
 
-## `otiluke --mitm`
+## Otiluke --mitm
 
 `otiluke --mitm` deploys a forward HTTP proxy at the given port which effectively carry out a man-in-the-middle attack.
 The given transpilation module is [browserified](http://browserify.org/) into every requested HTML page and receive the entire JavaScript traffic.
