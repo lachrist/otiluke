@@ -8,17 +8,27 @@ var Proxy = require("./proxy");
 var Reset = require("./proxy/ca/reset.js");
 var Log = require("../util/log.js");
 var Hijack = require("./hijack.js");
+var Bind = require("../util/bind.js");
+
+function cst (string) {
+  return function () {
+    return string;
+  };
+}
 
 module.exports = function (options) {
   options.reset && Reset();
   if (!options.transpile)
     return;
-  var splitter = Crypto.randomBytes(128).toString("hex");
+  var splitter = "otiluke"+Crypto.randomBytes(64).toString("base64")
+    .replace(/\+/g, cst("_"))
+    .replace(/\//g, cst("$"))
+    .replace(/\=/g, cst(""));
   var stream = new Stream.Readable();
-  stream.push(Fs.readFileSync(__dirname+"/template.js", "utf8")
-    .replace(/@NAMESPACE/g, function () { return JSON.stringify(options.namespace) })
-    .replace(/@TRANSPILE/g, function () { return JSON.stringify(Path.resolve(options.transpile)) })
-    .replace(/@SPLITTER/g, function () { return JSON.stringify(splitter) }));
+  stream.push(Bind(Fs.readFileSync(__dirname+"/template.js", "utf8"), {
+    "@TRANSPILE": JSON.stringify(Path.resolve(options.transpile)),
+    "@SPLITTER": JSON.stringify(splitter)
+  }));
   stream.push(null);
   Browserify(stream).bundle(function (error, setup) {
     if (error)
@@ -26,7 +36,7 @@ module.exports = function (options) {
     var setup = setup.toString("utf8");
     function transform (url) {
       return function (js) {
-        return "eval(window["+JSON.stringify(options.namespace)+"].transpile("+JSON.stringify(js)+","+JSON.stringify(url)+"))";
+        return "eval("+splitter+"("+JSON.stringify(js)+","+JSON.stringify(url)+"))";
       };
     }
     Proxy(options.port, Hijack(Log(options.log), splitter), function (url, type) {

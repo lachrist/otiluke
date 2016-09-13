@@ -7,15 +7,16 @@ var Browserify = require("browserify");
 var Icon = require("../util/icon.js");
 var Collect = require("../util/collect.js");
 var Assume = require("../util/assume.js");
+var Bind = require("../util/bind.js");
 
 module.exports = function (options) {
   var transpiles = Collect(options.transpile, /\.js$/);
   var mains = Collect(options.main, /\.js$/);
   var browserify = (function (readable) {
-    readable.push("var namespace = "+JSON.stringify(options.namespace)+";\n");
-    readable.push("var transpiles = "+JSON.stringify(transpiles)+";\n");
-    readable.push("var mains = "+JSON.stringify(mains)+";\n");
-    readable.push(Fs.readFileSync(__dirname+"/template.js", "utf8"));
+    readable.push(Bind(Fs.readFileSync(__dirname+"/template.js", "utf8"), {
+      "@MAINS": JSON.stringify(mains),
+      "@TRANSPILES": JSON.stringify(transpiles)
+    }));
     readable.push(null);
     return Browserify(readable, {basedir:__dirname});
   } (new Stream.Readable()));

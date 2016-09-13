@@ -1,6 +1,6 @@
 # Otiluke <img src="img/otiluke.png" align="right" alt="otiluke-logo" title="Resilient Sphere of Otiluke">
 
-Otiluke is a toolbox for JavaScript source-to-source compilers -- here called transpilers -- which are written as [CommonJS modules](http://www.commonjs.org/).
+Otiluke is a toolbox for JavaScript source-to-source compilers - here called transpilers - which are written as [CommonJS modules](http://www.commonjs.org/).
 Otiluke is itself a npm module and as such, should be installed through `npm install otiluke -g`.
 As demonstrated in [usage](./usage), Otiluke can:
 
@@ -9,10 +9,9 @@ As demonstrated in [usage](./usage), Otiluke can:
 3. Deploy your JavaScript transpiler(s) on node module(s): [`--node`](#otiluke---node)
 4. Deploy your JavaScript transpiler on online HTML pages: [`--mitm`](#otiluke---mitm)
 
-Otiluke expects the transpiler to be a CommonJS module exporting receiving and returning JavaScript code.
 The transpiler module will always be executed side-by-side with the program targeted for transpilation.
 Such online transpilation process enables easy support of dynamic code evaluations such as [`eval(script)`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/eval).
-As illustrated below, Otiluke provides a channel -- `Otiluke.log(string)` by default -- to log information gathered during the transpilation process or later, while executing the transpiled program.
+As illustrated below, Otiluke provides a log channel in the options to trace information gathered during the transpilation process or later, while executing the transpiled program.
 
 <img src="img/demo.png" align="center" alt="demo" title="otiluke --demo"/>
 

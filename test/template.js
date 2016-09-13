@@ -1,4 +1,6 @@
-// The variables 'socket', 'transpiles' and 'mains' should be defined //
+
+var transpiles = @TRANSPILES;
+var mains = @MAINS;
 
 function cell (text, color, onclick) {
   var td = document.createElement("td");
@@ -35,24 +37,24 @@ window.onload = function () {
   var keysM = Object.keys(mains).sort();
   var experiments = [];
   function loop (t, m) {
-    socket && socket.close();
     (m === keysM.length) && (m = 0, t++);
     if (t === keysT.length)
       return document.getElementById("json").textContent = JSON.stringify(experiments, null, 2);
-    socket = new WebSocket("ws"+location.protocol.substring(4)+"//"+location.host+"/"+encodeURIComponent(keysM[m])+"?"+encodeURIComponent(keysT[t]));
+    var socket = new WebSocket("ws"+location.protocol.substring(4)+"//"+location.host+"/"+encodeURIComponent(keysM[m])+"?"+encodeURIComponent(keysT[t]));
     socket.onopen = function () {
       var row = document.createElement("tr");
       table.appendChild(row);
       row.appendChild(cell(keysM[m]));
       row.appendChild(cell(keysT[t]));
+      var transpile = transpiles[keysT[t]]({log: function (data) { socket.send(data) }});
       try {
-        var transpiled = transpiles[keysT[t]](mains[keysM[m]], keysM[m]);
+        var transpiled = transpile(mains[keysM[m]], keysM[m]);
+        experiments.push(benchmark(transpiled, row, {main:keysM[m], transpile:keysT[t]}));
       } catch (error) {
-        alert("Error while applying "+keysT[t]+" on "+keysM[m]+": "+error);
+        alert("Error while transpiling "+keysM[m]+" with "+keysT[t]+": "+error);
         setTimeout(function () { throw error }, 10);
-        return loop(t, m+1);
       }
-      experiments.push(benchmark(transpiled, row, {main:keysM[m], transpile:keysT[t]}));
+      socket.close();
       loop(t, m+1);
     };
   }

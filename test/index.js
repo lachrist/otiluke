@@ -12,6 +12,7 @@ var Collect = require("../util/collect.js");
 var Browserify = require("browserify");
 var Assume = require("../util/assume.js");
 var Log = require("../util/log.js");
+var Bind = require("../util/bind.js");
 
 module.exports = function (options) {
   var log = Log(options.log);
@@ -23,25 +24,19 @@ module.exports = function (options) {
       return response.end(error.message);
     }
     var readable = new Stream.Readable();
-    readable.push("var socket = null;\n");
-    readable.push("Object.defineProperty(global, "+JSON.stringify(options.namespace)+", {\n");
-    readable.push("  value: {\n");
-    readable.push("    log: function (message) { socket.send(message) }\n");
-    readable.push("  }\n");
-    readable.push("});\n");
-    readable.push("var transpiles = {\n"+Childeren(options.transpile, /\.js$/).map(function (transpile) {
-      return "  "+JSON.stringify(Path.basename(transpile))+": require("+JSON.stringify(transpile)+")";
-    }).join(",\n")+"\n}\n;");
-    readable.push("var mains = "+JSON.stringify(mains, null, 2)+";\n");
-    readable.push(Fs.readFileSync(__dirname+"/template.js", "utf8"));
+    readable.push(Bind(Fs.readFileSync(__dirname+"/template.js", "utf8"), {
+      "@TRANSPILES": "{\n"+Childeren(options.transpile, /\.js$/).map(function (transpile) {
+        return "  "+JSON.stringify(Path.basename(transpile))+": require("+JSON.stringify(transpile)+")";
+      }).join(",\n")+"\n}",
+      "@MAINS": JSON.stringify(mains, null, 2)
+    }));
     readable.push(null);
     Browserify(readable, {basedir:__dirname}).bundle(Assume(function (bundle) {
       response.writeHead(200, {"Content-Type":"text/html"});
-      response.end(Fs.readFileSync(__dirname+"/template.html", "utf8")
-        .replace("@ICON", function () { return Icon })
-        .replace("@TITLE", function () { return "Test "+options.transpile })
-        .replace("@BUNDLE", function () {
-          return bundle.toString("utf8").replace(/<\/script>/gi, function () { return "<\\/script>" });
+      response.end(Bind(Fs.readFileSync(__dirname+"/template.html", "utf8"), {
+        "@ICON": Icon,
+        "@TITLE": "Test "+options.transpile,
+        "@BUNDLE": bundle.toString("utf8").replace(/<\/script>/gi, function () { return "<\\/script>" })
       }));
     }));
   });

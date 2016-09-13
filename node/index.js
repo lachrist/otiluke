@@ -15,7 +15,7 @@ module.exports = function (options) {
       return process.stdout.write(JSON.stringify(experiments, null, 2)+"\n");
     process.stdout.write("Running "+Path.basename(ts[t])+" on "+Path.basename(ms[m])+"...\n");
     var time = process.hrtime();
-    ChildProcess.fork(__dirname+"/launch.js", [options.namespace, ts[t], ms[m]].concat(options.arguments||[]), {stdio:"inherit"})
+    ChildProcess.fork(__dirname+"/launch.js", [ts[t], ms[m]].concat(options.arguments||[]), {stdio:"inherit"})
       .on("message", log(encodeURIComponent(Path.basename(ms[m]))+"?"+encodeURIComponent(Path.basename(ts[t]))))
       .on("error", function (error) { throw error })
       .on("exit", function (code, signal) {

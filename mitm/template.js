@@ -1,26 +1,22 @@
 
-// 'namespace' should be defined //
+(function (splitter) {
 
-(function (namespace) {
-
-  if (namespace in this)
+  if (splitter in this)
     return;
 
   var dummy = [];
-  dummy.send = function (message) { dummy[dummy.length] = message };
+  dummy.send = function (data) { dummy[dummy.length] = data };
 
-  var socket = new WebSocket("wss://"+location.host+"/"+@SPLITTER+"?"+encodeURIComponent(location.href));
-  socket.onopen = function () {
+  (new WebSocket("wss://"+location.host+"/"+splitter+"?"+encodeURIComponent(location.href))).onopen = function () {
     for (var i=0, l=dummy.length; i<l; i++)
-      socket.send(dummy[i]);
-    dummy = socket;
+      this.send(dummy[i]);
+    dummy = this;
   }
 
-  Object.defineProperty(this, namespace, {
-    value: {
-      transpile: require(@TRANSPILE),
-      log: function (message) { dummy.send(message) }
-    }
+  Object.defineProperty(this, splitter, {
+    value: require(@TRANSPILE)({
+      log: function (data) { dummy.send(data) }
+    })
   });
 
-} (@NAMESPACE));
+} (@SPLITTER));

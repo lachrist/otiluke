@@ -1,4 +1,3 @@
-// The variables 'namespace' 'transpiles' and 'mains' should be defined //
 window.addEventListener("load", function () {
   var editors = {};
   // Editors //
@@ -33,10 +32,8 @@ window.addEventListener("load", function () {
   // Select //
   (function () {
     function select (select, editor, templates) {
-      if (!Object.keys(templates).length) {
-        editor.__selected__ = "mains.js";
+      if (!Object.keys(templates).length)
         return select.parentNode.removeChild(select);
-      }
       select.onchange = function () {
         templates[editor.__selected__] = editor.getValue();
         editor.setValue(templates[editor.__selected__ = select.value], -1)
@@ -52,17 +49,12 @@ window.addEventListener("load", function () {
         select.appendChild(option);
       });
     }
-    select(document.getElementById("transpile-select"), editors.transpile, transpiles);
-    select(document.getElementById("main-select"), editors.main, mains);
+    select(document.getElementById("transpile-select"), editors.transpile, @TRANSPILES);
+    select(document.getElementById("main-select"), editors.main, @MAINS);
+    editors.main.__selected__ || (editors.main.__selected__ = "main.js");
   } ());
   // Benchmark //
   (function () {
-    var buffer = [];
-    Object.defineProperty(this, namespace, {
-      value: {
-        log: function (message) { buffer.push(message) }
-      }
-    });
     function benchmark (code, span) {
       try {
         var t1 = performance.now(), r = window.eval(code), t2 = performance.now();
@@ -79,7 +71,7 @@ window.addEventListener("load", function () {
     document.getElementById("run-button").onclick = function () {
       editors.logger.setValue("", -1);
       benchmark(editors.main.getValue(), document.getElementById("main-span"));
-      var module = {};
+      var module = {exports:{}};
       try {
         (new Function("module", "global", editors.transpile.getValue()))(module, window);
       } catch (error) {
@@ -87,9 +79,11 @@ window.addEventListener("load", function () {
         throw error;
       }
       if (typeof module.exports !== "function")
-        return alert("The transpile does not 'module.exports' a function");
+        return alert("The transpiler does not 'module.exports' a function");
+      var buffer = [];
+      var transpile = module.exports({log: function (data) { buffer.push(data) }});
       try {
-        var transpiled = module.exports(editors.main.getValue(), editors.main.__selected__);
+        var transpiled = transpile(editors.main.getValue(), editors.main.__selected__);
       } catch (error) {
         alert("Failed to transpile "+editors.main.__selected__+": "+error);
         throw error;
@@ -97,7 +91,6 @@ window.addEventListener("load", function () {
       editors.transpiled.setValue(transpiled, -1);
       benchmark(editors.transpiled.getValue(), document.getElementById("transpiled-span"));
       editors.logger.setValue(buffer.join(""), -1);
-      buffer = [];
     };
   } ());
 });
