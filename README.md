@@ -55,13 +55,12 @@ On receiving http requests, the server [browserifies](http://browserify.org/) th
 So essentially, the `--main` argument is provided later as URL of incoming http requests.
 
 ```shell
-otiluke --test --transpile path/to/transpile[.js] --port 8080 --namespace Otiluke --log path/to/log[.txt] 
+otiluke --test --transpile path/to/transpile[.js] --port 8080 --log path/to/log[.txt] 
 ```
 ```javascript
 require("otiluke").test({
   transpile: "path/to/transpile",
   port: 8080,
-  namespace: "Otiluke",
   log: "path/to/log"
 });
 ```
@@ -71,16 +70,14 @@ require("otiluke").test({
 `otiluke --demo` [browserifies](http://browserify.org/) the given transpiler(s) and bundles the standalone script(s) into a standalone html page.
 This page serves as a demonstration to these awesome transpiler(s) of yours.
 Note that only the dependencies initially present in the given transpiler(s) will be bundled into the page, therefore arbitrary requires are not supported in the demo page.
-**Make sure your browser's cache is disabled before loading new pages!**
 
 ```shell
-otiluke --demo --transpile path/to/transpile[.js] --main path/to/main[.js] --namespace Otiluke --out path/to/bundle.html
+otiluke --demo --transpile path/to/transpile[.js] --main path/to/main[.js] --out path/to/bundle.html
 ```
 ```javascript
 require("otiluke").demo({
   transpile: "path/to/transpile",
   main: "path/to/main",
-  namespace: "Otiluke",
   out: "path/to/bundle.html"
 });
 ```
@@ -93,13 +90,12 @@ This transpilation process should work just fine in most cases but may not resis
 For process lovers: `require("child_process").fork` is used with inherited standard streams.
 
 ```shell
-otiluke --demo --transpile /path/to/transpile[.js] --main /path/to/main[.js] --namespace Otiluke --log path/to/log[.txt]
+otiluke --demo --transpile /path/to/transpile[.js] --main /path/to/main[.js] --log path/to/log[.txt]
 ```
 ```javascript
 require("otiluke").node({
   transpile: "path/to/transpile",
   main: "path/to/main",
-  namespace: "Otiluke",
   log: "path/to/log"
 });
 ```
@@ -111,18 +107,18 @@ The given transpilation module is [browserified](http://browserify.org/) into ev
 Note that inline event handlers are NOT intercepted (yet).
 
 ```shell
-otiluke --demo --transpile /path/to/transpile.js --port 8080 --namespace Otiluke --log path/to/log[.txt]
+otiluke --demo --transpile /path/to/transpile.js --port 8080 --log path/to/log[.txt]
 ```
 ```javascript
 require("otiluke").node({
   transpile: "path/to/transpile",
   main: "path/to/main",
-  namespace: "Otiluke",
   log: "path/to/log"
 });
 ```
 
 `otiluke --mitm` requires [openssl](https://www.openssl.org/) to be accessible via the PATH.
+Make sure your browser's cache is disabled before loading new pages!
 Also, two modifications should be done on your browser (here Firefox but should works on other browsers as well) before deploying the MITM proxy:
 
 ### Trust Otiluke's root certificate
