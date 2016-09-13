@@ -34,7 +34,7 @@ This illustrated below with Otiluke's test:
   '/fibo.js?transpile=logsource.js#0' ]
 ```
 
-The table below recapitulates the options understood by Otiluke's tools:
+Before going to each tool in detail, the table below recapitulates the options understood by each tool:
 
 &nbsp;&nbsp;&nbsp;Argument&nbsp;&nbsp;&nbsp; | Shortcut | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tool&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Description
 --------------|----------|-------------------|-----------------------------------------------------------------------------------------------------------------------------------------------
