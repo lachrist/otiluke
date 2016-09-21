@@ -1,4 +1,5 @@
 
+var Signal = require("../../util/Signal.js");
 var beat = 2*60*1000;
 
 module.exports = function (ondead) {
@@ -8,7 +9,7 @@ module.exports = function (ondead) {
       console.log(name);
       console.log(arguments);
       if (error)
-        return Error(__filename+"-"+name)(error);
+        return Signal(__filename+"-"+name)(error);
       if (!count) {
         servers[name].close();
         delete servers[name];

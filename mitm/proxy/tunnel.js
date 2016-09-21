@@ -1,6 +1,6 @@
 
 var Net = require("net");
-var Error = require("../../util/error.js");
+var Signal = require("../../util/signal.js");
 
 module.exports = function (port) {
   return function (socket1, head) {
@@ -10,6 +10,6 @@ module.exports = function (port) {
       socket2.pipe(socket1);
       socket1.pipe(socket2);
     });
-    socket2.on("error", Error("socket2:"+port));
+    socket2.on("error", Signal("socket2:"+port));
   }
 }

@@ -1,6 +1,7 @@
 
 var Url = require("url");
 var Ws = require("ws");
+var Signal = require("../util/signal.js")
 
 module.exports = function (log, splitter) {
   return function (host, server) {
@@ -19,7 +20,7 @@ module.exports = function (log, splitter) {
         ws2.on("message", function (message) { ws1.send(message) });
         ws1.on("message", function (message) { ws2.send(message) });
       });
-      ws2.on("error", Error(__filename+"-ws2-"+host));
+      ws2.on("error", Signal(__filename+"-ws2-"+host));
     });
   };
 };

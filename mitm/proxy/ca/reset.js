@@ -1,5 +1,5 @@
 var Fs = require("fs");
-var ChildProcess = require("child_process");
+var Spawn = require("../../../util/spawn.js");
 
 module.exports = function () {
   ["certs", "keys", "reqs"].forEach(function (dirname) {
@@ -9,21 +9,21 @@ module.exports = function () {
     });
   });
   Fs.writeFileSync(__dirname+"/ca.srl", "01");
-  ChildProcess.spawnSync("openssl", [
+  Spawn.sync("openssl", [
     "genrsa",
     "-out", __dirname+"/cakey.pem",
-    "2048"]);
-  ChildProcess.spawnSync("openssl", [
+    "2048"]) && process.exit(1);
+  Spawn.sync("openssl", [
     "req",
     "-new",
     "-sha256",
     "-subj", "/CN=otiluke/O=Otiluke",
     "-key", __dirname+"/cakey.pem",
-    "-out", __dirname+"/careq.pem"]);
-  ChildProcess.spawnSync("openssl", [
+    "-out", __dirname+"/careq.pem"]) && process.exit(1);
+  Spawn.sync("openssl", [
     "x509",
     "-days", "3600",
     "-req", "-in", __dirname+"/careq.pem",
     "-signkey", __dirname+"/cakey.pem",
-    "-out", __dirname+"/cacert.pem"]);
-}
+    "-out", __dirname+"/cacert.pem"]) && process.exit(1);
+};

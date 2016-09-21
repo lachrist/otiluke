@@ -5,7 +5,7 @@ var Ws = require("ws");
 var Url = require("url");
 
 var Ca = require("./ca");
-var Error = require("../../util/error.js");
+var Signal = require("../../util/signal.js");
 var Forward = require("./forward.js");
 var Tunnel = require("./tunnel.js");
 var Heartbeat = require("./heartbeat.js");
@@ -16,7 +16,7 @@ module.exports = function (port, hijack, intercept) {
   var proxy = Http.createServer();
   var servers = [];
   var heartbeat = Heartbeat(function (name) { delete tunnels[name] });
-  proxy.on("error", Error(__filename+"-proxy"));
+  proxy.on("error", Signal(__filename+"-proxy"));
   proxy.on("connect", function (req, socket, head) {
     if (req.url in tunnels)
       return tunnels[req.url](socket, head);
@@ -26,7 +26,7 @@ module.exports = function (port, hijack, intercept) {
     Ca(req.url.split(":")[0], function (key, cert) {
       var server = Https.createServer({key:key, cert:cert});
       server.on("request", Forward(intercept, req.url));
-      server.on("error", Error(__filename+"-mock-"+req.url));
+      server.on("error", Signal(__filename+"-mock-"+req.url));
       server.listen(0, function () {
         heartbeat(req.url, server);
         hijack(req.url, server);

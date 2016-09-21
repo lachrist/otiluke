@@ -1,6 +1,6 @@
 { "name" : "otiluke"
 , "description" : "Otiluke is a toolbox for JavaScript source-to-source compilers written in JavaScript themselves."
-, "version" : "2.1.0"
+, "version" : "2.1.1"
 , "author" : {"name":"Laurent Christophe", "email":"lachrist@vub.ac.be"}
 , "repository": "lachrist/otiluke"
 , "license" : "MIT"

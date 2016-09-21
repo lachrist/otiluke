@@ -1,5 +1,5 @@
 
-var Error = require("../../util/error.js");
+var Signal = require("../../util/Signal.js");
 var Url = require("url");
 var Http = require("http");
 var Https = require("https");
@@ -27,7 +27,7 @@ module.exports = function (intercept, host) {
       res2.on("data", function (data) { buffer.push(data) });
       res2.on("end", function () { res1.end(transform(buffer.join("")), "utf8") });
     })
-    req2.on("error", Error(__filename+"-req2-"+host));
+    req2.on("error", Signal(__filename+"-req2-"+host));
     req1.pipe(req2);
   };
 };
