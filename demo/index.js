@@ -28,7 +28,7 @@ module.exports = function (options) {
         //         https://github.com/nodejs/node/blob/v5.10.0/lib/internal/module.js
         // require("module")._resolveFilename(module, {paths:[basedir]})
         browserify.require(
-          Resolve.sync(JSON.parse(dependency), {basedir:basedir}),
+          Resolve.sync(global.eval(dependency), {basedir:basedir}), // use eval instead of JSON.parse to handle single quoted strings
           {expose:JSON.parse(dependency)});
       });
   } (/\.js$/.test(options.transpile) ? Path.dirname(options.transpile) : options.transpile));
