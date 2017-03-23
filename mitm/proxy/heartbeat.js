@@ -1,5 +1,6 @@
 
 var Signal = require("../../util/Signal.js");
+
 var beat = 2*60*1000;
 
 module.exports = function (ondead) {

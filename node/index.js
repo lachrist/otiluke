@@ -2,33 +2,49 @@
 var ChildProcess = require("child_process");
 var Children = require("../util/children.js");
 var Path = require("path");
-var Log = require("../util/log.js");
 
-module.exports = function (options) {
-  var log = Log(options.log);
-  var ts = Children(options.transpile, /\.js$/);
-  var ms = Children(options.main, /\.js$/);
+// options : {
+//   comps: [
+//     "path/to/comp1.js",
+//     "path/to/comp2.js",
+//   ],
+//   channel: function (transpile, main) {
+//     return {
+//       onrequest: function (req, res) { ... },
+//       onsocket: function (socket) { ... },
+//   },
+//   mains: [
+//     "path/to/main1.js foo1 bar1 buz1",
+//     "path/to/main2.js foo2 bar2 buz2"
+//   ]
+// }
+
+module.exports = function (options, callback) {
   var experiments = [];
-  function loop (t, m) {
-    (m === ms.length) && (m = 0, t++);
-    if (t === ts.length)
-      return process.stdout.write(JSON.stringify(experiments, null, 2)+"\n");
-    process.stdout.write("Running "+Path.basename(ts[t])+" on "+Path.basename(ms[m])+"...\n");
-    var time = process.hrtime();
-    ChildProcess.fork(__dirname+"/launch.js", [ts[t], ms[m]].concat(options.arguments||[]), {stdio:"inherit"})
-      .on("message", log(encodeURIComponent(Path.basename(ms[m]))+"?"+encodeURIComponent(Path.basename(ts[t]))))
-      .on("error", function (error) { throw error })
-      .on("exit", function (code, signal) {
+  function loop (i) {
+    if (i === options.comps.length * options.mains.length)
+      return callback(experiments);
+    var comp = options.comps[Math.floor(i/options.comps.length)];
+    var main = options.mains[i%options.comps.length];
+    var channel = options.channel(comp, main);
+    var server = Http.createServer(channel.onrequest);
+    server.listen(0, function () {
+      var command = "node "+__dirname+"/launch.js "+comps+" "+server.address().port+" "+main;
+      var time = process.hrtime();
+      channel.onsocket(ChildProcess.exec(command, function (error, stdout, stderr) {
         time = process.hrtime(time);
+        server.close();
         experiments.push({
-          transpile: Path.basename(ts[t]),
-          main: Path.basename(ms[m]),
+          comp: comp,
+          main: main,
           time: Math.ceil((time[0]*1e9+time[1])/1000),
-          code: code,
-          signal: signal,
+          error: error,
+          stdout: stdout,
+          stderr: stderr
         });
-        loop(t, m+1);
-      });
+        loop(i+1);
+      }));
+    });
   }
-  loop(0, 0);
+  loop(0);
 };

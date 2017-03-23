@@ -6,9 +6,6 @@ var Fs = require("fs");
 var Browserify = require("browserify");
 var Proxy = require("./proxy");
 var Reset = require("./proxy/ca/reset.js");
-var Log = require("../util/log.js");
-var Hijack = require("./hijack.js");
-var Bind = require("../util/bind.js");
 
 function cst (string) {
   return function () {
@@ -20,15 +17,19 @@ module.exports = function (options) {
   options.reset && Reset();
   if (!options.transpile)
     return;
-  var splitter = "otiluke"+Crypto.randomBytes(64).toString("base64")
-    .replace(/\+/g, cst("_"))
-    .replace(/\//g, cst("$"))
-    .replace(/\=/g, cst(""));
-  var stream = new Stream.Readable();
-  stream.push(Bind(Fs.readFileSync(__dirname+"/template.js", "utf8"), {
-    "@TRANSPILE": JSON.stringify(Path.resolve(options.transpile)),
-    "@SPLITTER": JSON.stringify(splitter)
-  }));
+  var splitter = "otiluke"+Crypto.randomBytes(64).toString("hex");
+  var readable = new Stream.Readable();
+  readable.push("var SPLITTER = "+JSON.stringify(splitter)+";\n");
+  readable.push("var TRANSPILE = require("+JSON.stringify(Path.resolve(options.transpile))+");\n");
+  if (options.melf)
+    readable.push("var MELF = "+JSON.stringify({
+      channel: splitter,
+      alias: options.melf.alias,
+      wait: options.melf.wait || 10
+    })+";\n");
+  else
+    readable.push("var MELF = null;\n")
+  stream.push(Fs.readFileSync(__dirname+"/template.js", "utf8"));
   stream.push(null);
   Browserify(stream).bundle(function (error, setup) {
     if (error)
@@ -39,14 +40,12 @@ module.exports = function (options) {
         return "eval("+splitter+"("+JSON.stringify(js)+","+JSON.stringify(url)+"))";
       };
     }
-    Proxy(options.port, Hijack(Log(options.log), splitter), function (url, type) {
+    Proxy(options.port, Hijack(options.onsocket, splitter), function (url, type) {
       if (type.indexOf("javascript") !== -1)
         return transform(url);
       if (type.indexOf("html") !== -1)
         return function (html) {
-          return "<script>"+setup+"</script>"+html.replace(regexes.script, function (match, p1, p2, p3, offset) {
-            return (regexes.external.test(p1)) ? match : p1+transform(url+"#"+offset)(p2)+p3;
-          });
+          
         };
     });
   });

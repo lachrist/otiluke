@@ -1,6 +1,5 @@
 
-var transpiles = @TRANSPILES;
-var mains = @MAINS;
+var Request = require("../request/browser.js");
 
 function cell (text, color, onclick) {
   var td = document.createElement("td");
@@ -10,16 +9,12 @@ function cell (text, color, onclick) {
   return td;
 }
 
-function sanitize (string) {
-  return string.replace(/\W/g, function (c) { return "\\u{"+c.codePointAt(0).toString(16)+"}" });
-}
-
 function benchmark (code, row, output) {
   output.length = code.length;
   row.appendChild(cell(code.length, undefined, function () { console.log(code) }));
   try {
     var time1 = performance.now();
-    var result = window.eval(code);
+    var result = global.eval(code);
     var time2 = performance.now();
     row.appendChild(cell(output.result = ""+result, "green", function () { console.dir(result) }));
   } catch (error) {
@@ -31,32 +26,37 @@ function benchmark (code, row, output) {
   return output;
 }
 
-window.onload = function () {
+global.onload = function () {
   var table = document.getElementById("table");
-  var keysT = Object.keys(transpiles).sort();
-  var keysM = Object.keys(mains).sort();
+  var cs = Object.keys(COMPS).sort();
+  var ms = Object.keys(MAINS).sort();
   var experiments = [];
-  function loop (t, m) {
-    (m === keysM.length) && (m = 0, t++);
-    if (t === keysT.length)
+  function loop (i) {
+    if (i === cs.length * ms.length)
       return document.getElementById("json").textContent = JSON.stringify(experiments, null, 2);
-    var socket = new WebSocket("ws"+location.protocol.substring(4)+"//"+location.host+"/"+encodeURIComponent(keysM[m])+"?transpile="+encodeURIComponent(keysT[t]));
-    socket.onopen = function () {
+    var c = cs[Math.floor(i/cs.length)];
+    var m = ms[i%cs.length];
+    var socket = new WebSocket("ws"+location.protocol.substring(4)+"//"+location.host+"?comp="+encodeURIComponent(c)+"&main="+encodeURIComponent(m));
+    socket.onmessage = function (event) {
+      delete socket.onmessage;
       var row = document.createElement("tr");
       table.appendChild(row);
-      row.appendChild(cell(keysM[m]));
-      row.appendChild(cell(keysT[t]));
-      var transpile = transpiles[keysT[t]]({log: function (data) { socket.send(data) }});
+      row.appendChild(cell(c));
+      row.appendChild(cell(m));
+      var comp = COMPS[c]({
+        socket: socket,
+        request: Request(location.protocol+"//"+location.host+"/"+event.data)
+      });
       try {
-        var transpiled = transpile(mains[keysM[m]], keysM[m]);
-        experiments.push(benchmark(transpiled, row, {main:keysM[m], transpile:keysT[t]}));
+        var script = comp(MAINS[m], m);
+        experiments.push(benchmark(script, row, {main:m, comp:c}));
       } catch (error) {
-        alert("Error while transpiling "+keysM[m]+" with "+keysT[t]+": "+error);
+        alert("Error while compiling "+m+" with "+c+": "+error);
         setTimeout(function () { throw error }, 10);
       }
       socket.close();
-      loop(t, m+1);
+      loop(i+1);
     };
   }
-  loop(0, 0);
+  loop(0);
 };

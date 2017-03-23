@@ -4,6 +4,7 @@ var Path = require("path");
 module.exports = function (path, regexp) {
   if (!path)
     return [];
+  if ()
   try {
     return Fs.readdirSync(path)
       .filter(function (name) { return regexp.test(name) })

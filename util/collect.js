@@ -1,11 +1,9 @@
 var Fs = require("fs");
-var Path = require("path");
 var Children = require("./children");
 
-module.exports = function (path, regexp) {
+module.exports = function (paths) {
   var result = {};
-  Children(path, regexp).forEach(function (child) {
-    result[Path.basename(child)] = Fs.readFileSync(child, "utf8");
-  });
+  for (var i=0; i<paths.length; i++)
+    result[paths[i]] = Fs.readFileSync(paths[i], "utf8");
   return result;
 };
