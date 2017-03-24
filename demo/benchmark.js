@@ -1,5 +1,4 @@
 var MockRequest = require("../request/mock.js");
-var Clear = require("./clear.js");
 
 function benchmark (code, span) {
   try {
@@ -16,33 +15,9 @@ function benchmark (code, span) {
 }
 
 module.exports = function (editors) {
-  var socket = {
-    send: function (data) {
-      if (this._closed_)
-        throw new Error("Cannot send data to closed socket")
-      editors.socket.setValue(editors.socket.getValue()+">> "+data.replace("\n", "\\n")+"\n");
-    },
-    close: function (code, reason) {
-      if (this._closed_)
-        throw new Error("Socket already closed")
-      this._closed_ = true;
-      this.onclose({code:code, reason, wasClean:true});
-    }
-  };
-  document.getElementById("send-button").disabled = true;
-  document.getElementById("send-button").onclick = function () {
-    var data = editors.console.getValue();
-    editors.console.setValue("", -1);
-    editors.socket.setValue(editors.socket.getValue()+"<< "+data.replace("\n", "\\n")+"\n");
-    socket.onmessage(data);
-  };
   document.getElementById("run-button").onclick = function () {
     document.getElementById("send-button").disabled = false;
-    socket._closed_ = false;
-    socket.onmessage = function () {};
-    socket.onclose = function () {};
     editors.socket.setValue("", -1);
-    editors.console.setValue("", -1);
     benchmark(editors.main.getValue(), document.getElementById("main-span"));
     var module = {exports:{}};
     try {
@@ -53,7 +28,14 @@ module.exports = function (editors) {
     }
     if (typeof module.exports !== "function")
       return alert("The compiler does not 'module.exports' a function");
-    var compile = module.exports({socket:socket, request:MockRequest()});
+    var buffer;
+    var compile = module.exports({
+      socket: {
+        send: function (data) { buffer.push(data) },
+        close: function () {}
+      },
+      request: Request(location.href)
+    });
     try {
       var compiled = compile(editors.main.getValue(), editors.main.__selected__);
     } catch (error) {
@@ -62,5 +44,6 @@ module.exports = function (editors) {
     }
     editors.compiled.setValue(compiled, -1);
     benchmark(editors.compiled.getValue(), document.getElementById("compiled-span"));
+    editors.socket.setValue(buffer.map("\n", "\\n").join("\n"));
   };
 };

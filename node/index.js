@@ -1,49 +1,44 @@
 
-var ChildProcess = require("child_process");
-var Children = require("../util/children.js");
 var Path = require("path");
-
-// options : {
-//   comps: [
-//     "path/to/comp1.js",
-//     "path/to/comp2.js",
-//   ],
-//   channel: function (transpile, main) {
-//     return {
-//       onrequest: function (req, res) { ... },
-//       onsocket: function (socket) { ... },
-//   },
-//   mains: [
-//     "path/to/main1.js foo1 bar1 buz1",
-//     "path/to/main2.js foo2 bar2 buz2"
-//   ]
-// }
+var Http = require("http");
+var ChildProcess = require("child_process");
 
 module.exports = function (options, callback) {
   var experiments = [];
   function loop (i) {
-    if (i === options.comps.length * options.mains.length)
+    if (i === options.spheres.length * options.targets.length)
       return callback(experiments);
-    var comp = options.comps[Math.floor(i/options.comps.length)];
-    var main = options.mains[i%options.comps.length];
-    var channel = options.channel(comp, main);
-    var server = Http.createServer(channel.onrequest);
+    var sphere = options.spheres[Math.floor(i/options.targets.length)];
+    var target = options.targets[i%options.targets.length];
+    var buffer = [];
+    var server = Http.createServer();
     server.listen(0, function () {
-      var command = "node "+__dirname+"/launch.js "+comps+" "+server.address().port+" "+main;
+      var args = [__dirname+"/launch.js", sphere, server.address().port].concat(target.split(/\s+/));
       var time = process.hrtime();
-      channel.onsocket(ChildProcess.exec(command, function (error, stdout, stderr) {
+      var child = ChildProcess.spawn("node", args, {stdio:["ignore", "pipe", "pipe", "ipc"]});
+      var channel = options.channel({sphere:sphere, target:target, send:child.send.bind(child)});
+      if (channel.onmessage)
+        child.on("message", channel.onmessage);
+      if (channel.onrequest)
+        server.on("request", channel.onrequest);
+      var stdouts = [];
+      var stderrs = [];
+      child.stdout.on("data", function (buffer) { stdouts.push(buffer) });
+      child.stderr.on("data", function (buffer) { stderrs.push(buffer) });
+      child.on("close", function (code) {
         time = process.hrtime(time);
         server.close();
+        channel.onclose();
         experiments.push({
-          comp: comp,
-          main: main,
+          sphere: sphere,
+          target: target,
           time: Math.ceil((time[0]*1e9+time[1])/1000),
-          error: error,
-          stdout: stdout,
-          stderr: stderr
+          code: code,
+          stdout: Buffer.concat(stdouts).toString("utf8"),
+          stderr: Buffer.concat(stderrs).toString("utf8")
         });
         loop(i+1);
-      }));
+      });
     });
   }
   loop(0);

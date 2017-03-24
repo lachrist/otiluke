@@ -5,6 +5,10 @@ Otiluke is itself a npm module and as such, should be installed through `npm ins
 You can try out Otiluke [here](http://rawgit.com/lachrist/otiluke/master/usage/demo.html).
 As demonstrated in [usage](./usage), Otiluke can:
 
+<!-- Demonstration page for synchronous JavaScript target code.
+Compilers and mains may undesirably interact if they include side effects such as: scheduling events and modifications of the global object (e.g the DOM).</p>
+ -->
+
 1. Debug and benchmark your JavaScript transpiler(s): [`--test`](#otiluke---test)
 2. Demonstrate how awesome are your JavaScript transpiler(s): [`--demo`](#otiluke---demo)
 3. Deploy your JavaScript transpiler(s) on node module(s): [`--node`](#otiluke---node)

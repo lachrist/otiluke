@@ -16,7 +16,7 @@ function select (select, editor, templates) {
     }
     select.appendChild(option);
   });
-}
+};
 
 module.exports = function (editors, mains, comps) {
   select(document.getElementById("compiler-select"), editors.compiler, comps);

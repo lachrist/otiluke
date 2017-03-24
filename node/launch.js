@@ -2,8 +2,8 @@
 
 var Fs = require("fs");
 var Module = require("module");
-var Request = require("../request/node.js");
-var Comp = require(process.argv.splice(1,2)[1]);
+var Request = require("../util/request/node");
+var Sphere = require(process.argv[2]);
 
 // VERBATIM https://github.com/nodejs/node/blob/v5.10.0/lib/module.js
 // Module._extensions['.js'] = function(module, filename) {
@@ -24,12 +24,21 @@ function stripBOM(content) {
   return content;
 }
 
-var comp = Comp({
-  socket: process,
-  request: Request("http://localhost:"+process.argv.splice(1,1)[0])
+var sphere = Sphere({
+  target: process.argv.slice(4).join(" "),
+  send: process.send.bind(process),
+  request: Request("http://localhost:"+process.argv[3])
 });
+process.on("message", sphere.onmessage);
+
 Module._extensions[".js"] = function (module, filename) {
   var content = Fs.readFileSync(filename, "utf8");
-  module._compile(comp(stripBOM(content), filename), filename);
+  module._compile(sphere.onscript(stripBOM(content), filename), filename);
 };
+
+process.on("beforeExit", function () {
+  process.on("message", );
+});
+  
+process.argv.splice(1, 3);
 require(process.argv[1]);
