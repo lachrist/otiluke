@@ -1,9 +1,15 @@
 var Fs = require("fs");
 var Children = require("./children");
 
-module.exports = function (paths) {
-  var result = {};
-  for (var i=0; i<paths.length; i++)
-    result[paths[i]] = Fs.readFileSync(paths[i], "utf8");
-  return result;
+module.exports = function (paths, callback) { loop(0, paths, {}, callback) }
+
+function loop (index, paths, result, callback) {
+  if (index === paths.length)
+    return callback(null, result);
+  Fs.readFile(paths[index], "utf8", function (error, content) {
+    if (error)
+      return callback(error);
+    result[paths[index]] = content;
+    loop(index+1, paths, result, callback);
+  });
 };

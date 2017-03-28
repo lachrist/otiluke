@@ -1,72 +1,56 @@
 
 var Fs = require("fs");
 var Http = require("http");
-var Stream = require("stream");
 var Url = require("url");
 var Querystring = require("querystring");
 
 var Ws = require("ws");
-var Browserify = require("browserify");
 
+var Bundle = require("../util/bundle.js");
+var Bind = require("../util/bind.js");
 var Icon = require("../util/icon.js");
 var Collect = require("../util/collect.js");
+var Children = require("../util/children.js");
 
-// options : {
-//   comps: [
-//     "path/to/transpile1.js",
-//     "path/to/transpile2.js",
-//   ],
-//   channel: function (transpile, main) {
-//     return {
-//       onrequest: function (req, res) { ... },
-//       onsocket: function (socket) { ... },
-//   },
-//   port: 8080
-// }
-
-module.exports = function (options) {
-  var onrequests = [];
+module.exports = function (options, callback) {
+  var onrequest = null;
   var server = Http.createServer(function (req, res) {
-    var parts = /^\/otiluke([0-9]+)(\/.*)/.test(req.url);
-    if (parts) {
-      req.url = parts[2];
-      return onrequests[parts[1]](req, res);
+    var parts = /^\/otiluke(\/.*)/.exec(req.url);
+    if (onrequest && parts) {
+      req.url = parts[1];
+      return onrequest(req, res);
     }
     try {
-      var mains = Collect(process.cwd()+req.url, /\.js$/);
+      var targets = Collect(/\.js$/.test(req.url) ? [process.cwd()+req.url] : Children(process.cwd()+req.url, /\.js$/));
     } catch (error) {
       res.writeHead(404, {"Content-Type": "text/plain"});
       return res.end(error.message);
     }
-    var readable = new Stream.Readable();
-    readable.push("var COMPS = {\n"+options.comps.map(function (comp) {
-      return "  "+JSON.stringify(comp)+": require("+JSON.stringify(comp)+")";
-    }).join(",\n")+"\n};\n");
-    readable.push("var MAINS = "+JSON.stringify(mains, null, 2)+";\n");
-    readable.push(Fs.readFileSync(__dirname+"/template.js", "utf8"));
-    readable.push(null);
-    Browserify(readable, {basedir:__dirname}).bundle(function (error, bundle) {
-      if (error)
-        throw error;
+    Bundle(Bind.js(Fs.readFileSync(__dirname+"/template.js", "utf8"), {
+      SPHERES: "var SPHERES = {\n"+options.spheres.map(function (sphere) {
+        return "  "+JSON.stringify(sphere)+": require("+JSON.stringify(sphere)+")";
+      }).join(",\n")+"\n};\n",
+      TARGETS: "var TARGETS = "+JSON.stringify(targets, null, 2)+";\n"
+    }), __dirname, [], function (bundle) {
       res.writeHead(200, {"Content-Type":"text/html"});
-      res.end(Bind(Fs.readFileSync(__dirname+"/template.html", "utf8"), {
-        "@ICON": Icon,
-        "@BUNDLE": bundle.toString("utf8").replace(/<\/script>/gi, function () { return "<\\/script>" })
+      res.end(Bind.html(Fs.readFileSync(__dirname+"/template.html", "utf8"), {
+        ICON: "<link rel=\"icon\" href="+Icon+">",
+        BUNDLE: "<script>"+bundle+"</script>"
       }));
     });
   });
   Ws.Server({server:server}).on("connection", function (ws) {
-    var query = Querystring.parse(Url.parse(ws.upgradeUrl).query);
-    var channel = options.channel(query.comp, query.main);
-    var i = 0;
-    while (onrequests[i])
-      i++;
-    onrequests[i] = channel.onrequests;
-    ws.send("otiluke"+i);
-    ws.on("close", function () { delete onrequests[i] });
-    channel.onsocket(ws);
+    var query = Querystring.parse(Url.parse(ws.upgradeReq.url).query);
+    var channel = options.channel({
+      sphere: query.sphere,
+      target: query.target,
+      send: ws.send.bind(ws)
+    });
+    onrequest = channel.onrequest;
+    ws.on("message", channel.onmessage);
+    ws.on("close", channel.onclose);
   });
-  server.listen(options.port || 0, function () {
+  server.listen(options.port, function () {
     process.stdout.write("Serving "+process.cwd()+" to localhost:"+server.address().port+"\n");
   });
 };

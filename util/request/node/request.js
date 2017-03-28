@@ -1,3 +1,6 @@
+// http://bhavin.directi.com/unix-domain-sockets-vs-tcp-sockets/
+// https://lists.freebsd.org/pipermail/freebsd-performance/2005-February/001143.html
+
 var Http = require("http");
 module.exports = function (options, callback) {
   var body = options.body;

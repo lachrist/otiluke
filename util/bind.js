@@ -1,8 +1,18 @@
 
-module.exports = function (template, bindings) {
-  return template.replace(/@[A-Z]+/g, function (match) {
-    if (match in bindings)
-      return bindings[match];
-    throw new Error("Unknwon variable in template: "+match);
-  });
+exports.js = function (text, bindings) {
+  return bind(/\/\* TEMPLATE ([A-Z_]+) \*\//g, text, bindings);
 };
+
+exports.html = function (text, bindings) {
+  return bind(/<!-- TEMPLATE ([A-Z_]+) -->/g, text, bindings);
+};
+
+function bind (regexp, text, bindings) {
+  return text.replace(regexp, function (match, key) {
+    if (key in bindings) {
+      match = bindings[name];
+      delete bindings[name];
+    }
+    return match;
+  });
+}

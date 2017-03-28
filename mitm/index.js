@@ -1,57 +1,42 @@
 
 var Stream = require("stream");
 var Path = require("path");
-var Crypto = require("crypto");
 var Fs = require("fs");
 var Browserify = require("browserify");
 var Proxy = require("./proxy");
 var Reset = require("./proxy/ca/reset.js");
 
-function cst (string) {
-  return function () {
-    return string;
-  };
-}
-
-module.exports = function (options) {
-  options.reset && Reset();
-  if (!options.transpile)
-    return;
-  var splitter = "otiluke"+Crypto.randomBytes(64).toString("hex");
-  var readable = new Stream.Readable();
-  readable.push("var SPLITTER = "+JSON.stringify(splitter)+";\n");
-  readable.push("var TRANSPILE = require("+JSON.stringify(Path.resolve(options.transpile))+");\n");
-  if (options.melf)
-    readable.push("var MELF = "+JSON.stringify({
-      channel: splitter,
-      alias: options.melf.alias,
-      wait: options.melf.wait || 10
-    })+";\n");
-  else
-    readable.push("var MELF = null;\n")
-  stream.push(Fs.readFileSync(__dirname+"/template.js", "utf8"));
-  stream.push(null);
-  Browserify(stream).bundle(function (error, setup) {
+module.exports = function (options, callback) {
+  if (options.reset)
+    Reset();
+  Fs.readFile(__dirname+"/template.js", "utf8", function (error, content) {
     if (error)
       throw error;
-    var setup = setup.toString("utf8");
-    function transform (url) {
-      return function (js) {
-        return "eval("+splitter+"("+JSON.stringify(js)+","+JSON.stringify(url)+"))";
-      };
-    }
-    Proxy(options.port, Hijack(options.onsocket, splitter), function (url, type) {
-      if (type.indexOf("javascript") !== -1)
-        return transform(url);
-      if (type.indexOf("html") !== -1)
-        return function (html) {
-          
-        };
+    Bundle(Bind.js(content, {
+      NAMESPACE: "var NAMESPACE = "+JSON.stringify(options.namespace)+";",
+      SPHERE_NAME: "var SPHERE_NAME = "+JSON.stringify(options.sphere)+";",
+      SPHERE: "var SPHERE = require("+JSON.stringify(Path.resolve(options.sphere))+");"
+    }), __dirname, [], function (error, bundle) {
+      if (error)
+        return callback(error);
+      var hijack = Hijack(options.channel);
+      function onjs (js, source) {
+        return "eval("+options.namespace+".onscript("+JSON.stringify(js)+","+JSON.stringify(source)+")" 
+      }
+      function onhtml (html, source) {
+        return [
+          "<script>",
+          Bind.js(bundle, {
+            SPLITTER: "var SPLITTER = "+JSON.stringify(hijack.splitter())+";",
+            TARGET_NAME: "var TARGET_NAME = "+JSON.stringify(source)+";"
+          }),
+          "</script>",
+          html.replace(/(<script[^>]*>)([\s\S]*?)(<\/script>)/gi, function (match, p1, p2, p3, offset) {
+            return (/^<script[\s\S]*?src[\s]*?=[\s\S]*?>$/i.test(p1)) ? match : p1+onjs(p2, source+"#"+offset)+p3;
+          })
+        ].join("");
+      }
+      Proxy(options.port, Onrequest(hijack.request, onhtml, onjs), Onsocket(hijack.socket), callback);
     });
   });
-};
-
-var regexes = {
-  script: /(<script[^>]*>)([\s\S]*?)(<\/script>)/gi,
-  external: /^<script[\s\S]*?src[\s]*?=[\s\S]*?>$/i
 };

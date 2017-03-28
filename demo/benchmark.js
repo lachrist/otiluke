@@ -1,6 +1,6 @@
-var MockRequest = require("../request/mock.js");
+var Request = require("../util/request/mock.js");
 
-function benchmark (code, span) {
+function run (code, span) {
   try {
     var t1 = performance.now(), r = global.eval(code), t2 = performance.now();
     span.style.color = "green";
@@ -15,35 +15,33 @@ function benchmark (code, span) {
 }
 
 module.exports = function (editors) {
-  document.getElementById("run-button").onclick = function () {
-    document.getElementById("send-button").disabled = false;
+  return function () {
     editors.socket.setValue("", -1);
-    benchmark(editors.main.getValue(), document.getElementById("main-span"));
+    run(editors.target.getValue(), document.getElementById("target-span"));
     var module = {exports:{}};
     try {
-      (new Function("module", "global", editors.compile.getValue()))(module, window);
+      (new Function("module", "global", editors.sphere.getValue()))(module, window);
     } catch (error) {
-      alert("Failed to evaluate the compiler: "+error);
+      alert("Failed to evaluate the sphere: "+error);
       throw error;
     }
     if (typeof module.exports !== "function")
-      return alert("The compiler does not 'module.exports' a function");
-    var buffer;
-    var compile = module.exports({
-      socket: {
-        send: function (data) { buffer.push(data) },
-        close: function () {}
-      },
+      return alert("The sphere does not 'module.exports' a function");
+    var buffer = [];
+    var sphere = module.exports({
+      sphere: editors.sphere.__selected__,
+      target: editors.target.__selected__,
+      send: function (data) { buffer.push(data.replace("\n", "\\n")) },
       request: Request(location.href)
     });
     try {
-      var compiled = compile(editors.main.getValue(), editors.main.__selected__);
+      var transpiled = sphere.onscript(editors.target.getValue(), editors.target.__selected__);
     } catch (error) {
-      alert("Failed to compile "+editors.main.__selected__+": "+error);
+      alert("Failed to transpile "+editors.target.__selected__+": "+error);
       throw error;
     }
-    editors.compiled.setValue(compiled, -1);
-    benchmark(editors.compiled.getValue(), document.getElementById("compiled-span"));
-    editors.socket.setValue(buffer.map("\n", "\\n").join("\n"));
+    editors.transpiled.setValue(transpiled, -1);
+    run(transpiled, document.getElementById("transpiled-span"));
+    editors.socket.setValue(buffer.join("\n"));
   };
 };

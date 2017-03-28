@@ -1,4 +1,6 @@
 
+var Truncate = require("../util/truncate.js");
+
 function select (select, editor, templates) {
   if (!Object.keys(templates).length)
     return select.parentNode.removeChild(select);
@@ -8,7 +10,7 @@ function select (select, editor, templates) {
   };
   Object.keys(templates).sort().forEach(function (key, index) {
     var option = document.createElement("option");
-    option.textContent = key;
+    option.textContent = Truncate.begin(key, 20);
     option.value = key;
     if (index === 0) {
       option.selected = true;
@@ -18,8 +20,8 @@ function select (select, editor, templates) {
   });
 };
 
-module.exports = function (editors, mains, comps) {
-  select(document.getElementById("compiler-select"), editors.compiler, comps);
-  select(document.getElementById("main-select"), editors.main, mains);
-  editors.main.__selected__ || (editors.main.__selected__ = "main.js");
+module.exports = function (editors, spheres, targets) {
+  select(document.getElementById("sphere-select"), editors.sphere, spheres);
+  select(document.getElementById("target-select"), editors.target, targets);
+  editors.target.__selected__ || (editors.target.__selected__ = "target.js");
 };

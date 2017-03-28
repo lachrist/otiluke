@@ -3,23 +3,27 @@ var Signal = require("../../util/Signal.js");
 
 var beat = 2*60*1000;
 
-module.exports = function (ondead) {
+module.exports = function () {
   var servers = {};
-  function each (name) {
-    servers[name].getConnections(function (error, count) {
-      console.log(name);
-      console.log(arguments);
-      if (error)
-        return Signal(__filename+"-"+name)(error);
-      if (!count) {
-        servers[name].close();
-        delete servers[name];
-        ondead(name);
-      }
-    });
-  };
-  setInterval(function () { Object.keys(servers).forEach(each) }, beat);
-  return function (name, server) {
-    setTimeout(function () { servers[name] = server }, beat);
+  var tunnels = {};
+  setInterval(function () {
+    for (var name in servers) {
+      servers[name].getConnections(function (error, count) {
+        if (error)
+          return Signal(__filename+"-"+name)(error);
+        if (!count) {
+          servers[name].close();
+          delete servers[name];
+          delete tunnels[name];
+        }
+      });
+    }
+  }, beat);
+  return {
+    set: function (name, server) {
+      setTimeout(function () { servers[name] = server }, beat);
+      tunnels[name] = Tunnel(server.address().port);
+    },
+    get: function (name) { return tunnels[name] } 
   };
 };

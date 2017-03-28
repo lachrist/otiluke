@@ -4,7 +4,7 @@ function make (name) {
   textarea.className = editor.className;
   editor.parentNode.insertBefore(textarea, editor);
   editor.parentNode.removeChild(editor);
-  editors[name] = {
+  return {
     getValue: function () { return textarea.value },
     setValue: function (value) { textarea.value = value }
   }
@@ -19,16 +19,15 @@ if (global.ace) {
     editor.setOption("showPrintMargin", false);
     editor.getSession().setTabSize(2);
     editor.getSession().setUseSoftTabs(true);
-    editors[name] = editor;
+    return editor;
   };
 }
 
 module.exports = function () {
   var editors = {};
-  make("comp", "ace/mode/javascript");
-  make("socket", "ace/mode/plain_text");
-  make("console", "ace/mode/plain_text");
-  make("main", "ace/mode/javascript");
-  make("compiled", "ace/mode/javascript");
+  editors.sphere = make("sphere", "ace/mode/javascript");
+  editors.socket = make("socket", "ace/mode/plain_text");
+  editors.target = make("target", "ace/mode/javascript");
+  editors.transpiled = make("transpiled", "ace/mode/javascript");
   return editors;
 };

@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <meta charset="UTF-8">
-    <title>@TITLE</title>
-    <link rel="icon" href=@ICON>
+    <meta charset="UTF-8"> 
+    <title>Otiluke Demo</title>
+    <!-- TEMPLATE ICON -->
     <style>
       body {
         font-family: Helvetica, 'Open Sans', Arial, sans-serif;
@@ -43,13 +43,13 @@
       }
     </style>
     <script src="http://cdnjs.cloudflare.com/ajax/libs/ace/1.2.0/ace.js"></script>
-    <script>@BUNDLE</script>
+    <!-- TEMPLATE BUNDLE -->
   </head>
   <body>
     <div class="sub">
-      <span>Compiler: </span>
-      <select id="compiler-select"></select>
-      <div class="editor code" id="compiler-editor"></div>
+      <span>Sphere: </span>
+      <select id="sphere-select"></select>
+      <div class="editor code" id="sphere-editor"></div>
     </div>
     <div class="sub">
       <span>Socket: </span>
@@ -63,9 +63,9 @@
       <div class="editor code" id="target-editor"></div>
     </div>
     <div class="sub">
-      <span>Compiled: </span>
-      <span id="compiled-span" class="code"></span>
-      <div class="editor code" id="compiled-editor"></div>
+      <span>Transpiled: </span>
+      <span id="transpiled-span" class="code"></span>
+      <div class="editor code" id="transpiled-editor"></div>
     </div>
   </body>
 </html>

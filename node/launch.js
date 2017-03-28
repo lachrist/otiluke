@@ -1,4 +1,4 @@
-// node launch.js comp.js 8080 mains.js argument0 ... argumentN
+// node launch.js comp.js /path/to/socket mains.js argument0 ... argumentN
 
 var Fs = require("fs");
 var Module = require("module");
@@ -23,22 +23,15 @@ function stripBOM(content) {
   }
   return content;
 }
-
 var sphere = Sphere({
   target: process.argv.slice(4).join(" "),
   send: process.send.bind(process),
-  request: Request("http://localhost:"+process.argv[3])
+  request: Request(process.argv[3])
 });
 process.on("message", sphere.onmessage);
-
 Module._extensions[".js"] = function (module, filename) {
   var content = Fs.readFileSync(filename, "utf8");
   module._compile(sphere.onscript(stripBOM(content), filename), filename);
 };
-
-process.on("beforeExit", function () {
-  process.on("message", );
-});
-  
 process.argv.splice(1, 3);
 require(process.argv[1]);

@@ -1,9 +1,10 @@
 
+var Path = require("path");
+var Fs = require("fs");
+
 var Node = require("./node");
-
-// var Test = require("./test");
-// var Demo = require("./demo");
-
+var Test = require("./test");
+var Demo = require("./demo");
 // var Mitm = require("./mitm");
 
 function collect (x, xs) {
@@ -28,8 +29,8 @@ exports.test = function (options) {
 
 exports.node = function (options, callback) {
   return Node({
-    spheres: collect(options.sphere, options.spheres),
-    targets: collect(options.target, options.targets),
+    sphere: options.sphere,
+    target: options.target,
     channel: options.channel
   }, callback);
 };

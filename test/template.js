@@ -1,11 +1,19 @@
 
-var Request = require("../request/browser.js");
+/* TEMPLATE SPHERES */
+/* TEMPLATE TARGETS */
+
+var Request = require("../util/request/browser.js");
+var Truncate = require("../util/truncate.js");
 
 function cell (text, color, onclick) {
   var td = document.createElement("td");
   td.textContent = text;
-  color && (td.style.color = color);
-  onclick && (td.onclick = onclick, td.style.cursor = "pointer");
+  if (color)
+    td.style.color = color;
+  if (onclick) {
+    td.onclick = onclick;
+    td.style.cursor = "pointer";
+  }
   return td;
 }
 
@@ -28,30 +36,32 @@ function benchmark (code, row, output) {
 
 global.onload = function () {
   var table = document.getElementById("table");
-  var cs = Object.keys(COMPS).sort();
-  var ms = Object.keys(MAINS).sort();
+  var ss = Object.keys(SPHERES).sort();
+  var ts = Object.keys(TARGETS).sort();
   var experiments = [];
   function loop (i) {
-    if (i === cs.length * ms.length)
+    if (i === ss.length * ts.length)
       return document.getElementById("json").textContent = JSON.stringify(experiments, null, 2);
-    var c = cs[Math.floor(i/cs.length)];
-    var m = ms[i%cs.length];
-    var socket = new WebSocket("ws"+location.protocol.substring(4)+"//"+location.host+"?comp="+encodeURIComponent(c)+"&main="+encodeURIComponent(m));
-    socket.onmessage = function (event) {
-      delete socket.onmessage;
+    var s = ss[Math.floor(i/ts.length)];
+    var t = ts[i%ts.length];
+    var socket = new WebSocket("ws"+location.protocol.substring(4)+"//"+location.host+"?sphere="+encodeURIComponent(s)+"&target="+encodeURIComponent(t));
+    socket.onopen = function () {
       var row = document.createElement("tr");
       table.appendChild(row);
-      row.appendChild(cell(c));
-      row.appendChild(cell(m));
-      var comp = COMPS[c]({
-        socket: socket,
-        request: Request(location.protocol+"//"+location.host+"/"+event.data)
+      row.appendChild(cell(Truncate.begin(s, 20)));
+      row.appendChild(cell(Truncate.begin(t, 20)));
+      var sphere = SPHERES[s]({
+        sphere: s,
+        target: t,
+        send: socket.send.bind(socket),
+        request: Request(location.protocol+"//"+location.host+"/otiluke")
       });
+      socket.onmessage = sphere.onmessage;
       try {
-        var script = comp(MAINS[m], m);
-        experiments.push(benchmark(script, row, {main:m, comp:c}));
+        var script = sphere.onscript(TARGETS[t], t);
+        experiments.push(benchmark(script, row, {sphere:s, target:t}));
       } catch (error) {
-        alert("Error while compiling "+m+" with "+c+": "+error);
+        alert("Error while compiling "+t+" with "+s+": "+error);
         setTimeout(function () { throw error }, 10);
       }
       socket.close();
