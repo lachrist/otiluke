@@ -11,14 +11,15 @@ var Bind = require("../util/bind.js");
 var Icon = require("../util/icon.js");
 var Collect = require("../util/collect.js");
 var Children = require("../util/children.js");
+var Crypto = require("crypto");
 
 module.exports = function (options, callback) {
-  var onrequest = null;
+  var channels = {};
   var server = Http.createServer(function (req, res) {
-    var parts = /^\/otiluke(\/.*)/.exec(req.url);
-    if (onrequest && parts) {
-      req.url = parts[1];
-      return onrequest(req, res);
+    var parts = /^\/otiluke([a-f0-9]+)(\/.*)/.exec(req.url);
+    if (parts && parts[1] in channels) {
+      req.url = parts[2];
+      return channels[parts[1]](req, res);
     }
     try {
       var targets = Collect(/\.js$/.test(req.url) ? [process.cwd()+req.url] : Children(process.cwd()+req.url, /\.js$/));
@@ -26,7 +27,9 @@ module.exports = function (options, callback) {
       res.writeHead(404, {"Content-Type": "text/plain"});
       return res.end(error.message);
     }
+    var splitter = Crypto.randomByte(64).toString("hex");
     Bundle(Bind.js(Fs.readFileSync(__dirname+"/template.js", "utf8"), {
+      SPLITTER: "var SPLITTER = "+JSON.stringify(splitter)+";\n",
       SPHERES: "var SPHERES = {\n"+options.spheres.map(function (sphere) {
         return "  "+JSON.stringify(sphere)+": require("+JSON.stringify(sphere)+")";
       }).join(",\n")+"\n};\n",
@@ -41,14 +44,11 @@ module.exports = function (options, callback) {
   });
   Ws.Server({server:server}).on("connection", function (ws) {
     var query = Querystring.parse(Url.parse(ws.upgradeReq.url).query);
-    var channel = options.channel({
+    channels[splitter] = options.channel({
       sphere: query.sphere,
       target: query.target,
-      send: ws.send.bind(ws)
+      socket: ws
     });
-    onrequest = channel.onrequest;
-    ws.on("message", channel.onmessage);
-    ws.on("close", channel.onclose);
   });
   server.listen(options.port, function () {
     process.stdout.write("Serving "+process.cwd()+" to localhost:"+server.address().port+"\n");

@@ -1,4 +1,5 @@
-var Request = require("../util/request/mock.js");
+var Request = require("request-uniform/browser-prompt");
+var Socket = require("./socket.js");
 
 function run (code, span) {
   try {
@@ -15,8 +16,10 @@ function run (code, span) {
 }
 
 module.exports = function (editors) {
+  var socket = Socket();
   return function () {
-    editors.socket.setValue("", -1);
+    delete socket.onmessage;
+    document.getElementById("socket-textarea").value = "";
     run(editors.target.getValue(), document.getElementById("target-span"));
     var module = {exports:{}};
     try {
@@ -27,15 +30,14 @@ module.exports = function (editors) {
     }
     if (typeof module.exports !== "function")
       return alert("The sphere does not 'module.exports' a function");
-    var buffer = [];
     var sphere = module.exports({
       sphere: editors.sphere.__selected__,
       target: editors.target.__selected__,
-      send: function (data) { buffer.push(data.replace("\n", "\\n")) },
-      request: Request(location.href)
+      socket: socket,
+      request: Request(location.origin)
     });
     try {
-      var transpiled = sphere.onscript(editors.target.getValue(), editors.target.__selected__);
+      var transpiled = sphere(editors.target.getValue(), editors.target.__selected__);
     } catch (error) {
       alert("Failed to transpile "+editors.target.__selected__+": "+error);
       throw error;

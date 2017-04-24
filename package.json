@@ -1,11 +1,31 @@
-{ "name" : "otiluke"
-, "description" : "Otiluke is a toolbox for JavaScript source-to-source compilers written in JavaScript themselves."
-, "version" : "2.1.1"
-, "author" : {"name":"Laurent Christophe", "email":"lachrist@vub.ac.be"}
+{ "name": "otiluke"
+, "description": "Otiluke is a toolbox for JavaScript source-to-source compilers written in JavaScript themselves."
+, "version": "2.1.1"
+, "author":
+    { "name": "Laurent Christophe"
+    , "email": "lachrist@vub.ac.be"
+    }
 , "repository": "lachrist/otiluke"
-, "license" : "MIT"
-, "dependencies": {"browserify":"13.0.1", "minimist":"1.2.0", "resolve":"1.1.7", "ws":"1.1.1"}
+, "license": "MIT"
+, "dependencies":
+    { "browserify": "13.0.1"
+    , "minimist": "1.2.0"
+    , "resolve": "1.1.7"
+    , "ws": "1.1.1"
+    , "request-uniform": "*"
+    }
 , "main": "main.js"
 , "bin": "bin.js"
-, "keywords" : ["JavaScript", "Toolbox", "Source-to-Source Compiler", "Transpiler", "HTML", "HTTP", "MITM", "Proxy", "Node", "CommonJS"]
+, "keywords":
+    [ "JavaScript"
+    , "Toolbox"
+    , "Source-to-Source Compiler"
+    , "Transpiler"
+    , "HTML"
+    , "HTTP"
+    , "MITM"
+    , "Proxy"
+    , "Node"
+    , "CommonJS"
+    ]
 }

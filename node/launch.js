@@ -1,8 +1,8 @@
-// node launch.js comp.js /path/to/socket mains.js argument0 ... argumentN
+// node launch.js sphere.js main.js -- argument0 ... argumentN
 
 var Fs = require("fs");
 var Module = require("module");
-var Request = require("../util/request/node");
+var Request = require("request-uniform/node");
 var Sphere = require(process.argv[2]);
 
 // VERBATIM https://github.com/nodejs/node/blob/v5.10.0/lib/module.js
@@ -24,14 +24,22 @@ function stripBOM(content) {
   return content;
 }
 var sphere = Sphere({
+  sphere: process.argv[2],
   target: process.argv.slice(4).join(" "),
-  send: process.send.bind(process),
-  request: Request(process.argv[3])
+  request: Request(process.argv[3]),
+  socket: {
+    send: function (message) { process.send(message) },
+    set onmessage (listener) {
+      process.removeAllListeners("message");
+      if (listener)
+        process.on("message", listener);
+    }
+  }
 });
 process.on("message", sphere.onmessage);
 Module._extensions[".js"] = function (module, filename) {
   var content = Fs.readFileSync(filename, "utf8");
-  module._compile(sphere.onscript(stripBOM(content), filename), filename);
+  module._compile(stripBOM(sphere(content, filename)), filename);
 };
 process.argv.splice(1, 3);
 require(process.argv[1]);

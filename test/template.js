@@ -1,8 +1,9 @@
 
+/* TEMPLATE SPLITTER */
 /* TEMPLATE SPHERES */
 /* TEMPLATE TARGETS */
 
-var Request = require("../util/request/browser.js");
+var Request = require("request-uniform/browser");
 var Truncate = require("../util/truncate.js");
 
 function cell (text, color, onclick) {
@@ -53,12 +54,11 @@ global.onload = function () {
       var sphere = SPHERES[s]({
         sphere: s,
         target: t,
-        send: socket.send.bind(socket),
-        request: Request(location.protocol+"//"+location.host+"/otiluke")
+        socket: socket,
+        request: Request(location.origin+"/otiluke"+SPLITTER)
       });
-      socket.onmessage = sphere.onmessage;
       try {
-        var script = sphere.onscript(TARGETS[t], t);
+        var script = sphere(TARGETS[t], t);
         experiments.push(benchmark(script, row, {sphere:s, target:t}));
       } catch (error) {
         alert("Error while compiling "+t+" with "+s+": "+error);
