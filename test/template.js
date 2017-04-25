@@ -51,7 +51,7 @@ global.onload = function () {
       table.appendChild(row);
       row.appendChild(cell(Truncate.begin(s, 20)));
       row.appendChild(cell(Truncate.begin(t, 20)));
-      var sphere = SPHERES[s]({
+      var sphere = SPHERES[s](RequestBrowser, WebSocket, {
         sphere: s,
         target: t,
         socket: socket,
