@@ -1,14 +1,12 @@
-// {sphere:string, target:string, send:function, request:function}
-module.exports = function (options) {
-  global._hidden_ = options;
-  return {
-    onscript: function (script, source) {
-      return [
-        "_hidden_.send("+JSON.stringify("begin "+source)+");",
-        script,
-        "_hidden_.send("+JSON.stringify("end "+source)+");"
-      ].join("\n");
-    },
-    onmessage: function (data) {}
+module.exports = function (request, WebSocket, options) {
+  global._hidden_log_ = function (message) {
+    request("POST", options.url, "/foo", {}, options.target+" >> "+message+"\n");
+  }
+  return function (script, source) {
+    return [
+      "_hidden_log_("+JSON.stringify("begin "+source)+");",
+      script,
+      "_hidden_log_("+JSON.stringify("end "+source)+");"
+    ].join("\n");
   };
 };

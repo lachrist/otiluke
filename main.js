@@ -27,13 +27,16 @@ exports.test = function (options) {
   });
 };
 
-exports.node = function (options, callback) {
-  return Node({
-    sphere: options.sphere,
-    target: options.target,
-    channel: options.channel
-  }, callback);
-};
+exports.node = Node;
+
+// exports.node = function (options, callback) {
+//   return Node({
+//     sphere: options.sphere,
+//     target: options.target,
+//     "sphere-options": options[""]
+//     channel: options.channel
+//   }, callback);
+// };
 
 exports.demo = function (options) {
   var spheres = collect(options.sphere, options.spheres);
