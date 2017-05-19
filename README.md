@@ -17,7 +17,7 @@ Otiluke deploys spheres to client tiers by essentially performing a man-in-the-m
 Such attack require the browser to trust Otiluke's root certificate and redirect all its request to the forward proxy.
 We detail this procedure for firefox in [Firefox Configuration](#firefox-configuration).
 
-<img src="img/mitm.pdf" align="center" title="The Otiluke mitm communication model"/>
+<img src="img/mitm.png" align="center" title="The Otiluke mitm communication model"/>
 
 After deployment, the sphere has been [browserified](http://browserify.org) into the client tier.
 This Otiluke proxy is parametrized by an object called *hijack* which intercept the communication from the client tier.
