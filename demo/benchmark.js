@@ -1,5 +1,3 @@
-var Request = require("request-uniform/browser-prompt");
-var Socket = require("./socket.js");
 
 function run (code, span) {
   try {
@@ -16,34 +14,28 @@ function run (code, span) {
 }
 
 module.exports = function (editors) {
-  var socket = Socket();
   return function () {
-    delete socket.onmessage;
-    document.getElementById("socket-textarea").value = "";
-    run(editors.target.getValue(), document.getElementById("target-span"));
+    editors.logger.set("");
+    run(editors.target.get(), document.getElementById("target-span"));
     var module = {exports:{}};
     try {
-      (new Function("module", "global", editors.sphere.getValue()))(module, window);
+      (new Function("module", "global", editors.lsphere.get()))(module, window);
     } catch (error) {
-      alert("Failed to evaluate the sphere: "+error);
+      alert("Failed to evaluate the log sphere: "+error);
       throw error;
     }
     if (typeof module.exports !== "function")
-      return alert("The sphere does not 'module.exports' a function");
-    var sphere = module.exports({
-      sphere: editors.sphere.__selected__,
-      target: editors.target.__selected__,
-      socket: socket,
-      request: Request(location.origin)
-    });
+      return alert("The log sphere does not 'module.exports' a function");
+    var buffer = [];
+    var transpile = module.exports(Array.prototype.push.bind(buffer));
     try {
-      var transpiled = sphere(editors.target.getValue(), editors.target.__selected__);
+      var transpiled = transpile(editors.target.get(), editors.target.source);
     } catch (error) {
-      alert("Failed to transpile "+editors.target.__selected__+": "+error);
+      alert("Failed to transpile "+editors.target.source+": "+error);
       throw error;
     }
-    editors.transpiled.setValue(transpiled, -1);
+    editors.transpiled.set(transpiled);
     run(transpiled, document.getElementById("transpiled-span"));
-    editors.socket.setValue(buffer.join("\n"));
+    editors.logger.set(buffer.join(""));
   };
 };

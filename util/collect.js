@@ -1,15 +1,31 @@
 var Fs = require("fs");
-var Children = require("./children");
+var Path = require("path");
+var RendezVous = require("./rendez-vous.js");
 
-module.exports = function (paths, callback) { loop(0, paths, {}, callback) }
+function isjs (path) {
+  return /\.js$/.test(path)
+}
 
-function loop (index, paths, result, callback) {
-  if (index === paths.length)
-    return callback(null, result);
-  Fs.readFile(paths[index], "utf8", function (error, content) {
-    if (error)
-      return callback(error);
-    result[paths[index]] = content;
-    loop(index+1, paths, result, callback);
-  });
+module.exports = function (path, callback) {
+  if (isjs(path)) {
+    Fs.readFile(path, "utf8", function (error, content) {
+      if (error)
+        return callback(error);
+      var result = {};
+      result[Path.basename(path)] = content;
+      callback(null, result);
+    });
+  } else {
+    Fs.readdir(path, function (error, names) {
+      if (error)
+        return callback(error);
+      names = names.filter(isjs);
+      var rdv = RendezVous(names.length, {}, callback);
+      names.forEach(function (name) {
+        Fs.readFile(Path.join(path, name), "utf8", rdv(function (content, result) {
+          result[name] = content;
+        }));
+      });
+    });
+  }
 };

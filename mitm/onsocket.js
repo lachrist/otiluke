@@ -2,9 +2,9 @@
 var Url = require("url");
 var Ws = require("ws");
 
-module.exports = function (hijacksocket) {
+module.exports = function (options) {
   return function (host, ws1) {
-    if (!hijacksocket(ws1)) {
+    if (!options.hijack.socket(ws1)) {
       var messages = [];
       ws1.on("message", function (message) { messages.push(message) });
       var ws2 = new Ws("wss"+"://"+host+ws1.upgradeReq.url).on("open", function () {

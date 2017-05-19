@@ -1,10 +1,10 @@
 
-/* TEMPLATE SPLITTER */
-/* TEMPLATE SPHERES */
+/* TEMPLATE SPHERE_CAST */
+/* TEMPLATE SPHERE_SUB */
+/* TEMPLATE SPHERE_ARGUMENT */
 /* TEMPLATE TARGETS */
 
-var Request = require("request-uniform/browser");
-var Truncate = require("../util/truncate.js");
+var Channel = require("channel-uniform/browser");
 
 function cell (text, color, onclick) {
   var td = document.createElement("td");
@@ -37,36 +37,15 @@ function benchmark (code, row, output) {
 
 global.onload = function () {
   var table = document.getElementById("table");
-  var ss = Object.keys(SPHERES).sort();
-  var ts = Object.keys(TARGETS).sort();
   var experiments = [];
-  function loop (i) {
-    if (i === ss.length * ts.length)
-      return document.getElementById("json").textContent = JSON.stringify(experiments, null, 2);
-    var s = ss[Math.floor(i/ts.length)];
-    var t = ts[i%ts.length];
-    var socket = new WebSocket("ws"+location.protocol.substring(4)+"//"+location.host+"?sphere="+encodeURIComponent(s)+"&target="+encodeURIComponent(t));
-    socket.onopen = function () {
-      var row = document.createElement("tr");
-      table.appendChild(row);
-      row.appendChild(cell(Truncate.begin(s, 20)));
-      row.appendChild(cell(Truncate.begin(t, 20)));
-      var sphere = SPHERES[s](RequestBrowser, WebSocket, {
-        sphere: s,
-        target: t,
-        socket: socket,
-        request: Request(location.origin+"/otiluke"+SPLITTER)
-      });
-      try {
-        var script = sphere(TARGETS[t], t);
-        experiments.push(benchmark(script, row, {sphere:s, target:t}));
-      } catch (error) {
-        alert("Error while compiling "+t+" with "+s+": "+error);
-        setTimeout(function () { throw error }, 10);
-      }
-      socket.close();
-      loop(i+1);
-    };
-  }
-  loop(0);
-};
+  Object.keys(TARGETS).sort().forEach(function (name) {
+    var row = document.createElement("tr");
+    table.appendChild(row);
+    row.appendChild(cell(name));
+    var Sphere = SPHERE_CAST(SPHERE_SUB);
+    var sphere = Sphere(SPHERE_ARGUMENT, Channel(location.host, false));
+    var script = sphere(TARGETS[name], name);
+    experiments.push(benchmark(script, row, {source:name}));
+  });
+  document.getElementById("json").value = JSON.stringify(experiments, null, 2);
+}

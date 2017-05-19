@@ -1,10 +1,10 @@
-// node launch.js sphere.js '{sphere-key:sphere-value}' main.js argument0 ... argumentM
+// node launch.js {cast:"cast.js",path:"sphere.js",json:"json-data"} localhost:8080 main.js argument0 ... argumentM
 
 var Fs = require("fs");
+var Path = require("path");
 var Module = require("module");
-var RequestNode = require("request-uniform/node");
+var Channel = require("channel-uniform/node");
 var Ws = require("ws");
-var Sphere = require(process.argv[2]);
 
 // VERBATIM https://github.com/nodejs/node/blob/v5.10.0/lib/module.js
 // Module._extensions['.js'] = function(module, filename) {
@@ -24,10 +24,20 @@ function stripBOM(content) {
   }
   return content;
 }
-var sphere = Sphere(RequestNode, Ws, JSON.parse(process.argv[3]));
-process.argv.splice(1, 3);
+
+var options = JSON.parse(process.argv[2]);
+process.argv.splice(1, 2);
+
+var Cast = require(options.sphere.path.cast);
+var Sub = require(options.sphere.path.sub);
+var Sphere = Cast(Sub);
+var sphere = Sphere(options.sphere.argument, Channel(options.port, false));
 Module._extensions[".js"] = function (module, filename) {
   var content = Fs.readFileSync(filename, "utf8");
+  // TODO RESOLVE BUG with require("ws")
+  if (filename.indexOf("node_modules") !== -1)
+    return module._compile(stripBOM(content), filename);
+  // END TODO
   module._compile(stripBOM(sphere(content, filename)), filename);
 };
-require(process.argv[1]);
+require(Path.resolve(process.argv[1]));

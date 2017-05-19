@@ -1,121 +1,60 @@
 
 var Fs = require("fs");
+var Ws = require("ws");
+var Path = require("path");
+var Http = require("http");
+var Stream = require("stream");
+var Browserify = require("browserify");
 var Bind = require("../util/bind.js");
 var Icon = require("../util/icon.js");
+var Collect = require("../util/collect.js");
+var Normalize = require("../util/normalize.js");
 
-function load (paths, callback) {
-  if (paths.length === 0)
-    callback(null);
-  var lasterror = null;
-  var loads = [];
-  paths.forEach(function (path) {
-    Fs.readFile(path, "utf8", function (error, content) {
-      lasterror = error || lasterror;
-      loads.push({path:path, content:content});
-      if (loads.length === paths.length) {
-        callback(lasterror, loads);
-      }
-    });
-  });
+function signal (response, reason, error) {
+  response.writeHead(400, reason, {"content-type": "text/plain"});
+  response.end(String(error));
 }
 
-module.exports = function (spheres, targets, callback) {
-  if (!Array.isArray(spheres))
-    spheres = [spheres];
-  if (!Array.isArray(targets))
-    targets = [targets];
-  load(targets, function (error, bindings) {
-    if (error)
-      return callback(error);
-    Fs.readFile(__dirname+"/template.js", "utf8", function (error, content) {
+module.exports = function (options, callback) {
+  options.basedir = options.basedir || process.cwd();
+  options.hijack = Normalize.hijack(options.hijack);
+  options.sphere = Normalize.sphere(options.sphere);
+  var server = Http.createServer(function (req, res) { 
+    if (options.hijack.request(req, res))
+      return;
+    var path = Path.join.apply(Path, [options.basedir].concat(req.url.split("/")));
+    Collect(path, function (error, targets) {
       if (error)
-        return callback(error);
-      var readable = new Stream.Readable();
-      readable.push(Bind.js(content, {
-        TARGETS: "var TARGETS = "+JSON.stringify(bindings)+";",
-        SPHERES: "var SPHERES = ["+spheres.map(function (sphere) {
-          sphere = typeof sphere === "string" ? {path:sphere,options:null} : sphere;
-          return "{make:require("+JSON.stringify(Path.resolve(sphere.path))+"),options:"+JSON.stringify(sphere.options)+"}"
-        }.join(","))+"];"
-      }));
-      readable.push(null);
-      var browserify = Browserify(readable, {basedir:__dirname});
-      browserify.bundle(function (error, buffer) {
-        Fs.readFile(__dirname+);
-        Fs.readFile(__dirname+"/template.html", "utf8", function (error, content) {
+        return signal(res, "cannot collect benchmarks", error)
+      Fs.readFile(Path.join(__dirname, "template.html"), "utf8", function (error, html) {
+        if (error)
+          return signal(res, "cannot find html template", error)
+        Fs.readFile(Path.join(__dirname, "template.js"), "utf8", function (error, js) {
           if (error)
-            return callback(error);
-          callback(null, Bind.html(content, {
-            ICON: "<link rel=\"icon\" href="+Icon+">",
-            BUNDLE: "<script>"+bundle+"</script>"
-          }));
+            return signal(res, "cannot find js template", error)
+          Icon(function (error, icon) {
+            var readable = new Stream.Readable();
+            readable.push(Bind.js(js, {
+              TARGETS: JSON.stringify(targets),
+              SPHERE_CAST: "require("+JSON.stringify(options.sphere.path.cast)+")",
+              SPHERE_SUB: "require("+JSON.stringify(options.sphere.path.sub)+")",
+              SPHERE_ARGUMENT: JSON.stringify(options.sphere.argument)
+            }));
+            readable.push(null);
+            Browserify(readable, {basedir:__dirname}).bundle(function (error, buffer) {
+              if (error)
+                return signal(res, "bundling error", error)
+              res.writeHead(200, "ok", {"content-type": "text/html"});
+              res.end(Bind.html(html, {
+                ICON: icon,
+                BUNDLE: "<script>"+buffer.toString("utf8").replace("</script>", "<\\/script>")+"</script>"
+              }));
+            });
+          });
         });
       });
     });
-  })
-};
-
-  var Stream = require("stream");
-  var Browserify = require("browserify");
-  var Resolve = require("resolve");
-
-  // Tried to remove the dependency with Resolve without success:
-  // Source: https://github.com/nodejs/node/blob/v5.10.0/lib/module.js
-  //         https://github.com/nodejs/node/blob/v5.10.0/lib/internal/module.js
-  // require("module")._resolveFilename(module, {paths:[basedir]})
-  // Remark: used eval instead of JSON.parse to handle single quoted strings
-  module.exports = function (content, basedir, dependencies, callback) {
-    var readable = new Stream.Readable();
-    readable.push(content, "utf8");
-    readable.push(null);
-    var browserify = Browserify(readable, {basedir:basedir});
-    dependencies.forEach(function (dep) {
-      browserify.require(Resolve.sync(global.eval(dep.name), {basedir:dep.basedir}), {expose:dep.name});
-    });
-    browserify.bundle(function (error, buffer) {
-      callback(error, error || buffer.toString("utf8").replace(/\<\/script\>/g, "<\\/script>"));
-    });
-  };
-
-
-
-  var channels = {};
-  var server = Http.createServer(function (req, res) {
-    var parts = /^\/otiluke([a-f0-9]+)(\/.*)/.exec(req.url);
-    if (parts && parts[1] in channels) {
-      req.url = parts[2];
-      return channels[parts[1]](req, res);
-    }
-    try {
-      var targets = Collect(/\.js$/.test(req.url) ? [process.cwd()+req.url] : Children(process.cwd()+req.url, /\.js$/));
-    } catch (error) {
-      res.writeHead(404, {"Content-Type": "text/plain"});
-      return res.end(error.message);
-    }
-    var splitter = Crypto.randomByte(64).toString("hex");
-    Bundle(Bind.js(Fs.readFileSync(__dirname+"/template.js", "utf8"), {
-      SPLITTER: "var SPLITTER = "+JSON.stringify(splitter)+";\n",
-      SPHERES: "var SPHERES = {\n"+options.spheres.map(function (sphere) {
-        return "  "+JSON.stringify(sphere)+": require("+JSON.stringify(sphere)+")";
-      }).join(",\n")+"\n};\n",
-      TARGETS: "var TARGETS = "+JSON.stringify(targets, null, 2)+";\n"
-    }), __dirname, [], function (bundle) {
-      res.writeHead(200, {"Content-Type":"text/html"});
-      res.end(Bind.html(Fs.readFileSync(__dirname+"/template.html", "utf8"), {
-        ICON: "<link rel=\"icon\" href="+Icon+">",
-        BUNDLE: "<script>"+bundle+"</script>"
-      }));
-    });
   });
-  Ws.Server({server:server}).on("connection", function (ws) {
-    var query = Querystring.parse(Url.parse(ws.upgradeReq.url).query);
-    channels[splitter] = options.channel({
-      sphere: query.sphere,
-      target: query.target,
-      socket: ws
-    });
-  });
-  server.listen(options.port, function () {
-    process.stdout.write("Serving "+process.cwd()+" to localhost:"+server.address().port+"\n");
-  });
+  (new Ws.Server({server: server})).on("connection", options.hijack.socket);
+  return server;
 };

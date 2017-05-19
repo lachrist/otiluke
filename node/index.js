@@ -1,24 +1,31 @@
 
-var ChildProcess = require("child_process");
+var Http = require("http");
+var Ws = require("ws");
+var Path = require("path");
+var Normalize = require("../util/normalize.js");
 
-// { sync: boolean
-// , target: string || [string]
-// , sphere:
-//   { path: string
-//   , options: json
-//   }
-// , encoding: string
-// , input: string || buffer
-// }
-
-module.exports = function (sphere, target) {
-  if (typeof target === "string")
-    target = [target];
-  if (typeof sphere === "string")
-    sphere = {path:sphere, options:null};
+exports.argv = function (sphere, port) {
   return [
-    __dirname+"/launch.js",
-    sphere.path,
-    JSON.stringify(sphere.options),
-  ].concat(target);
+    Path.join(__dirname, "launch.js"),
+    JSON.stringify({
+      sphere: Normalize.sphere(sphere),
+      port: port
+    })
+  ];
+};
+
+exports.server = function (hijack) {
+  hijack = Normalize.hijack(hijack);
+  var server = Http.createServer(function (req, res) {
+    if (!hijack.request(req, res)) {
+      res.writeHead(400, "request not hijacked");
+      res.end();
+    }
+  });
+  (new Ws.Server({server:server})).on("connection", function (socket) {
+    if (!hijack.socket(socket)) {
+      socket.close(4000, "socket not hijacked");
+    }
+  });
+  return server;
 };

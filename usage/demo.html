@@ -45,26 +45,28 @@
     <script src="http://cdnjs.cloudflare.com/ajax/libs/ace/1.2.0/ace.js"></script>
     <script>(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 (function (global){
-var SPHERES = {
-  "/Users/soft/Desktop/workspace/otiluke/usage/log.js": "// {sphere:string, target:string, send:function, request:function}\nmodule.exports = function (options) {\n  global._hidden_ = options;\n  return {\n    onscript: function (script, source) {\n      return [\n        \"_hidden_.send(\"+JSON.stringify(\"begin \"+source)+\");\",\n        script,\n        \"_hidden_.send(\"+JSON.stringify(\"end \"+source)+\");\"\n      ].join(\"\\n\");\n    },\n    onmessage: function (data) {}\n  };\n};"
-}
-var TARGETS = {
-  "/Users/soft/Desktop/workspace/otiluke/usage/standalone/fac.js": "\nfunction fac (n) {\n  if (n === 0)\n    return 1;\n  return n * fac(n-1);\n}\n\nfac(6);\n",
-  "/Users/soft/Desktop/workspace/otiluke/usage/standalone/fibo.js": "\nfunction fibo (x) {\n  if (x <= 1)\n    return x;\n  return fibo(x-1) + fibo(x-2);\n}\n\nfibo(6);\n"
-}
-var Editors = require("./editors.js");
+var Editor = require("./editor.js");
 var Select = require("./select.js");
 var Benchmark = require("./benchmark.js");
+var LOG_SPHERES = {"log-sphere.js":"var namespace = \"_hidden_log_\";\nmodule.exports = function (log) {\n  global[namespace] = log;\n  return function (script, source) {\n    return [\n      namespace+\"(\"+JSON.stringify(\"before \"+source+\"\\n\")+\");\",\n      script,\n      namespace+\"(\"+JSON.stringify(\"after \"+source+\"\\n\")+\");\"\n    ].join(\"\\n\");\n  };\n};"};
+var TARGETS = {"fibo.js":"\nfunction fibo (x) {\n  if (x <= 1)\n    return x;\n  return fibo(x-1) + fibo(x-2);\n}\n\nfibo(6);\n","fac.js":"\nfunction fac (n) {\n  if (n === 0)\n    return 1;\n  return n * fac(n-1);\n}\n\nfac(6);\n"};
 global.onload = function () {
-  var editors = Editors();
-  Select(editors, SPHERES, TARGETS);
+  if (Object.keys(LOG_SPHERES).length === 0)
+    LOG_SPHERES["log-sphere.js"] = "";
+  if (Object.keys(TARGETS).length === 0)
+    TARGETS["target.js"] =  "";
+  var editors = {};
+  editors.lsphere = Editor("lsphere", "ace/mode/javascript");
+  editors.target = Editor("target", "ace/mode/javascript");
+  editors.transpiled = Editor("transpiled", "ace/mode/javascript");
+  editors.logger = Editor("logger", "ace/mode/text");
+  Select(document.getElementById("lsphere-select"), editors.lsphere, LOG_SPHERES);
+  Select(document.getElementById("target-select"), editors.target, TARGETS);
   document.getElementById("run-button").onclick = Benchmark(editors);
 };
-
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./benchmark.js":2,"./editors.js":3,"./select.js":4}],2:[function(require,module,exports){
+},{"./benchmark.js":2,"./editor.js":3,"./select.js":4}],2:[function(require,module,exports){
 (function (global){
-var Request = require("../util/request/mock.js");
 
 function run (code, span) {
   try {
@@ -82,53 +84,37 @@ function run (code, span) {
 
 module.exports = function (editors) {
   return function () {
-    editors.socket.setValue("", -1);
-    run(editors.target.getValue(), document.getElementById("target-span"));
+    editors.logger.set("");
+    run(editors.target.get(), document.getElementById("target-span"));
     var module = {exports:{}};
     try {
-      (new Function("module", "global", editors.sphere.getValue()))(module, window);
+      (new Function("module", "global", editors.lsphere.get()))(module, window);
     } catch (error) {
-      alert("Failed to evaluate the sphere: "+error);
+      alert("Failed to evaluate the log sphere: "+error);
       throw error;
     }
     if (typeof module.exports !== "function")
-      return alert("The sphere does not 'module.exports' a function");
+      return alert("The log sphere does not 'module.exports' a function");
     var buffer = [];
-    var sphere = module.exports({
-      sphere: editors.sphere.__selected__,
-      target: editors.target.__selected__,
-      send: function (data) { buffer.push(data.replace("\n", "\\n")) },
-      request: Request(location.href)
-    });
+    var transpile = module.exports(Array.prototype.push.bind(buffer));
     try {
-      var transpiled = sphere.onscript(editors.target.getValue(), editors.target.__selected__);
+      var transpiled = transpile(editors.target.get(), editors.target.source);
     } catch (error) {
-      alert("Failed to transpile "+editors.target.__selected__+": "+error);
+      alert("Failed to transpile "+editors.target.source+": "+error);
       throw error;
     }
-    editors.transpiled.setValue(transpiled, -1);
+    editors.transpiled.set(transpiled);
     run(transpiled, document.getElementById("transpiled-span"));
-    editors.socket.setValue(buffer.join("\n"));
+    editors.logger.set(buffer.join(""));
   };
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../util/request/mock.js":5}],3:[function(require,module,exports){
+},{}],3:[function(require,module,exports){
 (function (global){
-function make (name) {
-  var editor = document.getElementById(name+"-editor");
-  var textarea = document.createElement("textarea");
-  textarea.className = editor.className;
-  editor.parentNode.insertBefore(textarea, editor);
-  editor.parentNode.removeChild(editor);
-  return {
-    getValue: function () { return textarea.value },
-    setValue: function (value) { textarea.value = value }
-  }
-};
 
 if (global.ace) {
-  make = function (name, mode) {
+  module.exports = function (name, mode) {
     var editor = ace.edit(name+"-editor");
     editor.setTheme("ace/theme/chrome");
     editor.getSession().setMode(mode);
@@ -136,71 +122,49 @@ if (global.ace) {
     editor.setOption("showPrintMargin", false);
     editor.getSession().setTabSize(2);
     editor.getSession().setUseSoftTabs(true);
-    return editor;
+    return {
+      get: function () { return editor.getValue() },
+      set: function (content) { return editor.setValue(content, -1) }
+    };
+  };
+} else {
+  module.exports = function (name) {
+    var editor = document.getElementById(name+"-editor");
+    var textarea = document.createElement("textarea");
+    textarea.className = editor.className;
+    editor.parentNode.insertBefore(textarea, editor);
+    editor.parentNode.removeChild(editor);
+    return {
+      get: function () { return textarea.value },
+      set: function (content) { textarea.value = content }
+    }
   };
 }
-
-module.exports = function () {
-  var editors = {};
-  editors.sphere = make("sphere", "ace/mode/javascript");
-  editors.socket = make("socket", "ace/mode/plain_text");
-  editors.target = make("target", "ace/mode/javascript");
-  editors.transpiled = make("transpiled", "ace/mode/javascript");
-  return editors;
-};
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{}],4:[function(require,module,exports){
 
-var Truncate = require("../util/truncate.js");
-
-function select (select, editor, templates) {
-  if (!Object.keys(templates).length)
+module.exports = function (select, editor, files) {
+  if (!Object.keys(files).length)
     return select.parentNode.removeChild(select);
-  select.onchange = function () {
-    templates[editor.__selected__] = editor.getValue();
-    editor.setValue(templates[editor.__selected__ = select.value], -1)
-  };
-  Object.keys(templates).sort().forEach(function (key, index) {
-    var option = document.createElement("option");
-    option.textContent = Truncate.begin(key, 20);
-    option.value = key;
-    if (index === 0) {
-      option.selected = true;
-      editor.setValue(templates[editor.__selected__ = key], -1)
-    }
-    select.appendChild(option);
-  });
-};
-
-module.exports = function (editors, spheres, targets) {
-  select(document.getElementById("sphere-select"), editors.sphere, spheres);
-  select(document.getElementById("target-select"), editors.target, targets);
-  editors.target.__selected__ || (editors.target.__selected__ = "target.js");
-};
-
-},{"../util/truncate.js":6}],5:[function(require,module,exports){
-module.exports = function () {
-  return function (method, path, headers, body, callback) {
-    var info = JSON.stringify({
-      method: method,
-      path: path,
-      headers: headers,
-      body: body
-    }, null, 4);
-    return callback
-      ? alert("Asynchronous HTTP request: "+info)
-      : JSON.parse(prompt("Reply to synchronous HTTP request as [status, headers, body]: "+info, "[200, {}, \"\"]"));
+  function load (name) {
+    editor.source = name;
+    editor.set(files[name]);
   }
-};
-},{}],6:[function(require,module,exports){
-
-exports.begin = function (string, max) {
-  return string.length <= max ? string : "..."+string.substring(string.length-max+3);
-};
-
-exports.end = function (string, max) {
-  return string.length <= max ? string : string.substring(0, max-3);
+  select.onchange = function () {
+    files[editor.source] = editor.get();
+    load(select.value);
+  };
+  Object.keys(files).sort().forEach(function (name, index) {
+    var option = document.createElement("option");
+    option.textContent = name;
+    option.value = name;
+    select.appendChild(option);
+    if (index === 0) {
+      option.selected = index === 0;
+      load(name);
+    }
+  });
 };
 
 },{}]},{},[1]);
@@ -208,13 +172,13 @@ exports.end = function (string, max) {
   </head>
   <body>
     <div class="sub">
-      <span>Sphere: </span>
-      <select id="sphere-select"></select>
-      <div class="editor code" id="sphere-editor"></div>
+      <span>Log Sphere: </span>
+      <select id="lsphere-select"></select>
+      <div class="editor code" id="lsphere-editor"></div>
     </div>
     <div class="sub">
-      <span>Socket: </span>
-      <div class="editor code" id="socket-editor"></div>
+      <span>Logger: </span>
+      <div class="editor code" id="logger-editor"></div>
     </div>
     <button id="run-button">Run</button>
     <div class="sub">
