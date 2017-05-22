@@ -1,5 +1,4 @@
-// log-sphere.js //
-var namespace = "_hidden_log_";
+var namespace = "_otiluke_";
 module.exports = function (log) {
   global[namespace] = log;
   return function (script, source) {

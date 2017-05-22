@@ -1,4 +1,3 @@
-// run-demo.js //
 var Path = require("path");
 var Fs = require("fs");
 var Otiluke = require("otiluke");
@@ -8,9 +7,6 @@ Otiluke.demo({
 }, function (error, html) {
   if (error)
     throw error;
-  Fs.writeFile(Path.join(__dirname, "demo.html"), html, "utf8", function (error) {
-    if (error)
-      throw error;
-  });
+  Fs.writeFileSync(Path.join(__dirname, "demo.html"), html, "utf8");
 });
 console.log("visit: file://"+Path.join(__dirname, "demo.html"));

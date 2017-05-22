@@ -1,4 +1,3 @@
-// run-mitm.js //
 var Path = require("path");
 var HttpServer = require("http-server");
 var Otiluke = require("otiluke");

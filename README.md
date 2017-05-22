@@ -1,107 +1,108 @@
 # Otiluke <img src="img/otiluke.png" align="right" alt="otiluke-logo" title="Resilient Sphere of Otiluke">
 
-Otiluke is a toolbox for deploying JS source-to-source compilers (aka JS transpilers) written as *sphere*.
-A sphere is a node module adhering to an interface defined in this module.  
+Otiluke is a toolbox for deploying JS source-to-source compilers (aka JS transpilers) written as particular node modules called *spheres*.
 Otiluke is itself a [npm module](https://www.npmjs.com/package/otiluke) and can be installed with `npm install otiluke`.
 You can try out Otiluke [here](http://rawgit.com/lachrist/otiluke/master/usage/demo.html).
 Otiluke features four tools:
 
-1. [Mitm](#mitm): deploy spheres on the client tier of web applications ([usage](usage/run-node.js)).
-2. [Node](#node): deploy spheres on node applications ([usage](usage/run-node.js)).
-3. [Test](#test): debug and benchmark spheres (([usage](usage/run-test.js))).
-4. [Demo](#demo): demonstrate how awesome are your log-spheres (([usage](usage/run-demo.js))).
+1. [Mitm](#mitm): deploy spheres on the client tier of web applications `node usage/run-node.js`.
+2. [Node](#node): deploy spheres on node applications `node usage/run-node.js`.
+3. [Test](#test): debug and benchmark spheres `node usage/run-test.js`.
+4. [Demo](#demo): demonstrate how awesome your log-spheres are `node usage/run-demo.js`.
 
 ## Mitm
 
 Otiluke deploys spheres to client tiers by essentially performing a man-in-the-middle attack with a forward proxy.
-Such attack require the browser to trust Otiluke's root certificate and redirect all its request to the forward proxy.
-We detail this procedure for firefox in [Firefox Configuration](#firefox-configuration).
+Such attack requires the browser to trust Otiluke's root certificate and redirect all its request to the forward proxy.
+We detail this procedure for firefox [here](#browser-configuration).
 
 <img src="img/mitm.png" align="center" title="The Otiluke mitm communication model"/>
 
 After deployment, the sphere has been [browserified](http://browserify.org) into the client tier.
-This Otiluke proxy is parametrized by an object called *hijack* which intercept the communication from the client tier.
+The Otiluke proxy is parametrized by an object called *hijack* which intercept the communication from the client tier.
 The above schema depicts a typical use case where the sphere module and the hijack object only communicate with eachother.
 But nothing prevent the sphere module to communicate with the server tier and/or the hijack object to handle communication directed to the server tier.
 Note that multiple clients can be connected at the same time.
-Below is a running example (assuming that `sphere.js` `hijack.js` and `run-mitm.js` are in the same directory) which logs messages before and after executing every client scripts.
+Here are the important files involved when executing `node usage/run-mitm.js`: 
 
-```js
-// sphere.js //
-var namespace = "_otiluke_";
-module.exports = function (argument, channel) {
-  global[namespace] = function (message) {
-    channel.request("POST", "/"+argument, {}, message, true);
-  };
-  return function (script, source) {
-    return [
-      namespace+"("+JSON.stringify("before "+source)+");",
-      script,
-      namespace+"("+JSON.stringify("after "+source)+");",
-    ].join("\n");
-  };
-};
-```
-
-```js
-// hijack.js //
-var Url = require("url");
-module.exports = function (splitter) {
-  return {
-    request: function (req, res) {
-      if (Url.parse(req.url).path !== "/"+splitter)
-        return false;
-      var message = "";
-      req.on("data", function (data) { message += data });
-      req.on("end", function () {
-        console.log(message);
-        res.writeHead(200, {
-          "Content-Length": 0,
-          "Content-Type": "text/plain"
-        });
-        res.end();
-      });
-      return true;
-    },
-    websocket: function (websocket) {
-      return false;
+* [run-mitm.js](usage/run-mitm.js):
+  Deploy an Otiluke mitm proxy as well as a static file server.
+  `splitter` is a randomly generated string passed to the sphere module and the hijack object to distinguish the sphere communication from the rest.
+  ```js
+  var Path = require("path");
+  var HttpServer = require("http-server");
+  var Otiluke = require("otiluke");
+  var Hijack = require("./hijack.js");
+  var splitter = Math.random().toString(36).substring(2);
+  Otiluke.mitm({
+    hijack: Hijack(splitter),
+    sphere: {
+      path: Path.join(__dirname, "sphere.js"),
+      argument: splitter
     }
+  }).listen(8080);
+  HttpServer.createServer({root:Path.join(__dirname, "html")}).listen(8000);
+  var cert = Path.join(__dirname, "..", "mitm", "proxy", "ca", "cacert.pem");
+  console.log([
+    "1. Redirect your browser's requests to localhost:8080",
+    "2. Make your browser trust Otiluke's root certificate at "+cert,
+    "3. Visit http://localhost:8000/index.html"
+  ].join("\n"));
+  ```
+* [sphere.js](usage/sphere.js):
+  A simple JS transpiler written as a sphere that send http post requests before and after executing any script
+  ```js
+  var namespace = "_otiluke_";
+  module.exports = function (argument, channel) {
+    global[namespace] = function (message) {
+      channel.request("POST", "/"+argument, {}, message, true);
+    };
+    return function (script, source) {
+      return [
+        namespace+"("+JSON.stringify("before "+source)+");",
+        script,
+        namespace+"("+JSON.stringify("after "+source)+");",
+      ].join("\n");
+    };
   };
-};
-```
-
-```js
-// run-mitm.js //
-var Path = require("path");
-var HttpServer = require("http-server");
-var Otiluke = require("otiluke");
-var Hijack = require("./hijack.js");
-var splitter = Math.random().toString(36).substring(2);
-Otiluke.mitm({
-  hijack: Hijack(splitter),
-  sphere: {
-    path: Path.join(__dirname, "sphere.js"),
-    argument: splitter
-  }
-}).listen(8080);
-HttpServer.createServer({root:Path.join(__dirname, "html")}).listen(8000);
-var cert = Path.join(__dirname, "..", "mitm", "proxy", "ca", "cacert.pem");
-console.log([
-  "1. Redirect your browser's requests to localhost:8080",
-  "2. Make your browser trust Otiluke's root certificate at "+cert,
-  "3. Visit http://localhost:8000/index.html"
-].join("\n"));
-```
+  ```
+* [hijack.js](usage/hijack.js):
+  An object intercepting the communicaton from the transpiled application and logging http requests from the sphere.
+  ```js
+  var Url = require("url");
+  module.exports = function (splitter) {
+    return {
+      request: function (req, res) {
+        if (Url.parse(req.url).path !== "/"+splitter)
+          return false;
+        var message = "";
+        req.on("data", function (data) { message += data });
+        req.on("end", function () {
+          console.log(message);
+          res.writeHead(200, {
+            "Content-Length": 0,
+            "Content-Type": "text/plain"
+          });
+          res.end();
+        });
+        return true;
+      },
+      websocket: function (websocket) {
+        return false;
+      }
+    };
+  };
+  ```
 
 N.B.:
-* [Mitm](#mitm) requires [openssl](https://www.openssl.org/) to be in the PATH.
+* To handle https connection, [Mitm](#mitm) requires [openssl](https://www.openssl.org/) to be available in the PATH.
 * External and inlined script are intercepted but *not* inline event handlers nor dynamically evaluated code.
-* You can refresh every Otiluke certificates by calling `Otiluke.mitm.reset(callback)`.
-  Note that after resetting you will have make your browser trust the newly created root certificate.
+* You can refresh every Otiluke certificates by calling `Otiluke.mitm.reset(function (error) { ... })`.
+  After resetting you will have to make your browser trust the new randonly created root certificate.
 
 ## The Sphere Module and the Hijack Object
 
-An important property of Otiluke consists in providing an unified interface for deploying JS transpilers.
+An important design decision of Otiluke consists in providing an unified interface for deploying JS transpilers.
 The mitm communication model presented in [Mitm](#mitm) motivates the interface for the other tools.
 We now describe how sphere modules and hijack objects should look like for every Otiluke tools but [Demo](#demo).
 
@@ -115,9 +116,9 @@ We now describe how sphere modules and hijack objects should look like for every
   };
   ```
   * `argument(json)`: static JSON data passed when calling Otiluke's tools.
-  * `channel(channel-uniform)`: instance of [channel-uniform](https://www.npmjs.com/package/channel-uniform)
+  * `channel(channel-uniform)`: instance of [channel-uniform](https://www.npmjs.com/package/channel-uniform) directed to an Otiluke server.
   * `script(string)`: original code
-  * `source(string)`: origin of the script
+  * `source(string)`: origin of the script, can be an url or a path.
   * `transpiled(string)`: transpiled script
 2. Hijack Object: an JS object intercepting the communication from the transpiled application
   ```js
@@ -147,55 +148,96 @@ For instance, `node main.js arg0 arg1` should be changed into `node <otiluke-arg
 
 After deployment, the sphere module has been required into the node application and can communicate with the hijack object.
 As for [Mitm](#mitm), multiple node applications can be connected at the same time.
-Below is a running example which reuses the files `sphere.js` and `hijack.js` from the example shown in [Mitm](#mitm).
+Below is the [node usage](usage/run-node.js) which reuses [sphere.js](usage/sphere.js) and [hijack.js](usage/hijack.js) from the mitm usage.
 
 ```js
-// run-node.js //
 var Path = require("path");
 var Otiluke = require("otiluke");
 var Hijack = require("./hijack.js");
 var splitter = Math.random().toString(36).substring(2);
-var port = 8080;
-var server = Otiluke.node.server(Hijack(splitter));
-server.listen(port);
-var argv = Otilule.node.argv({
+Otiluke.node.server(Hijack(splitter)).listen(8080);
+var argv = Otiluke.node.argv({
   path: Path.join(__dirname, "sphere.js"),
   argument: splitter
-}, port);
-function escape (arg) {
-  return "'"+arg.replace("'", "'''")+"'";
-};
-console.log("otiluke-argv: "+argv.map(escape).join(" "));
+}, 8080);
+function escape (arg) { return "'"+arg.replace("'", "'''")+"'" };
+var main = Path.join(__dirname, "node", "cube.js");
+console.log("run: node "+argv.map(escape).join(" ")+" "+main+" 2");
 ```
 
 ## Test
 
 This tool deploys a server for debugging and benchmarking spheres.
 Upon receiving a http request to a directory, this server will bundle every `.js` files present in the directory and return them along with a predifined sphere.   
-Below is a running example which reuses the files `sphere.js` and `hijack.js` from the example shown in [Mitm](#mitm).
-Assuming that the current working directory containt a subdirectory `standalone` with `fac.js` and `fibo.js`, the screen below can be obtained by visiting `http://localhost:8080/standalone`.
+Below is the [test usage](usage/run-test.js) which reuses [sphere.js](usage/sphere.js) and [hijack.js](usage/hijack.js) from the mitm usage.
 
 ```js
-// run-test.js //
 var Path = require("path");
 var Otiluke = require("otiluke");
 var Hijack = require("./hijack.js");
 var splitter = Math.random().toString(36).substring(2);
-var server = Otiluke.test({
-  basedir: process.cwd(),
+Otiluke.test({
+  basedir: __dirname,
   hijack: Hijack(splitter),
   sphere: {
     path: Path.join(__dirname, "sphere.js"),
     argument: splitter
   }
-});
-server.listen(8080);
+}).listen(8080);
+console.log("visit: http://localhost:8080/standalone");
 ```
 
 <img src="img/test.png" align="center" title="Otiluke test"/>
 
 ## Demo
 
+The demo tool is the only one that does not requires an auxiliary Otiluke server.
+Which comes at the cost of losing some of the feature accessible to generic spheres.
+The subclass of sphere accepted by the demo tool are called *log-spheres* which accept a simple logging function instead of the very generic `argument` and `channel`.
+Here are the important file involved when executing `node usage/run-demo.js`: 
+
+* [run-demo.js](usage/run-demo.js)
+  ```js
+  var Path = require("path");
+  var Fs = require("fs");
+  var Otiluke = require("otiluke");
+  Otiluke.demo({
+    "log-sphere": Path.join(__dirname, "log-sphere.js"),
+    target: Path.join(__dirname, "standalone")
+  }, function (error, html) {
+    if (error)
+      throw error;
+    Fs.writeFileSync(Path.join(__dirname, "demo.html"), html, "utf8");
+  });
+  console.log("visit: file://"+Path.join(__dirname, "demo.html"));
+  ```
+* [log-sphere.js](usage/log-sphere.js) 
+  ```js
+  var namespace = "_otiluke_";
+  module.exports = function (log) {
+    global[namespace] = log;
+    return function (script, source) {
+      return [
+        namespace+"("+JSON.stringify("before "+source+"\n")+");",
+        script,
+        namespace+"("+JSON.stringify("after "+source+"\n")+");"
+      ].join("\n");
+    };
+  };
+  ```
+
+
+
+Essentially the very generic couple `argument` and `channel` has been replace by a single logging function.
+
+
+
+
+
+
+The downside 
+
+Unlike the other tools, this tool does not requires an 
 This last tool output html code which can be executed without server.
 
 `otiluke --demo` [browserifies](http://browserify.org/) the given transpiler(s) and bundles the standalone script(s) into a standalone html page.
@@ -203,17 +245,18 @@ This page serves as a demonstration to these awesome transpiler(s) of yours.
 Note that only the dependencies initially present in the given transpiler(s) will be bundled into the page, therefore arbitrary requires are not supported in the demo page.
 
 ```
-// run-demo.js //
+var Path = require("path");
+var Fs = require("fs");
 var Otiluke = require("otiluke");
-var server = Otiluke.demo({
-  basedir: process.cwd(),
-  hijack: Hijack(splitter),
-  sphere: {
-    path: Path.join(__dirname, "sphere.js"),
-    argument: splitter
-  }
+Otiluke.demo({
+  "log-sphere": Path.join(__dirname, "log-sphere.js"),
+  target: Path.join(__dirname, "standalone")
+}, function (error, html) {
+  if (error)
+    throw error;
+  Fs.writeFileSync(Path.join(__dirname, "demo.html"), html, "utf8");
 });
-server.listen(8080);
+console.log("visit: file://"+Path.join(__dirname, "demo.html"));
 ```
 
 ```shell
@@ -228,37 +271,37 @@ require("otiluke").demo({
 ```
 ## Subspheres
 
-## Firefox Configuration
+## Browser Configuration
 
-### Redirect requests to the MITM proxy
+### Redirect Firefox requests to the mitm proxy
 
-Second, you have to redirect all Firefox requests to the local port where the MITM proxy is deployed.
-Go again to `about:preferences#advanced` then click on *Network* then *Settings...*.
+First, you have to redirect all Firefox requests to the local port where the proxy from Otiluke mitm has been deployed.
+Go to `about:preferences#advanced` then click on *Network* then *Settings...*.
 You can now tick the checkbox *Manual proxy configuration* and *Use this proxy server for all protocols*.
-The HTTP proxy fields should be the localhost `127.0.0.1` and the port given in the options.
+The HTTP proxy fields should be the localhost `127.0.0.1` and the port on which proxy from the Otiluke mitm is listening.
 
 <img src="img/firefox-proxy.png" align="center" alt="firefox proxy" title="Firefox's proxy settings"/>
 
-### Trust Otiluke's root certificate
+### Make Firefox trust Otiluke's root certificate
 
-First, you have to indicate Firefox that you trust Otiluke's root certificate.
-Go to `about:preferences#advanced` then click on *Certificates* then *View Certificates*.
+Second, you have to indicate Firefox that you trust Otiluke's root certificate.
+This step is only required if you need to transpiled clients securely served via https.
+Go agains to `about:preferences#advanced` then click on *Certificates* then *View Certificates*.
 You can now import Otiluke's root certificate which can be found at `/path/otiluke/mitm/ca/cacert.pem`.
 After changes in certificates' trust, restart Firefox to avoid `sec_error_reused_issuer_and_serial` error.
-Note that you can reset all Otiluke's certificates with
-
-```shell
-otiluke --mitm --reset
-```
-```javascript
-require("otiluke").mitm({reset:true});
-```
 
 <img src="img/firefox-cert.png" align="center" alt="firefox proxy" title="Firefox's proxy settings"/>
 
+### Discussion on security
 
-
-
+Making a browser trust a root certificate has dire security consequences.
+Everyone having access to the corresponding private key can insurpate *any* identity within this browser.
+Which is exactly what Otiluke mitm needs to do.
+There is two ways approach this:
+1. Not caring about security by using a dedicated browser and never fill in it any sensitive information (preferred).
+2. Reset Otiluke certificate `Otiluke.mitm.reset(function (error) { ... })` to generate a new random private root key that must never be compromised.
+   However the private root key is stored in plain (here)[mitm/proxy/ca/cakey.pem] because it needs to be accessed by Otiluke to sign new certificates.
+   So makes sure that *absolutely* no one can access this file.
 
 
 

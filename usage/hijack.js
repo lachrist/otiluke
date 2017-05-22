@@ -1,4 +1,3 @@
-// hijack.js //
 var Url = require("url");
 module.exports = function (splitter) {
   return {

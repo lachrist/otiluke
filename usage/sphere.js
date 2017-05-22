@@ -1,4 +1,3 @@
-// sphere.js //
 var namespace = "_otiluke_";
 module.exports = function (argument, channel) {
   global[namespace] = function (message) {

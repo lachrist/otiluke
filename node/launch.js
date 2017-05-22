@@ -32,11 +32,12 @@ var Cast = require(options.sphere.path.cast);
 var Sub = require(options.sphere.path.sub);
 var Sphere = Cast(Sub);
 var sphere = Sphere(options.sphere.argument, Channel(options.port, false));
+console.log(Module._extensions);
 Module._extensions[".js"] = function (module, filename) {
   var content = Fs.readFileSync(filename, "utf8");
   // TODO RESOLVE BUG with require("ws")
-  if (filename.indexOf("node_modules") !== -1)
-    return module._compile(stripBOM(content), filename);
+  // if (filename.indexOf("node_modules") !== -1)
+  //   return module._compile(stripBOM(content), filename);
   // END TODO
   module._compile(stripBOM(sphere(content, filename)), filename);
 };
