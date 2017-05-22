@@ -27,7 +27,8 @@ Here are the important files involved when executing `node usage/run-mitm.js`:
 
 * [run-mitm.js](usage/run-mitm.js):
   Deploy an Otiluke mitm proxy as well as a static file server.
-  `splitter` is a randomly generated string passed to the sphere module and the hijack object to distinguish the sphere communication from the rest.
+  The string referred by `splitter` is used to distinguish the sphere communication from the rest.
+  It is randomly generated and passed to the sphere module and the hijack object.
   ```js
   var Path = require("path");
   var HttpServer = require("http-server");
@@ -50,7 +51,7 @@ Here are the important files involved when executing `node usage/run-mitm.js`:
   ].join("\n"));
   ```
 * [sphere.js](usage/sphere.js):
-  A simple JS transpiler written as a sphere that send http post requests before and after executing any script
+  A simple JS transpiler written as a sphere that send http post requests before and after executing any script.
   ```js
   var namespace = "_otiluke_";
   module.exports = function (argument, channel) {
@@ -98,15 +99,16 @@ N.B.:
 * To handle https connection, [Mitm](#mitm) requires [openssl](https://www.openssl.org/) to be available in the PATH.
 * External and inlined script are intercepted but *not* inline event handlers nor dynamically evaluated code.
 * You can refresh every Otiluke certificates by calling `Otiluke.mitm.reset(function (error) { ... })`.
-  After resetting you will have to make your browser trust the new randonly created root certificate.
+  After resetting you will have to make your browser trust the new randomly created root certificate.
 
 ## The Sphere Module and the Hijack Object
 
 An important design decision of Otiluke consists in providing an unified interface for deploying JS transpilers.
-The mitm communication model presented in [Mitm](#mitm) motivates the interface for the other tools.
+The mitm communication model motivates the interface for the other tools.
 We now describe how sphere modules and hijack objects should look like for every Otiluke tools but [Demo](#demo).
 
 1. Sphere Module: a node module performing JS transpilation:
+
   ```js
   module.exports = function (argument, channel) {
     return function (script, source) {
@@ -115,12 +117,14 @@ We now describe how sphere modules and hijack objects should look like for every
     };
   };
   ```
+
   * `argument(json)`: static JSON data passed when calling Otiluke's tools.
   * `channel(channel-uniform)`: instance of [channel-uniform](https://www.npmjs.com/package/channel-uniform) directed to an Otiluke server.
   * `script(string)`: original code
   * `source(string)`: origin of the script, can be an url or a path.
   * `transpiled(string)`: transpiled script
 2. Hijack Object: an JS object intercepting the communication from the transpiled application
+  
   ```js
   var hijack = {};
   hijack.request = function (req, res) {
@@ -132,6 +136,7 @@ We now describe how sphere modules and hijack objects should look like for every
     return hijacked;
   };
   ```
+
   * `req(http.IncomingMessage)`: http(s) request
   * `res(http.ServerResponse)`: http(s) response
   * `ws(ws.WebSocket)`: websocket
@@ -144,7 +149,7 @@ On the one hand this tool launch a server parametrized by a hijack object.
 On the other hand this tool computes command line arguments that should be inserted into commands launching node applications.
 For instance, `node main.js arg0 arg1` should be changed into `node <otiluke-argv> main.js arg0 arg1` where `<otiluke-argv>` is a placeholder for the aforementionned command line arguments.
 
-<img src="img/mitm.png" align="center" title="The Otiluke mitm communication model"/>
+<p align="center"><img src="img/mitm.png" align="center" title="The Otiluke mitm communication model"/></p>
 
 After deployment, the sphere module has been required into the node application and can communicate with the hijack object.
 As for [Mitm](#mitm), multiple node applications can be connected at the same time.
