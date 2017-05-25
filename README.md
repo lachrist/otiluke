@@ -16,84 +16,42 @@ Otiluke deploys spheres to client tiers by essentially performing a man-in-the-m
 Such attack requires the browser to trust Otiluke's root certificate and redirect all its request to the forward proxy.
 We detail this procedure for firefox [here](#browser-configuration).
 
-<img src="img/mitm.png" align="center" title="The Otiluke mitm communication model"/>
+<p align="center"><img src="img/mitm.png" title="The Otiluke mitm communication model"/></p>
 
 After deployment, the sphere has been [browserified](http://browserify.org) into the client tier.
 The Otiluke proxy is parametrized by an object called *hijack* which intercept the communication from the client tier.
 The above schema depicts a typical use case where the sphere module and the hijack object only communicate with eachother.
 But nothing prevent the sphere module to communicate with the server tier and/or the hijack object to handle communication directed to the server tier.
 Note that multiple clients can be connected at the same time.
-Here are the important files involved when executing `node usage/run-mitm.js`: 
-
-* [run-mitm.js](usage/run-mitm.js):
+You can try out the mitm tool be executing `node usage/run-mitm.js` from the installation repository of this module.
+Here are the important file involved in this example:
+* [usage/run-mitm.js](usage/run-mitm.js):
   Deploy an Otiluke mitm proxy as well as a static file server.
   The string referred by `splitter` is used to distinguish the sphere communication from the rest.
   It is randomly generated and passed to the sphere module and the hijack object.
-  ```js
-  var Path = require("path");
-  var HttpServer = require("http-server");
-  var Otiluke = require("otiluke");
-  var Hijack = require("./hijack.js");
-  var splitter = Math.random().toString(36).substring(2);
-  Otiluke.mitm({
-    hijack: Hijack(splitter),
-    sphere: {
-      path: Path.join(__dirname, "sphere.js"),
-      argument: splitter
-    }
-  }).listen(8080);
-  HttpServer.createServer({root:Path.join(__dirname, "html")}).listen(8000);
-  var cert = Path.join(__dirname, "..", "mitm", "proxy", "ca", "cacert.pem");
-  console.log([
-    "1. Redirect your browser's requests to localhost:8080",
-    "2. Make your browser trust Otiluke's root certificate at "+cert,
-    "3. Visit http://localhost:8000/index.html"
-  ].join("\n"));
-  ```
-* [sphere.js](usage/sphere.js):
+* [usage/sphere.js](usage/sphere.js):
   A simple JS transpiler written as a sphere that send http post requests before and after executing any script.
-  ```js
-  var namespace = "_otiluke_";
-  module.exports = function (argument, channel) {
-    global[namespace] = function (message) {
-      channel.request("POST", "/"+argument, {}, message, true);
-    };
-    return function (script, source) {
-      return [
-        namespace+"("+JSON.stringify("before "+source)+");",
-        script,
-        namespace+"("+JSON.stringify("after "+source)+");",
-      ].join("\n");
-    };
-  };
-  ```
-* [hijack.js](usage/hijack.js):
-  An object intercepting the communicaton from the transpiled application and logging http requests from the sphere.
-  ```js
-  var Url = require("url");
-  module.exports = function (splitter) {
-    return {
-      request: function (req, res) {
-        if (Url.parse(req.url).path !== "/"+splitter)
-          return false;
-        var message = "";
-        req.on("data", function (data) { message += data });
-        req.on("end", function () {
-          console.log(message);
-          res.writeHead(200, {
-            "Content-Length": 0,
-            "Content-Type": "text/plain"
-          });
-          res.end();
-        });
-        return true;
-      },
-      websocket: function (websocket) {
-        return false;
-      }
-    };
-  };
-  ```
+* [usage/hijack.js](usage/hijack.js):
+  Exports an object intercepting the communicaton from the transpiled application and logging http requests from the sphere.
+
+```js
+server = Otiluke.mitm({
+  hijack: hijack,
+  sphere: {
+    path: path,
+    argument: argument
+  }
+});
+server.listen(port);
+```
+
+* `hijack(object)`: an object intercepting communication from the transpiled application.
+  * `hijack.request(function)`: intercept http(s) exchanges
+  * `hijack.socket(function)`: intercept websockets
+* `path(string)`: path to the sphere module
+* `argument(json)`: static json data that will be passed to every deployed sphere.
+* `server(http.Server)`: forward proxy which acts as a man-in-the-middle.
+* `port(number)`: port on which the forward proxy should listen 
 
 N.B.:
 * To handle https connection, [Mitm](#mitm) requires [openssl](https://www.openssl.org/) to be available in the PATH.
@@ -104,11 +62,10 @@ N.B.:
 ## The Sphere Module and the Hijack Object
 
 An important design decision of Otiluke consists in providing an unified interface for deploying JS transpilers.
-The mitm communication model motivates the interface for the other tools.
+The communication model described in [Mitm](#mitm) motivates the interface for the tools [Node](#node) and [Test](#Test).
 We now describe how sphere modules and hijack objects should look like for every Otiluke tools but [Demo](#demo).
 
 1. Sphere Module: a node module performing JS transpilation:
-
   ```js
   module.exports = function (argument, channel) {
     return function (script, source) {
@@ -117,14 +74,12 @@ We now describe how sphere modules and hijack objects should look like for every
     };
   };
   ```
-
   * `argument(json)`: static JSON data passed when calling Otiluke's tools.
   * `channel(channel-uniform)`: instance of [channel-uniform](https://www.npmjs.com/package/channel-uniform) directed to an Otiluke server.
   * `script(string)`: original code
   * `source(string)`: origin of the script, can be an url or a path.
   * `transpiled(string)`: transpiled script
 2. Hijack Object: an JS object intercepting the communication from the transpiled application
-  
   ```js
   var hijack = {};
   hijack.request = function (req, res) {
@@ -136,7 +91,6 @@ We now describe how sphere modules and hijack objects should look like for every
     return hijacked;
   };
   ```
-
   * `req(http.IncomingMessage)`: http(s) request
   * `res(http.ServerResponse)`: http(s) response
   * `ws(ws.WebSocket)`: websocket
@@ -145,30 +99,39 @@ We now describe how sphere modules and hijack objects should look like for every
 ## Node
 
 Otiluke deploys spheres to node applications by modifying the require processus performed by node.
-On the one hand this tool launch a server parametrized by a hijack object.
-On the other hand this tool computes command line arguments that should be inserted into commands launching node applications.
+This tool does two things:
+First it launches a server parametrized by a hijack object.
+Second it computes command line arguments that should be inserted into commands launching node applications.
 For instance, `node main.js arg0 arg1` should be changed into `node <otiluke-argv> main.js arg0 arg1` where `<otiluke-argv>` is a placeholder for the aforementionned command line arguments.
 
-<p align="center"><img src="img/mitm.png" align="center" title="The Otiluke mitm communication model"/></p>
+<p align="center"><img src="img/node.png" title="The Otiluke node communication model"/></p>
 
 After deployment, the sphere module has been required into the node application and can communicate with the hijack object.
 As for [Mitm](#mitm), multiple node applications can be connected at the same time.
-Below is the [node usage](usage/run-node.js) which reuses [sphere.js](usage/sphere.js) and [hijack.js](usage/hijack.js) from the mitm usage.
+You can try out the mitm tool be executing `node usage/run-node.js` from the installation repository of this module.
+The main file of this example, [node usage](usage/run-node.js), reuses [sphere.js](usage/sphere.js) and [hijack.js](usage/hijack.js) from the mitm usage.
 
 ```js
-var Path = require("path");
-var Otiluke = require("otiluke");
-var Hijack = require("./hijack.js");
-var splitter = Math.random().toString(36).substring(2);
-Otiluke.node.server(Hijack(splitter)).listen(8080);
+var server = Otiluke.node.server(hijack)
+server.listen(port);
 var argv = Otiluke.node.argv({
-  path: Path.join(__dirname, "sphere.js"),
-  argument: splitter
-}, 8080);
-function escape (arg) { return "'"+arg.replace("'", "'''")+"'" };
-var main = Path.join(__dirname, "node", "cube.js");
-console.log("run: node "+argv.map(escape).join(" ")+" "+main+" 2");
+  path: path,
+  argument: argument,
+}, port);
 ```
+
+* `hijack(object)`: idem as `Otiluke.mitm`
+* `path(string)`: path to the sphere module
+* `argument(json)`: static json data that will be passed to every deployed sphere.
+* `server(http.Server)`: forward proxy which acts as a man-in-the-middle.
+* `port(number)`: port on which the forward proxy should listen 
+
+* `hijack(object)`: same as the one given to `Otiluke.mitm`
+* `server(http.Server)`: Http server 
+* `path(string)`: path to the sphere module
+* `argument(json)`: 
+* `port(number)`:
+* `argv(array)`: command line arguments to prepend before
 
 ## Test
 
@@ -177,22 +140,18 @@ Upon receiving a http request to a directory, this server will bundle every `.js
 Below is the [test usage](usage/run-test.js) which reuses [sphere.js](usage/sphere.js) and [hijack.js](usage/hijack.js) from the mitm usage.
 
 ```js
-var Path = require("path");
-var Otiluke = require("otiluke");
-var Hijack = require("./hijack.js");
-var splitter = Math.random().toString(36).substring(2);
 Otiluke.test({
-  basedir: __dirname,
-  hijack: Hijack(splitter),
+  basedir: basedir,
+  hijack: hijack,
   sphere: {
-    path: Path.join(__dirname, "sphere.js"),
-    argument: splitter
+    path: path,
+    argument: argument
   }
-}).listen(8080);
+}).listen(port);
 console.log("visit: http://localhost:8080/standalone");
 ```
 
-<img src="img/test.png" align="center" title="Otiluke test"/>
+<img src="img/test.png" title="Otiluke test"/>
 
 ## Demo
 
