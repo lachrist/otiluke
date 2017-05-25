@@ -1,19 +1,22 @@
 # Otiluke <img src="img/otiluke.png" align="right" alt="otiluke-logo" title="Resilient Sphere of Otiluke">
 
-Otiluke is a toolbox for deploying JS source-to-source compilers (aka JS transpilers) written as particular node modules called *spheres*.
+Otiluke is a toolbox for ECMAScript5 code instrumenters.
+After deployment, the instrumented application can communicate to the outside world via a channel provided by Otiluke.
 Otiluke is itself a [npm module](https://www.npmjs.com/package/otiluke) and can be installed with `npm install otiluke`.
-You can try out Otiluke [here](http://rawgit.com/lachrist/otiluke/master/usage/demo.html).
 Otiluke features four tools:
 
-1. [Mitm](#mitm): deploy spheres on the client tier of web applications `node usage/run-node.js`.
-2. [Node](#node): deploy spheres on node applications `node usage/run-node.js`.
-3. [Test](#test): debug and benchmark spheres `node usage/run-test.js`.
-4. [Demo](#demo): demonstrate how awesome your log-spheres are `node usage/run-demo.js`.
+Tool          | Target             | Intended Purpose                    | Channel          | Usage Example
+--------------|--------------------|-------------------------------------|------------------|---------------------------
+[Mitm](#mitm) | served html pages  | instrument client tiers of web apps | auxillary server | `node example/run-mitm.js`
+[Node](#node) | node module        | instrument node applications        | auxillary server | `node example/run-node.js`
+[Test](#test) | standalone scripts | debug and benchmark an instrumenter | auxillary server | `node example/run-test.js`
+[Demo](#demo) | standalone scripts | debug and demonstrate instrumenters | simple logger    | `node example/run-demo.js`
 
 ## Mitm
 
-Otiluke deploys spheres to client tiers by essentially performing a man-in-the-middle attack with a forward proxy.
-Such attack requires the browser to trust Otiluke's root certificate and redirect all its request to the forward proxy.
+Otiluke instruments served html pages by essentially performing a man-in-the-middle attack with a forward proxy.
+Such attack requires the browser to redirect all its request to the forward proxy.
+For pages served https it also requires the browser to trust the self-signed certificate at [mitm/proxy/ca/cert.pem](mitm/proxy/ca/cert.pem).
 We detail this procedure for firefox [here](#browser-configuration).
 
 <p align="center"><img src="img/mitm.png" title="The Otiluke mitm communication model"/></p>
@@ -23,15 +26,15 @@ The Otiluke proxy is parametrized by an object called *hijack* which intercept t
 The above schema depicts a typical use case where the sphere module and the hijack object only communicate with eachother.
 But nothing prevent the sphere module to communicate with the server tier and/or the hijack object to handle communication directed to the server tier.
 Note that multiple clients can be connected at the same time.
-You can try out the mitm tool be executing `node usage/run-mitm.js` from the installation repository of this module.
+You can try out the mitm tool be executing `node example/run-mitm.js` from the installation repository of this module.
 Here are the important file involved in this example:
-* [usage/run-mitm.js](usage/run-mitm.js):
+* [example/run-mitm.js](example/run-mitm.js):
   Deploy an Otiluke mitm proxy as well as a static file server.
   The string referred by `splitter` is used to distinguish the sphere communication from the rest.
   It is randomly generated and passed to the sphere module and the hijack object.
-* [usage/sphere.js](usage/sphere.js):
+* [example/sphere.js](example/sphere.js):
   A simple JS transpiler written as a sphere that send http post requests before and after executing any script.
-* [usage/hijack.js](usage/hijack.js):
+* [example/hijack.js](example/hijack.js):
   Exports an object intercepting the communicaton from the transpiled application and logging http requests from the sphere.
 
 ```js
@@ -108,8 +111,8 @@ For instance, `node main.js arg0 arg1` should be changed into `node <otiluke-arg
 
 After deployment, the sphere module has been required into the node application and can communicate with the hijack object.
 As for [Mitm](#mitm), multiple node applications can be connected at the same time.
-You can try out the mitm tool be executing `node usage/run-node.js` from the installation repository of this module.
-The main file of this example, [node usage](usage/run-node.js), reuses [sphere.js](usage/sphere.js) and [hijack.js](usage/hijack.js) from the mitm usage.
+You can try out the mitm tool be executing `node example/run-node.js` from the installation repository of this module.
+The main file of this example, [node example](example/run-node.js), reuses [sphere.js](example/sphere.js) and [hijack.js](example/hijack.js) from the mitm example.
 
 ```js
 var server = Otiluke.node.server(hijack)
@@ -137,7 +140,7 @@ var argv = Otiluke.node.argv({
 
 This tool deploys a server for debugging and benchmarking spheres.
 Upon receiving a http request to a directory, this server will bundle every `.js` files present in the directory and return them along with a predifined sphere.   
-Below is the [test usage](usage/run-test.js) which reuses [sphere.js](usage/sphere.js) and [hijack.js](usage/hijack.js) from the mitm usage.
+Below is the [test example](example/run-test.js) which reuses [sphere.js](example/sphere.js) and [hijack.js](example/hijack.js) from the mitm example.
 
 ```js
 Otiluke.test({
@@ -158,9 +161,9 @@ console.log("visit: http://localhost:8080/standalone");
 The demo tool is the only one that does not requires an auxiliary Otiluke server.
 Which comes at the cost of losing some of the feature accessible to generic spheres.
 The subclass of sphere accepted by the demo tool are called *log-spheres* which accept a simple logging function instead of the very generic `argument` and `channel`.
-Here are the important file involved when executing `node usage/run-demo.js`: 
+Here are the important file involved when executing `node example/run-demo.js`: 
 
-* [run-demo.js](usage/run-demo.js)
+* [run-demo.js](example/run-demo.js)
   ```js
   var Path = require("path");
   var Fs = require("fs");
@@ -175,7 +178,7 @@ Here are the important file involved when executing `node usage/run-demo.js`:
   });
   console.log("visit: file://"+Path.join(__dirname, "demo.html"));
   ```
-* [log-sphere.js](usage/log-sphere.js) 
+* [log-sphere.js](example/log-sphere.js) 
   ```js
   var namespace = "_otiluke_";
   module.exports = function (log) {
@@ -407,7 +410,7 @@ var argv = Otiluke.node.argv()
 
 The transpiler module will always be executed side-by-side with the program targeted for transpilation.
 Such online transpilation process enables easy support of dynamic code evaluations such as [`eval(script)`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/eval).
-As illustrated below and [here](http://rawgit.com/lachrist/otiluke/master/usage/demo.html), Otiluke provides a log channel in the options argument to trace information gathered during the transpilation process or later, while executing the transpiled program.
+As illustrated below and [here](http://rawgit.com/lachrist/otiluke/master/example/demo.html), Otiluke provides a log channel in the options argument to trace information gathered during the transpilation process or later, while executing the transpiled program.
 
 <img src="img/demo.png" align="center" alt="demo" title="otiluke --demo"/>
 
@@ -421,7 +424,7 @@ This illustrated below with Otiluke's test:
 <img src="img/test.png" align="center" alt="test" title="otiluke --test"/>
 
 ```javascript
-> require("fs").readdirSync("./usage/log").map(function (name) { return eval("'"+name+"'") })
+> require("fs").readdirSync("./example/log").map(function (name) { return eval("'"+name+"'") })
 [ '.gitignore',
   '/fac.js?transpile=identity.js#0',
   '/fac.js?transpile=logsource.js#0',
