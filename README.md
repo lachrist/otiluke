@@ -18,7 +18,59 @@ Otiluke instruments served html pages by essentially performing a man-in-the-mid
 Such attack requires the browser to redirect all its request to the forward proxy.
 For pages served https it also requires the browser to trust the self-signed certificate at [mitm/proxy/ca/cacert.pem](mitm/proxy/ca/cacert.pem).
 We detail these two procedures for firefox [here](#browser-configuration).
-Here is how to call `Otiluke.mitm`:
+This tool expects two node modules which are executed on different processes, we called them *hijack* and *sphere*.
+As depicted below, the hijack module is executed on the forward proxy process and the sphere module is executed on the instrumented client process. 
+
+<p align="center"><img src="img/mitm.png" title="The Otiluke mitm communication model"/></p>
+
+After deployment, the forward proxy has been parametrized by the the hijack module and the sphere module has been [browserified](http://browserify.org) into the client tier.
+The above schema depicts a typical use case where the sphere module and the hijack object only communicate with eachother.
+But nothing prevent the sphere module to communicate with the server tier and/or the hijack object to handle communication directed to the server tier.
+Note that multiple clients can be connected at the same time.
+You can try out this tool with the below command which involves the file [example/hijack.js](example/hijack.js) and [example/sphere.js](example/sphere.js).
+In this example, the two arguments `--hijack-argument` and `--sphere-argument` should be equal as this value is used by the hijack module to differentiate the sphere communication (meta) from the rest (base).
+We used the dummy string `foobar` but generally you would want to used a more complex name to avoid clashes with the original client tier communication.
+You can also call this from node as shown in [example/run-mitm.js](example/run-mitm.js).
+
+```
+otiluke --mitm --port 8080 --hijack example/hijack.js --hijack-argument foobar --sphere example/sphere.js --sphere-argument foobar
+```
+
+N.B.:
+* To handle https connection, [Mitm](#mitm) requires [openssl](https://www.openssl.org/) to be available in the PATH.
+* External and inlined script are intercepted but *not* inlined event handlers nor dynamically evaluated code.
+* You can reset every Otiluke certificates by calling `otiluke --mitm --reset`.
+  After resetting you will have to make your browser trust the new root certificate signed by the randomly generated root key.
+
+
+We called the node module run on the forward proxy process *hijack* and the node module run on the instrumented tier process *sphere*.
+
+
+In `Oti, the part of the instrumenter executed in the forward proxy is called *hijack* and the part of the instrumenter executed in the client tier is called *sphere*.
+In `Otiluke.mitm`,
+To run Transpilers must be separated into an 
+Using `Otiluke.mitm` involves two 
+
+
+
+```js
+// hijack.js //
+module.exports = function (argument) {
+  return {
+    request: function (req, res) { return hijacked },
+    socket: function (ws) { return hijacked }
+  };
+};
+```
+
+```js
+// sphere.js //
+module.exports = function (argument, channel) {
+  return function (script, source) {
+    return instrumented;
+  };
+};
+```
 
 ```js
 server = Otiluke.mitm({
@@ -57,7 +109,6 @@ module.exports = function (argument, channel) {
 * `source(string)`: url specifying the origin of the script
 * `instrumented(string)`: instrumented script that will be executed in place of `script`
 
-<p align="center"><img src="img/mitm.png" title="The Otiluke mitm communication model"/></p>
 
 After deployment, the Otiluke proxy has been parametrized by the the hijack object and the sphere has been [browserified](http://browserify.org) into the client tier.
 The above schema depicts a typical use case where the sphere module and the hijack object only communicate with eachother.
@@ -74,11 +125,6 @@ Here are the important file involved in this example:
 * [example/hijack.js](example/hijack.js):
   Exports an object intercepting the communicaton from the instrumented application and logging http requests from the sphere.
 
-N.B.:
-* To handle https connection, [Mitm](#mitm) requires [openssl](https://www.openssl.org/) to be available in the PATH.
-* External and inlined script are intercepted but *not* inline event handlers nor dynamically evaluated code.
-* You can refresh every Otiluke certificates by calling `Otiluke.mitm.reset(function (error) { ... })`.
-  After resetting you will have to make your browser trust the new randomly created root certificate.
 
 ## The Sphere Module and the Hijack Object
 

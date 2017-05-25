@@ -1,8 +1,8 @@
 var Url = require("url");
-module.exports = function (splitter) {
+module.exports = function (argument) {
   return {
     request: function (req, res) {
-      if (Url.parse(req.url).path !== "/"+splitter)
+      if (Url.parse(req.url).path !== "/"+argument)
         return false;
       var message = "";
       req.on("data", function (data) { message += data });
