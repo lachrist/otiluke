@@ -16,30 +16,16 @@ Tool          | Target             | Intended Purpose                    | Chann
 
 Otiluke instruments served html pages by essentially performing a man-in-the-middle attack with a forward proxy.
 Such attack requires the browser to redirect all its request to the forward proxy.
-For pages served https it also requires the browser to trust the self-signed certificate at [mitm/proxy/ca/cert.pem](mitm/proxy/ca/cert.pem).
-We detail this procedure for firefox [here](#browser-configuration).
-
-<p align="center"><img src="img/mitm.png" title="The Otiluke mitm communication model"/></p>
-
-After deployment, the sphere has been [browserified](http://browserify.org) into the client tier.
-The Otiluke proxy is parametrized by an object called *hijack* which intercept the communication from the client tier.
-The above schema depicts a typical use case where the sphere module and the hijack object only communicate with eachother.
-But nothing prevent the sphere module to communicate with the server tier and/or the hijack object to handle communication directed to the server tier.
-Note that multiple clients can be connected at the same time.
-You can try out the mitm tool be executing `node example/run-mitm.js` from the installation repository of this module.
-Here are the important file involved in this example:
-* [example/run-mitm.js](example/run-mitm.js):
-  Deploy an Otiluke mitm proxy as well as a static file server.
-  The string referred by `splitter` is used to distinguish the sphere communication from the rest.
-  It is randomly generated and passed to the sphere module and the hijack object.
-* [example/sphere.js](example/sphere.js):
-  A simple JS transpiler written as a sphere that send http post requests before and after executing any script.
-* [example/hijack.js](example/hijack.js):
-  Exports an object intercepting the communicaton from the transpiled application and logging http requests from the sphere.
+For pages served https it also requires the browser to trust the self-signed certificate at [mitm/proxy/ca/cacert.pem](mitm/proxy/ca/cacert.pem).
+We detail these two procedures for firefox [here](#browser-configuration).
+Here is how to call `Otiluke.mitm`:
 
 ```js
 server = Otiluke.mitm({
-  hijack: hijack,
+  hijack: {
+    request: function (req, res) { return hijacked },
+    socket: function (ws) { return hijacked }
+  },
   sphere: {
     path: path,
     argument: argument
@@ -48,13 +34,45 @@ server = Otiluke.mitm({
 server.listen(port);
 ```
 
-* `hijack(object)`: an object intercepting communication from the transpiled application.
-  * `hijack.request(function)`: intercept http(s) exchanges
-  * `hijack.socket(function)`: intercept websockets
-* `path(string)`: path to the sphere module
+* `req(http.IncomingMessage)`: intercepted http(s) request
+* `res(http.ServerResponse)`: intercepted http(s) response
+* `ws(ws.WebSocket)`: intercepted websocket
+* `hijacked(boolean)`: indicates whether the request/websocket was handeled or if it should be forwarded to the server tier.
+* `path(string)`: path to the sphere module below
 * `argument(json)`: static json data that will be passed to every deployed sphere.
 * `server(http.Server)`: forward proxy which acts as a man-in-the-middle.
 * `port(number)`: port on which the forward proxy should listen 
+
+```js
+module.exports = function (argument, channel) {
+  return function (script, source) {
+    return instrumented;
+  };
+};
+```
+
+* `argument(json)`: JSON data passed when calling `Otiluke.mitm`.
+* `channel(channel-uniform)`: instance of [channel-uniform](https://www.npmjs.com/package/channel-uniform) directed to the forward proxy.
+* `script(string)`: original code whether it is an inlined or external.
+* `source(string)`: url specifying the origin of the script
+* `instrumented(string)`: instrumented script that will be executed in place of `script`
+
+<p align="center"><img src="img/mitm.png" title="The Otiluke mitm communication model"/></p>
+
+After deployment, the Otiluke proxy has been parametrized by the the hijack object and the sphere has been [browserified](http://browserify.org) into the client tier.
+The above schema depicts a typical use case where the sphere module and the hijack object only communicate with eachother.
+But nothing prevent the sphere module to communicate with the server tier and/or the hijack object to handle communication directed to the server tier.
+Note that multiple clients can be connected at the same time.
+You can try out the mitm tool be executing `node example/run-mitm.js` from the installation repository of this module.
+Here are the important file involved in this example:
+* [example/run-mitm.js](example/run-mitm.js):
+  Deploy a forward proxy as well as a static file server.
+  The string referred by `splitter` is used to distinguish the sphere communication from the rest.
+  It is randomly generated and passed to the sphere module and the hijack object.
+* [example/sphere.js](example/sphere.js):
+  A simple JS instrumenter written as a sphere that send http post requests before and after executing any script.
+* [example/hijack.js](example/hijack.js):
+  Exports an object intercepting the communicaton from the instrumented application and logging http requests from the sphere.
 
 N.B.:
 * To handle https connection, [Mitm](#mitm) requires [openssl](https://www.openssl.org/) to be available in the PATH.
