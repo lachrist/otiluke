@@ -1,13 +1,13 @@
 # Otiluke <img src="img/otiluke.png" align="right" alt="otiluke-logo" title="Resilient Sphere of Otiluke">
 
 Otiluke is a toolbox for ECMAScript5 code instrumenters.
-After deployment, the instrumented application can communicate to the outside world via a channel provided by Otiluke.
-Otiluke is itself a [npm module](https://www.npmjs.com/package/otiluke) and can be installed with `npm install otiluke`.
+Every Otiluke tool uniformely provides a channel to the instrumented application for communicating to the outside world.
+Otiluke a [npm module](https://www.npmjs.com/package/otiluke) and can be installed with `npm install otiluke -g`.
 Otiluke features four tools:
 
 Tool          | Target             | Intended Purpose                    | Channel          | Usage Example
 --------------|--------------------|-------------------------------------|------------------|---------------------------
-[Mitm](#mitm) | served html pages  | instrument client tiers of web apps | auxillary server | `node example/run-mitm.js`
+[Mitm](#mitm) | served html pages  | instrument client tiers of web apps | auxillary server | `otiluke --mitm --port 8080 --hijack example/hijack.js --hijack-argument foobar --sphere example/sphere.js --sphere-argument foobar`
 [Node](#node) | node module        | instrument node applications        | auxillary server | `node example/run-node.js`
 [Test](#test) | standalone scripts | debug and benchmark an instrumenter | auxillary server | `node example/run-test.js`
 [Demo](#demo) | standalone scripts | debug and demonstrate instrumenters | simple logger    | `node example/run-demo.js`
