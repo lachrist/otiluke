@@ -1,46 +1,170 @@
 # Otiluke <img src="img/otiluke.png" align="right" alt="otiluke-logo" title="Resilient Sphere of Otiluke">
 
-Otiluke is a toolbox for ECMAScript5 code instrumenters.
+Otiluke is a toolbox for deploying, debugging and demonstrating JavaScript code instrumenters.
 Every Otiluke tool uniformely provides a channel to the instrumented application for communicating to the outside world.
-Otiluke a [npm module](https://www.npmjs.com/package/otiluke) and can be installed with `npm install otiluke -g`.
-Otiluke features four tools:
+Otiluke a [npm module](https://www.npmjs.com/package/otiluke) and can be installed with `npm install otiluke -g` and features four tools:
 
 Tool          | Target             | Intended Purpose                    | Channel          | Usage Example
 --------------|--------------------|-------------------------------------|------------------|---------------------------
-[Mitm](#mitm) | served html pages  | instrument client tiers of web apps | auxillary server | `otiluke --mitm --port 8080 --hijack example/hijack.js --hijack-argument foobar --sphere example/sphere.js --sphere-argument foobar`
+[Mitm](#mitm) | served html pages  | instrument client tiers of web apps | forward proxy    | `otiluke --mitm --port 8080 --hijack example/hijack.js --hijack-argument foobar --sphere example/sphere.js --sphere-argument foobar`
 [Node](#node) | node module        | instrument node applications        | auxillary server | `node example/run-node.js`
-[Test](#test) | standalone scripts | debug and benchmark an instrumenter | auxillary server | `node example/run-test.js`
+[Test](#test) | standalone scripts | debug and benchmark an instrumenter | static server    | `node example/run-test.js`
 [Demo](#demo) | standalone scripts | debug and demonstrate instrumenters | simple logger    | `node example/run-demo.js`
 
 ## Mitm
 
-Otiluke instruments served html pages by essentially performing a man-in-the-middle attack with a forward proxy.
+Otiluke instruments served html pages over http(s) by essentially performing a man-in-the-middle attack with a forward proxy.
 Such attack requires the browser to redirect all its request to the forward proxy.
-For pages served https it also requires the browser to trust the self-signed certificate at [mitm/proxy/ca/cacert.pem](mitm/proxy/ca/cacert.pem).
-We detail these two procedures for firefox [here](#browser-configuration).
-This tool expects two node modules which are executed on different processes, we called them *hijack* and *sphere*.
+For pages served over https it also requires the browser to trust the self-signed certificate at [mitm/proxy/ca/cacert.pem](mitm/proxy/ca/cacert.pem).
+We detail these two procedures for Firefox [here](#browser-configuration).
+`Otiluke.mitm` expects two node modules which are executed on different processes, we called them *hijack* and *sphere*.
 As depicted below, the hijack module is executed on the forward proxy process and the sphere module is executed on the instrumented client process. 
 
 <p align="center"><img src="img/mitm.png" title="The Otiluke mitm communication model"/></p>
 
 After deployment, the forward proxy has been parametrized by the the hijack module and the sphere module has been [browserified](http://browserify.org) into the client tier.
-The above schema depicts a typical use case where the sphere module and the hijack object only communicate with eachother.
+The above schema depicts a typical use case where the sphere module and the hijack module only communicate with eachother.
 But nothing prevent the sphere module to communicate with the server tier and/or the hijack object to handle communication directed to the server tier.
 Note that multiple clients can be connected at the same time.
-You can try out this tool with the below command which involves the file [example/hijack.js](example/hijack.js) and [example/sphere.js](example/sphere.js).
-In this example, the two arguments `--hijack-argument` and `--sphere-argument` should be equal as this value is used by the hijack module to differentiate the sphere communication (meta) from the rest (base).
-We used the dummy string `foobar` but generally you would want to used a more complex name to avoid clashes with the original client tier communication.
-You can also call this from node as shown in [example/run-mitm.js](example/run-mitm.js).
+You can try out `Otiluke.mitm` by following the steps below:
 
-```
-otiluke --mitm --port 8080 --hijack example/hijack.js --hijack-argument foobar --sphere example/sphere.js --sphere-argument foobar
-```
+1.From the installation directory, deploy the forward proxy on port 8080.
+  In this example, the two arguments `--hijack-argument` and `--sphere-argument` should be equal as this value is used by the hijack module to differentiate between the communication from the sphere (meta) and the communication from the original client tier (base).
+  We used the dummy string `foobar` but generally it is preferable to use a more complex name to avoid clashes.
+  ```
+  otiluke --mitm --port 8080 --hijack example/hijack.js --hijack-argument foobar --sphere example/sphere.js --sphere-argument foobar
+  ```
+2.From the installation direcotry, serve the html example on port 8000.
+  For instance using [http-server](https://www.npmjs.com/package/http-server):
+  ```
+  http-server example/html -p 8000 
+  ```
+3. Configure you browser to redirect all communication to the proxy at `localhost:8080`. 
+4. Instrument and evaluate client tiers by visiting: `http://localhost:8000/index.html`.
 
 N.B.:
-* To handle https connection, [Mitm](#mitm) requires [openssl](https://www.openssl.org/) to be available in the PATH.
+* An api is also available, see [example/run-mitm.js](example/run-mitm.js).
+* To handle https connection, `Otiluke.mitm` requires [openssl](https://www.openssl.org/) to be available in the PATH.
 * External and inlined script are intercepted but *not* inlined event handlers nor dynamically evaluated code.
 * You can reset every Otiluke certificates by calling `otiluke --mitm --reset`.
-  After resetting you will have to make your browser trust the new root certificate signed by the randomly generated root key.
+  After resetting you will have to make your browser trust the new root certificate signed by the new randomly generated root key.
+
+## The Sphere Module and the Hijack Module/Object
+
+An important design decision of Otiluke consists in providing an unified interface for deploying JS instrumenters.
+The communication model described in [Mitm](#mitm) motivates the interface for the other tools.
+We now further describe this interface:
+
+* Sphere Module (cli+api): performs JS instrumentation:
+  ```js
+  module.exports = function (argument, channel) {
+    return function (script, source) { return instrumented };
+  };
+  ```
+  * `argument(json)`: static data passed when calling Otiluke's tools, it is a string when using the cli and json data when using the api.
+  * `channel(channel-uniform)`: instance of [channel-uniform](https://www.npmjs.com/package/channel-uniform) directed to an Otiluke server.
+  * `script(string)`: original code
+  * `source(string)`: origin of the script, can be an url or a path.
+  * `instrumented(string)`: instrumented script
+* Hijack Module (cli): intercepts the communication from the instrumented application
+  ```js
+  module.exports = function (argument) {
+    return {
+      request: function (req, res) { return hijacked },
+      socket: function (ws) { return hijacked }
+    };
+  };
+  ```
+  * `argument(string)`
+  * `req(http.IncomingMessage)`: http(s) request
+  * `res(http.ServerResponse)`: http(s) response
+  * `ws(ws.WebSocket)`: websocket
+  * `hijacked(boolean)`: indicates whether the request/websocket was handeled.
+* Hijack Object (api): same as the hijack module but for the api instead of the cli.
+  ```js
+  var hijack = {
+    request: function (req, res) { return hijacked },
+    socket: function (ws) { return hijacked }
+  };
+  ```
+
+## Node
+
+Otiluke instruments node applications by modifying the require processus performed by node.
+`Otiluke.node` involves deploying an auxillary server to escape information to the outside world.
+Command launching node applications should by modified to redirect to this server.
+For instance, if the auxillary server is listening on port 8080 the command `node main.js arg0 arg1` should be changed into `otiluke 8080 main.js arg0 arg1`.
+The schema below depicts the communication model of `Otiluke.node`:
+
+<p align="center"><img src="img/node.png" title="The Otiluke node communication model"/></p>
+
+After deployment, the auxillary server has been parametrized by the the hijack module and the sphere module has been required into the node application.
+Multiple node applications can be connected at the same time.
+You can try out `Otiluke.node` by following the steps below:
+
+1. From the installation directory, deploy an auxillary server at port 8080:
+   ```js
+   otiluke --mitm --port 8080 --hijack example/hijack.js --hijack-argument foobar --sphere example/sphere.js --sphere-argument foobar
+   ```
+2. Instrument and evaluate node applications:
+   ```
+   otiluke 8080 example/node/cube.js 2
+   ```
+
+N.B.:
+* An api is also available, see [example/run-node.js](example/run-node.js).
+* The port can also be a path to a unix domain socket (faster).
+
+## Test
+
+Otiluke enables debugging and benchmarking JS instrumenters on standalone scripts.
+`Otiluke.test` involves deploying a server for serving standalone scripts and escape information to the outside world.
+You cna try out `Otiluke.test` by following the steps below: 
+
+1. Deploy the test server at port 8080:
+   ```js
+   otiluke --test --basedir example --port 8080 --hijack example/hijack.js --hijack-argument foobar --sphere example/sphere.js --sphere-argument foobar
+   ```
+2. Instrument and evaluate every standalone scripts inside [example/standalone](example/standalone) by visiting http://localhost:8080/standalone.
+
+N.B.:
+* An api is also available, see [example/run-test.js](example/run-test.js).
+* The standalone scripts should not have side effects nor should they listen to subsequent events.
+
+## Demo
+
+Otiluke enables debugging and demonstrating JS instrumenters on standalone scripts.
+Unlike the other tools, `Otiluke.demo` does not rely on a additional server to escape information to the outside world.
+Instead it simulate such connection from within the generated 
+`Otiluke.demo` creates a standalone html page 
+
+```js
+var server = Otiluke.node.server(hijack)
+server.listen(port);
+var argv = Otiluke.node.argv({
+  path: path,
+  argument: argument,
+}, port);
+```
+
+* `hijack(object)`: idem as `Otiluke.mitm`
+* `path(string)`: path to the sphere module
+* `argument(json)`: static json data that will be passed to every deployed sphere.
+* `server(http.Server)`: forward proxy which acts as a man-in-the-middle.
+* `port(number)`: port on which the forward proxy should listen 
+
+* `hijack(object)`: same as the one given to `Otiluke.mitm`
+* `server(http.Server)`: Http server 
+* `path(string)`: path to the sphere module
+* `argument(json)`: 
+* `port(number)`:
+* `argv(array)`: command line arguments to prepend before
+
+
+
+
+
+
 
 
 We called the node module run on the forward proxy process *hijack* and the node module run on the instrumented tier process *sphere*.
@@ -125,43 +249,6 @@ Here are the important file involved in this example:
 * [example/hijack.js](example/hijack.js):
   Exports an object intercepting the communicaton from the instrumented application and logging http requests from the sphere.
 
-
-## The Sphere Module and the Hijack Object
-
-An important design decision of Otiluke consists in providing an unified interface for deploying JS transpilers.
-The communication model described in [Mitm](#mitm) motivates the interface for the tools [Node](#node) and [Test](#Test).
-We now describe how sphere modules and hijack objects should look like for every Otiluke tools but [Demo](#demo).
-
-1. Sphere Module: a node module performing JS transpilation:
-  ```js
-  module.exports = function (argument, channel) {
-    return function (script, source) {
-      var transpiled = ...;
-      return transpiled;
-    };
-  };
-  ```
-  * `argument(json)`: static JSON data passed when calling Otiluke's tools.
-  * `channel(channel-uniform)`: instance of [channel-uniform](https://www.npmjs.com/package/channel-uniform) directed to an Otiluke server.
-  * `script(string)`: original code
-  * `source(string)`: origin of the script, can be an url or a path.
-  * `transpiled(string)`: transpiled script
-2. Hijack Object: an JS object intercepting the communication from the transpiled application
-  ```js
-  var hijack = {};
-  hijack.request = function (req, res) {
-    var hijacked = ...;
-    return hijacked;
-  };
-  hijack.websocket = function (ws) {
-    var hijacked = ...;
-    return hijacked;
-  };
-  ```
-  * `req(http.IncomingMessage)`: http(s) request
-  * `res(http.ServerResponse)`: http(s) response
-  * `ws(ws.WebSocket)`: websocket
-  * `hijacked(boolean)`: indicates whether the request/websocket was handeled.
 
 ## Node
 

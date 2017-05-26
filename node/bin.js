@@ -36,18 +36,16 @@ channel.request("GET", "/otiluke-sphere", {}, "", function (error, response) {
   if (response.status !== 200)
     throw new Error("Cannot load sphere: "+response.status+"("+response.reason+")");
   var data = JSON.parse(response.body);
-  var Cast = require(data.path.cast);
-  var Sub = require(data.path.sub);
-  var Sphere = Cast(Sub);
-  var sphere = Sphere(data.argument, channel);
-  console.log(Module._extensions);
-  Module._extensions[".js"] = function (module, filename) {
-    var content = Fs.readFileSync(filename, "utf8");
-    // TODO RESOLVE BUG with require("ws")
-    // if (filename.indexOf("node_modules") !== -1)
-    //   return module._compile(stripBOM(content), filename);
-    // END TODO
-    module._compile(stripBOM(sphere(content, filename)), filename);
-  };
-  require(Path.resolve(process.argv[1]));
+  var Sphere = require(data.path);
+  Sphere(data.argument, channel, function (instrument) {
+    Module._extensions[".js"] = function (module, filename) {
+      var content = Fs.readFileSync(filename, "utf8");
+      // TODO RESOLVE BUG with require("ws")
+      // if (filename.indexOf("node_modules") !== -1)
+      //   return module._compile(stripBOM(content), filename);
+      // END TODO
+      module._compile(stripBOM(instrument(content, filename)), filename);
+    };
+    require(Path.resolve(process.argv[1]));
+  });
 });

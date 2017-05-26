@@ -1,10 +1,10 @@
 
-/* TEMPLATE SPHERE_CAST */
-/* TEMPLATE SPHERE_SUB */
+/* TEMPLATE SPHERE_PATH */
 /* TEMPLATE SPHERE_ARGUMENT */
 /* TEMPLATE TARGETS */
 
-var Channel = require("channel-uniform/browser");
+var Sphere = require(SPHERE_PATH);
+var ChannelBrowser = require("channel-uniform/browser");
 
 function cell (text, color, onclick) {
   var td = document.createElement("td");
@@ -36,16 +36,16 @@ function benchmark (code, row, output) {
 }
 
 global.onload = function () {
-  var table = document.getElementById("table");
-  var experiments = [];
-  Object.keys(TARGETS).sort().forEach(function (name) {
-    var row = document.createElement("tr");
-    table.appendChild(row);
-    row.appendChild(cell(name));
-    var Sphere = SPHERE_CAST(SPHERE_SUB);
-    var sphere = Sphere(SPHERE_ARGUMENT, Channel(location.host, false));
-    var script = sphere(TARGETS[name], name);
-    experiments.push(benchmark(script, row, {source:name}));
+  Sphere(SPHERE_ARGUMENT, ChannelBrowser(location.host, false), function (instrument) {
+    var table = document.getElementById("table");
+    var experiments = [];
+    Object.keys(TARGETS).sort().forEach(function (name) {
+      var row = document.createElement("tr");
+      table.appendChild(row);
+      row.appendChild(cell(name));
+      var script = instrument(TARGETS[name], name);
+      experiments.push(benchmark(script, row, {source:name}));
+    });
+    document.getElementById("json").value = JSON.stringify(experiments, null, 2);      
   });
-  document.getElementById("json").value = JSON.stringify(experiments, null, 2);
 }

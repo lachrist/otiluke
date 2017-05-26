@@ -2,7 +2,7 @@
 var Http = require("http");
 var Ws = require("ws");
 var Path = require("path");
-var Normalize = require("../util/normalize.js");
+var Normalize = require("../common/normalize.js");
 
 module.exports = function (options) {
   var hijack = Normalize.hijack(options.hijack);
