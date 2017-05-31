@@ -1,16 +1,15 @@
 var Path = require("path");
-var HttpServer = require("http-server");
-var Otiluke = require("otiluke");
+var OtilukeMitm = require("otiluke/mitm");
 var Hijack = require("./hijack.js");
 var splitter = Math.random().toString(36).substring(2);
-Otiluke.mitm({
+OtilukeMitm({
   hijack: Hijack(splitter),
   sphere: {
     path: Path.join(__dirname, "sphere.js"),
     argument: splitter
   }
 }).listen(8080);
-HttpServer.createServer({root:Path.join(__dirname, "html")}).listen(8000);
+require("http-server").createServer({root:Path.join(__dirname, "html")}).listen(8000);
 var cert = Path.join(__dirname, "..", "mitm", "proxy", "ca", "cacert.pem");
 console.log([
   "1. Redirect your browser's requests to localhost:8080",

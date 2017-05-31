@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style type="text/css">
+      textarea { font-family: monospace }
+      #run, #source, textarea { display: block }
+      .panel { display: inline-block }
+    </style>
+    <title>Otiluke Demo</title>
+    <script type="text/javascript" src="bundle.js"></script>
+    <script type="text/javascript">
+      window.onload = function () {
+        Otiluke(function (instrument) {
+          document.getElementbyId("run").onclick = function () {
+            var script = document.getElementbyId("script").value;
+            var source = document.getElementbyId("source").value;
+            var output = instrument(script, source);
+            document.getElementbyId("output").value = output;
+            window.eval(output);
+          };
+        });
+      };
+    </script>
+  </head>
+  <body>
+    <div class="panel">
+      <input id="source" value="target.js">
+      <textarea id="input"></textarea>
+    </div>
+    <div class="panel">
+      <button id="run">Run</button>
+      <textarea id="output"></textarea>
+    </div>
+  </body>
+</html>

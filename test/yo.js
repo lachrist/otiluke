@@ -1,13 +1,9 @@
 
-var Sphere = require(TEMPLATE.sphere.path);
-var Hijack = require(TEMPLATE.hijack.path);
 var ChannelMock = require("channel-uniform/mock");
-var Normalize = require("../common/normalize.js");
 
-global.Otiluke = function (callback) {
-  var hijack = Normalize.hijack(Hijack(TEMPLATE.hijack.argument));
-  var sphere = Normalize.sphere(TEMPLATE.sphere);
-  Sphere(sphere.argument, ChannelMock({
+module.exports = function (options, callback) {
+  options.sphere.module = options.sphere.module || require(options.sphere.path);
+  options.sphere.module(options.sphere.argument, ChannelMock({
     onrequest: function (req, res) {
       if (!hijack.request(req, res)) {
         res.writeHead(400, "request-not-hijacked");
@@ -18,6 +14,6 @@ global.Otiluke = function (callback) {
       if (!hijack.websocket(ws)) {
         ws.close(4000, "websocket-not-hijacked");
       }
-    } 
+    }
   }, callback);
 };

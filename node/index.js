@@ -5,20 +5,19 @@ var Path = require("path");
 var Normalize = require("../common/normalize.js");
 
 module.exports = function (options) {
-  var hijack = Normalize.hijack(options.hijack);
-  var sphere = Normalize.sphere(options.sphere);
+  options = Normalize(options);
   var server = Http.createServer(function (req, res) {
-    if (hijack.request(req, res))
+    if (options.intercept.request(req, res))
       return;
     if (req.url === "/otiluke-sphere")
-      return res.end(options.stringify(sphere));
-    res.writeHead(400, "request not hijacked");
+      return res.end(JSON.stringify(options.sphere));
+    res.writeHead(400, "request not intercepted");
     res.end();
   });
   (new Ws.Server({server:server})).on("connection", function (socket) {
-    if (hijack.socket(socket))
+    if (options.intercept.connect(socket))
       return;
-    socket.close(4000, "socket not hijacked");
+    socket.close(4000, "connect not intercepted");
   });
   return server;
 };

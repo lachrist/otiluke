@@ -1,29 +1,28 @@
 
 var Path = require("path");
 
-function none () { return false }
-exports.hijack = function (hijack) {
-  hijack = hijack|| {}
+function nil () {}
+
+function intercept (intercept) {
+  intercept = intercept || {}
   return {
-    request: hijack.request || none,
-    socket: hijack.socket || none
+    request: intercept.request || nil,
+    connect: intercept.connect || nil
   };
 };
 
-function make (argument, sub, cast) {
-  return {
-    argument:argument || null,
-    path: {
-      sub: Path.resolve(sub),
-      cast: cast || Path.join(__dirname, "..", "subsphere", "cast", "identity.js")
-    }
-  };
-}
-
-exports.sphere = function (sphere) {
+function sphere (sphere) {
   if (typeof sphere === "string")
-    return make(undefined, sphere, undefined);
-  if (typeof sphere.path === "string")
-    return make(sphere.argument, sphere.path, undefined);
-  return make(sphere.argument, sphere.path.sub, sphere.path.cast);
+    return {path:Path.resolve(sphere)};
+  return {
+    path: Path.resolve(sphere.path),
+    argument: sphere.argument||null
+  };
+};
+
+module.exports = function (options) {
+  var copy = Object.assign(options, {});
+  copy.intercept = intercept(options.intercept);
+  copy.sphere = sphere(options.sphere);
+  return copy;
 };
