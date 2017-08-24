@@ -11,6 +11,9 @@ if (!/^--/.test(process.argv[2])) {
     process.stderr.write(msg+"\n");
     process.exit(1);
   }
+
+  if ()
+
   if (!options.sphere)
     usage("Every Otiluke tools expects a path to a sphere module for the --sphere argument.");
   options.sphere = {

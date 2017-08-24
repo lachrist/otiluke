@@ -1,5 +1,5 @@
 
-var ChannelBrowser = require("channel-uniform/browser");
+var Emitter = require("antena/emitter/browser");
 
 function cell (text, color, onclick) {
   var td = document.createElement("td");
@@ -32,13 +32,19 @@ function benchmark (script, row, output) {
   return output;
 }
 
+function loop (index) {
+  if (index < TEMPLATE.targets.length) {
+    
+  }
+}
+
 global.onload = function () {
-  var channel = ChannelBrowser(location.host, false);
-  TEMPLATE.sphere.module(TEMPLATE.sphere.argument, channel, function (sphere) {
+  var emitter = Emitter(location.host, false, TEMPLATE.prefix);
+  TEMPLATE.virus(TEMPLATE.argument, emitter, function (transform) {
     var table = document.getElementById("table");
     var experiments = [];
     Object.keys(TEMPLATE.targets).sort().forEach(function (name) {
-      var transformed = sphere(TEMPLATE.targets[name], name);
+      var transformed = transform(TEMPLATE.targets[name], name);
       var row = document.createElement("tr");
       table.appendChild(row);
       row.appendChild(cell(name));

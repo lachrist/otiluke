@@ -1,144 +1,177 @@
 # Otiluke <img src="img/otiluke.png" align="right" alt="otiluke-logo" title="Resilient instrument of Otiluke">
 
-Otiluke is a toolbox for developping JavaScript code transformers and for deploying them on node or on browsers.
-An important feature of Otiluke consists in providing a channel to the transformed application for communicating to the outside world.
-To use Otiluke, one must provide two distinct JS modules.
-One, called *sphere module*, will be executed on the same process as the transformed application (target process).
-The other, called *intercept module*, will be executed on the process at the other end of the channel (otiluke process).
+Otiluke is a toolbox for developping JavaScript code transformers and deploying them on node and browsers.
+Code transformation is a keystone technology for various kind of dynamic analyses such as tracers and profilers.
+To use Otiluke, one may provide three distinct JS modules.
+One, called *virus module*, should asynchronously return a code transformation function.
+It will be executed on the same process as the application to be transformed (infected process).
+The two others, called *onrequest module* and *onconnect module*, are listeners for respectively HTTP requests and WebSocket connections
+They are both executed on a separated process which insert the virus into the application to be transformed (infector process).
 Otiluke is a [npm module](https://www.npmjs.com/package/otiluke) and is better installed globally (ie: `npm install otiluke -g`).
 Otiluke features four tools:
 
-Tool Name     | Target Programs    | Intended Purpose                    | Otiluke Process   | Usage Example
---------------|--------------------|-------------------------------------|---------------------------------------------------------------------
-[Html](#html) | Html pages         | Transform client tiers of web apps  | Forward proxy     | `otiluke --mitm --port 8080 --intercept example/intercept.js --intercept-argument foobar --instrument example/instrument.js --instrument-argument foobar`
-[Node](#node) | Node modules       | Transform node programs             | Auxillary server  | `otiluke --node --port 8080 --intercept example/intercept.js --intercept-argument foobar --instrument example/instrument.js --instrument-argument foobar`
-[Eval](#eval) | Standalone scripts | Benchmark transformers              | File server       | `otiluke --eval --port 8080 --basedir example/standalone --intercept example/intercept.js --intercept-argument foobar --instrument example/instrument.js --instrument-argument foobar`
-[Test](#test) | Standalone scripts | Test transformers                   | Target process    | `otiluke --test --target example/standalone/fibo.js --intercept example/intercept.js --intercept-argument foobar --instrument example/instrument.js --instrument-argument foobar`
+Tool Name     | Intended Purpose                    | Target Programs    | Infector Process
+--------------|-------------------------------------|--------------------|-------------------
+[Html](#html) | Transform client tiers of web apps  | Html pages         | Forward proxy
+[Node](#node) | Transform node programs             | Node modules       | Auxillary server
+[Eval](#eval) | Benchmark transformers              | Standalone scripts | File server
+[Test](#test) | Test transformers                   | Standalone scripts | Infected process
+
+Command Line Interface:
 
 Argument Name          | Value Example          | Concerned Tools                           | Description
------------------------|------------------------|-------------------------------------------|----------------------------------------------------
-`--port`               | `8080`                 | [Html](#html) [Node](#node) [Eval](#eval) | communication between the modules instrument and intercept
+-----------------------|------------------------|-------------------------------------------|--------------------------------------------------------------
+`--port`               | `8080`                 | [Html](#html) [Node](#node) [Eval](#eval) | communication between the infected and the infector processes
 `--basedir`            | `path/to/basedir`      | [Eval](#eval)                             | base directory to look for standalone scripts
 `--target`             | `path/to/standlone.js` | [Test](#test)                             | path to the standalone script to instrument
-`--intercept`          | `path/to/intercept.js` | All                                       | path to a intercept module
-`--intercept-argument` | `foobar`               | All                                       | string to pass to the intercept module
-`--sphere`             | `path/to/sphere.js`    | All                                       | path to a sphere module
-`--sphere-argument`    | `foobar`               | All                                       | string to pass to the instrument module
+`--onrequest`          | `path/to/onrequest.js` | All                                       | path to an onrequest module
+`--onconnect`          | `path/to/onconnect.js` | All                                       | path to an onconnect module
+`--virus`              | `path/to/virus.js`     | All                                       | path to a virus module
+`--virus-argument`     | `'{"json":"data"}'`    | All                                       | json data to pass to the virus module
 
-## The Instrument Module and the Intercept Object/Module
+## The Virus Module and the Intercept Object/Module
 
-An important design decision of Otiluke consists in providing an unified interface for deploying JS instrumenters.
-The communication of [Html](#html) being the most constrainted, it dictated the communication interface for the other tools.
+An important design decision of Otiluke consists in providing an unified interface for deploying JS code transformers.
+The communication of [Html](#html) being the most constrainted, it dictates the communication interface for the other tools.
 We now describe this communication interface for both the command line interface (cli) and the application programming interface (api):
 
-* Instrument Module (cli+api): asynchronously creates an instrumentation function
+* Sphere Module (cli+api): asynchronously creates a code transformation function:
   ```js
-  module.exports = function (argument, channel, callback) {
+  module.exports = function (options, callback) {
     callback(function (script, source) {
-      return instrumented;
+      return transformed;
     });
   };
   ```
-  * `argument(json)`: static data passed when calling Otiluke, it is a string when using the cli and json data when using the api.
-  * `channel(object)`: instance of [channel-uniform](https://www.npmjs.com/package/channel-uniform) directed to the intercept process.
-  * `callback(function)`: expects an instrumentation function
+  * `options(object)`
+  * `options.argument(json)`: static data passed when calling Otiluke.
+  * `options.request(function)`: performs an http request to the infecter process:
+    ```js
+    var method = "POST";
+    var path = "/echo/hello";
+    var headers = {"content-length":7};
+    var body = "Laurent";
+    function onresponse (response) {
+      if (response.status !== 200)
+        throw new Error(response.status+" "+response.reason);
+      console.log("Headers", response.headers);
+      console.log("Body", response.body)
+    }
+    // Synchronous http request
+    onresponse(options.request(method, path, headers, body));
+    // Asynchronous http request
+    options.request(method, path, headers, body, function (error, response) {
+      if (error)
+        throw error;
+      onresponse(response);
+    });
+    ```
+  * `options.connect(function)`: establish a [websocket](https://developer.mozilla.org/en-US/docs/Web/API/WebSocketxt) connection with the infecter process:
+    ```
+    var path = "/echo/hello"
+    var websocket = options.connect(path);
+    websocket.onopen = function () {
+      websocket.send("Laurent");
+    };
+    websocket.onmessage = function (event) {
+      console.log("Message", event.data);
+      websocket.close(1000, "done");
+    };
+    websocket.onerror = function (error) {
+      throw error;
+    };
+    websocket.onclose = function (event) {
+      console.log("Close", event.code, event.reason);
+    };
+    ```
+  * `callback(function)`: expects a code transformation function
   * `script(string)`: original code
-  * `source(string)`: origin of the script, can be an url or a path
-  * `instrumented(string)`: instrumented script
-* Intercept Object (api): intercepts communication from the target process
+  * `source(string)`: origin of the original code, can be an url or a path
+  * `transformed(string)`: transformed code
+* Onrequest Function (api): listener for http requests from infected processes:
   ```js
-  var intercept = {
-    request: function (req, res) { return intercepted },
-    connect: function (ws) { return intercepted }
-  };
+  var onrequest = function (req, res) { }
   ```
   * `req(http.IncomingMessage)`: http(s) request
   * `res(http.ServerResponse)`: http(s) response
-  * `ws(ws.WebSocket)`: [websocket](https://github.com/websockets/ws/blob/master/doc/ws.md#class-websocket), instance of [ws](https://www.npmjs.com/package/ws)
-  * `intercepted(boolean)`: indicates whether the request/websocket was hand.
-* Intercept Module (cli): returns an intercept object:
+* Onrequest Module (cli): exports an onrequest function:
   ```js
-  module.exports = function (argument) {
-    return intercept;
-  };
+  module.exports = onrequest;
   ```
-  * `argument(string)`: string passed as command line argument
-  * `intercept(object)`: an intercept object
+* Onconnect Function (api): listener for websocket connections form infected processes:
+  ```js
+  var onconnect = function (con) { };
+  ```
+  * `con(ws.WebSocket)`: [websocket](https://github.com/websockets/ws/blob/master/doc/ws.md#class-websocket), instance of [ws](https://www.npmjs.com/package/ws)
+* Onconnect Function (cli): exports a onconnect function:
+  ```js
+  module.exports = onconnect;
+  ```
 
 ## Html
 
-Otiluke instruments served html pages over http(s) by essentially performing a man-in-the-middle attack with a forward proxy.
+OtilukeHtml transforms html pages served over http(s) by essentially performing a man in the middle attack with a forward proxy.
 Such attack requires the browser to redirect all its request to the forward proxy.
 For pages securly served over https it also requires the browser to trust the self-signed certificate at [mitm/proxy/ca/cacert.pem](mitm/proxy/ca/cacert.pem).
 We detail these two procedures for Firefox [here](#browser-configuration).
-OtilukeHtml expects two node modules which are executed on different processes, we called them *intercept* and *instrument*.
-As depicted below, the intercept module is executed on the forward proxy process and the instrument module is executed on the instrumented client process. 
+After deployment, the virus can communicate with the onrequest and onconnect listeners.
+Note that multiple infected processes can be connected at the same time.
 
-<p align="center"><img src="img/mitm.png" title="The Otiluke mitm communication model"/></p>
+<p align="center"><img src="img/html.png" title="The OtilukeHtml communication model"/></p>
 
-After deployment, the forward proxy has been parametrized by the the intercept module and the instrument module has been [browserified](http://browserify.org) into the client tier.
-The above schema depicts a typical use case where the instrument module and the intercept module only communicate with eachother.
-But nothing prevent the instrument module to communicate with the server tier and/or the intercept object to handle communication directed to the server tier.
-Note that multiple clients can be connected at the same time.
-You can try out `Otiluke.mitm` by following the steps below:
-
-1.From the installation directory, deploy the forward proxy on port 8080.
-  In this example, the two arguments `--intercept-argument` and `--instrument-argument` should be equal as this value is used by the intercept module to differentiate between the communication from the instrument (meta) and the communication from the original client tier (base).
-  We used the dummy string `foobar` but generally it is preferable to use a more complex name to avoid clashes.
+You can try out OtilukeHtml by following the steps below (from the installation directory of this modules):
+1. Deploy the forward proxy on port 8080 and the server tier on port 8000 by executing [example/run-html.js](example/run-html.js).
+  Alternatively, you can run the two commands below in separated terminals:
   ```
-  otiluke --mitm --port 8080 --intercept example/intercept.js --intercept-argument foobar --instrument example/instrument.js --instrument-argument foobar
+  otiluke --html --port 8080 --onconnect example/onconnect.js --virus example/virus.js
   ```
-2.From the installation directory, serve the html example on port 8000.
-  For instance using [http-server](https://www.npmjs.com/package/http-server):
   ```
-  http-server example/html -p 8000 
+  http-server example/html -p 8000
   ```
-3. Configure you browser to redirect all communication to the proxy at `localhost:8080`. 
-4. Instrument and evaluate client tiers by visiting: `http://localhost:8000/index.html`.
+2. Make your browser redirect all its request to the forward proxy at `localhost:8080`.
+3. Infect and execute the target client tier by visiting: `http://localhost:8000/index.html`.
 
 N.B.:
-* An api is also available, see [example/run-mitm.js](example/run-mitm.js).
-* To handle https connection, `Otiluke.mitm` requires [openssl](https://www.openssl.org/) to be available in the PATH.
 * External and inlined script are intercepted but *not* inlined event handlers nor dynamically evaluated code.
-* You can reset every Otiluke certificates by calling `otiluke --mitm --reset`.
-  After resetting you will have to make your browser trust the new root certificate signed by the new randomly generated root key.
+* To handle https connection, OtilukeHtml requires [openssl](https://www.openssl.org/) to be available in the PATH.
+* Otiluke acts as a certificate authority to perform the man in the middle attack.
+  You can reset every issued Otiluke certificates by calling `otiluke --html --reset`.
+  After resetting you will have to make your browser trust the new root certificate.
 
 ## Node
 
-Otiluke instruments node applications by modifying the require processus performed by node.
-`Otiluke.node` involves deploying an auxillary server to escape information to the outside world.
-Command launching node applications should by modified to redirect to this server.
+OtilukeNode transform node applications by modifying the require processus performed by node.
+To ensure uniformity, OtilukeNode reproduces the communication model OtilukeHtml which involves deploying an auxillary server.
+Command launching node applications should by modified to communicate to this auxillary server.
 For instance, if the auxillary server is listening on port 8080 the command `node main.js arg0 arg1` should be changed into `otiluke 8080 main.js arg0 arg1`.
-The schema below depicts the communication model of `Otiluke.node`:
+After deployment, the virus can communicate with the onrequest and onconnect listeners.
+Note that multiple infected processes can be connected at the same time.
 
-<p align="center"><img src="img/node.png" title="The Otiluke node communication model"/></p>
+<p align="center"><img src="img/node.png" title="The OtilukeNode communication model"/></p>
 
-After deployment, the auxillary server has been parametrized by the the intercept module and the instrument module has been required into the node application.
-Multiple node applications can be connected at the same time.
-You can try out `Otiluke.node` by following the steps below:
+You can try out OtilukeNode by following the steps below (from the installation directory of this module):
 
-1. From the installation directory, deploy an auxillary server at port 8080:
+1. Deploy the auxillary server on port 8080 and the server tier on port 8000 by executing [example/run-html.js](example/run-html.js).
+   Alternatively you can run the command:
    ```js
-   otiluke --mitm --port 8080 --intercept example/intercept.js --intercept-argument foobar --instrument example/instrument.js --instrument-argument foobar
+   otiluke --node --port 8080 --onconnect example/onconnect.js --virus example/virus.js
    ```
-2. Instrument and evaluate node applications:
+2. Infect and execute the target node application by running:
    ```
    otiluke 8080 example/node/cube.js 2
    ```
 
-N.B.:
-* An api is also available, see [example/run-node.js](example/run-node.js).
-* The port can also be a path to a unix domain socket (faster).
+Note that the port argument can also be a path to a unix domain socket which is faster because it avoid the loopback at the network card.
 
-## Test
+## Eval
 
-Otiluke enables debugging and benchmarking JS instrumenters on standalone scripts.
-`Otiluke.test` involves deploying a server for serving standalone scripts and escape information to the outside world.
+OtilukeTest enables debugging and benchmarking code transformers on standalone scripts.
+OtilukeTest involves deploying a server for serving standalone scripts and escape information to the outside world.
 You cna try out `Otiluke.test` by following the steps below: 
 
 1. Deploy the test server at port 8080:
    ```js
-   otiluke --test --basedir example --port 8080 --intercept example/intercept.js --intercept-argument foobar --instrument example/instrument.js --instrument-argument foobar
+   otiluke --eval --port 8080 --onconnect example/onconnect.js --virus example/virus.js
    ```
 2. Instrument and evaluate every standalone scripts inside [example/standalone](example/standalone) by visiting http://localhost:8080/standalone.
 
