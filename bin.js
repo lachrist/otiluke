@@ -1,87 +1,49 @@
 #!/usr/bin/env node
 
 var Fs = require("fs");
-var Stream = require("stream");
+var Path = require("path");
 var Minimist = require("minimist");
 var ReceptorLogger = require("antena/receptor/logger");
-var OtilukeTestBin = require("./test/bin.js");
-var OtilukeNode = require("./node");
-var OtilukeBrowser = require("./browser");
+var OtilukeSpawnNodeBenchmark = require("./spawn/node/benchmark.js");
+var OtilukeSpawnBrowserBundle = require("./spawn/browser/bundle.js");
+var OtilukeSpawnMock = require("./spawn/mock");
+var OtilukeServerBrowser = require("./server/browser");
+var OtilukeServerNode = require("./server/node");
 
 var options = Minimist(process.argv.slice(2));
+var receptor = "receptor" in options ? require(Path.resolve(options.receptor)) : ReceptorLogger(process.stdout);
+function collect (path) {
+  if (/\.js$/.test(path))
+    return [path];
+  return Fs.readdirSync(path).filter(RegExp.prototype.test.bind(/\.js$/)).map(function (name) {
+    return Path.join(path, name);
+  });
+};
 
-function receptor (options) {
-  if ("receptor" in options)
-    return require(options.receptor);
-  if (!options["receptor-logger"]) {
-    var stream = new Stream.Writable({
-      write: function (chunk, encoding, callback) {
-        callback();
-      }
-    });
-  } else if (options["receptor-logger"] === "&1") {
-    var stream = process.stdout;
-  } else if (options["receptor-logger"] === "&2") {
-    var stream = process.stderr;
-  } else {
-    var stream = Fs.createWriteStream(options["receptor-logger"]);
-  }
-  return ReceptorLogger(stream);
-}
-
-if ("test" in options) {
-  OtilukeTestBin(options.virus, receptor(options), options);
-} else if ("node" in options) {
-  OtilukeNode(options.virus, receptor(options)).listen(options.port);
-} else if ("browser" in options) {
-  OtilukeBrowser(options.virus, receptor(options), {
-    namespace: options.namespace,
-    splitter: options.splitter,
-    key: options.key
-  }).listen(options.port);
-} else if ("webworker" in options) {
-  OtilukeWebworkerBundle(options.virus, function (error, bundle) {
+if ("benchmark" in options) {
+  OtilukeSpawnNodeBenchmark(options.virus, receptor, options.parameter, collect(options.source), options.parallel);
+} else if ("bundle" in options) {
+  OtilukeSpawnBrowserBundle(options.virus, function (error, bundle) {
     if (error)
       throw error;
     process.stdout.write(bundle);
   });
+} else if ("server" in options) {
+  OtilukeServerNode(options.virus, receptor).listen(options.port);
+} else if ("client" in options) {
+  process.argv = options._.slice(1, 1);
+  OtilukeServerNodeClient(options.port, options.parameter, process.argv[1]);
+} else if ("proxy" in options) {
+  OtilukeServerBrowser(options.virus, receptor, {
+    namespace: options.namespace,
+    splitter: options.splitter,
+    key: options.key
+  }).listen(options.port);
+} else if ("local" in options) {
+  var spawn = OtilukeSpawnLocal(require(Path.resolve(options.virus)), receptor);
+  collect(options.source).forEach(function (source) {
+    spawn(options.paremeter, source, null, function (error, result) {
+      console.log(source, error, result);
+    });
+  });
 }
-
-//   
-//   var otiluke = OtilukeTest(vpath, "receptor" in options ? require(options.receptor) : ReceptorLogger(options.log ? Fs.createWriteStream(options.log) : ignore));
-
-
-// if (!/^--/.test(process.argv[2])) {
-//   require("./node/launch.js");
-// } else {
-//   var Path = require("path");
-//   var Minimist = require("minimist");
-//   var options = Minimist(process.argv.slice(3));
-//   var tool = process.argv[2].substring(2);
-//   var usage = function (msg) {
-//     process.stderr.write(msg+"\n");
-//     process.exit(1);
-//   }
-
-//   if ()
-
-//   if (!options.sphere)
-//     usage("Every Otiluke tools expects a path to a sphere module for the --sphere argument.");
-//   options.sphere = {
-//     path: options.sphere,
-//     argument: options["sphere-argument"]
-//   };
-//   if (options.intercept)
-//     options.intercept = require(Path.resolve(options.intercept))(options["intercept-argument"]);
-//   if (tool === "test") {
-//     if (!options.target)
-//       usage("Otiluke/test expects a path to a standalone script for the --target argument.");
-//     require("./test")(options);
-//   } else if (tool === "html" || tool === "node" || tool === "eval") {
-//     require("./"+tool)(options).listen(options.port, function () {
-//       process.stdout.write("Otiluke server listening at "+this.address().port+"\n");
-//     });
-//   } else {
-//     usage("Unknown tool: "+tool);
-//   }
-// }

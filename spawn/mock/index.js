@@ -8,13 +8,13 @@ module.exports = function (virus, receptor) {
         if (error)
           return callback(error);
         try {
-          callback(null, global.eval(infect(body.source, script)));
+          callback(null, global.eval(infect(source, script)));
         } catch (error) {
           callback(error);
         }
       }
-      if (error || "script" in body)
-        return done(error, body.script);
+      if (error || script)
+        return done(error, script);
       if (!("window" in global))
         return Fs.readFile(source, "utf8", done);
       var req = new XMLHttpRequest();

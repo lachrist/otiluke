@@ -7,12 +7,16 @@ emitter.split("/otiluke-webworker-begin").request("GET", "/", {}, "", function (
   var body = JSON.parse(body);
   VIRUS(body.parameter, emitter, function (error, infect) {
     function done (script) {
+      if (body.autoclose) {
+        global.process = {};
+        global.process.exit = function (code) {
+          emitter.split("/otiluke-webworker-end").request("GET", "/", {}, JSON.stringify(code), function () {});
+        };
+      }
       var result = global.eval(infect(body.source, body.script));
       if (body.autoclose) {
         emitter.split("/otiluke-webworker-end").request("GET", "/", {}, JSON.stringify(result), function () {});
       }
-      var body = JSON.stringify(global.eval(infect(body.source, body.script)));
-      emitter.split("/otiluke-webworker-end").request("GET", "/", {}, body, function () {});
     }
     if (error)
       throw error;

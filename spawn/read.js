@@ -1,8 +1,13 @@
 
-module.exports = function (s) {
-  if (s === "undefined")
+module.exports = function (x) {
+  if (x.type === "undefined")
     return undefined;
-  if (s === "circular")
-    return {};
-  return JSON.parse(s);
+  if (x.type === "error") {
+    var e = new Error();
+    e.name = x.name;
+    e.message = x.message;
+    e.stack = x.stack;
+    return e;
+  }
+  return x.inner;
 };
