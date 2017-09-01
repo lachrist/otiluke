@@ -8,9 +8,8 @@ module.exports = function (parameter, emitter, callback) {
     callback(null, function (source, script) {
       return [
         "_otiluke_begin_con_.send("+JSON.stringify(source)+");",
-        "var _otiluke_ = eval("+JSON.stringify(script)+");",
+        script,
         "_otiluke_end_emitter_.request(\"GET\", \"/\", {}, "+JSON.stringify(source)+");",
-        "_otiluke_"
       ].join("\n");
     });
   });

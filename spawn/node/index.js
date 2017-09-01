@@ -16,7 +16,7 @@ module.exports = function (vpath, receptor) {
     receptor.attach(server);
     child.on("close", server.close.bind(server));
     server.listen(port, function () {
-      child.send({
+      child.send({ƒ
         port: port || server.address().port,
         vpath: Path.resolve(vpath),
         autoclose: Boolean(callback),
