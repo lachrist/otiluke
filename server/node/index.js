@@ -4,7 +4,7 @@ var Http = require("http");
 var Receptor = require("antena/receptor");
 var ReceptorMerge = require("antena/receptor/merge");
 
-module.exports = function (vpath, receptor) {
+module.exports = function (receptor, vpath) {
   var server = Http.createServer();
   ReceptorMerge({
     otiluke: Receptor({

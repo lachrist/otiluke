@@ -5,5 +5,4 @@ function fac (n) {
   return n * fac(n-1);
 }
 
-if (fac(6) !== 720)
-  throw new Error("fac6 failure");
+console.log(fac(6));

@@ -4,7 +4,7 @@ module.exports = function (vpath, callback) {
     if (error)
       return callback(error);
     var readable = new Readable();
-    readable.push("var VIRUS = require("+JSON.stringify(vpath)+");\n");
+    readable.push("var OTILUKE_VIRUS = require("+JSON.stringify(Path.resolve(vpath))+");\n");
     readable.push(content);
     readable.push(null);
     Browserify(readable, {basedir:__dirname}).bundle(callback);

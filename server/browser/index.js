@@ -8,7 +8,7 @@ var Mock = require("./mock.js");
 var Forward = require("./forward.js");
 var Transform = require("./transform.js");
 
-module.exports = function (vpath, receptor, constants) {
+module.exports = function (receptor, vpath, constants) {
   constants = constants || {};
   constants.namespace = constants.namespace || "otiluke"+Math.random().toString(36).substring(2);
   constants.splitter = constants.splitter || "/otiluke"+Math.random().toString(36).substring(2);

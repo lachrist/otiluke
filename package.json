@@ -9,6 +9,8 @@
 , "license": "MIT"
 , "dependencies":
     { "antena": "0.0.0"
+    , "browserify": "14.4.0"
+    , "ws"
     }
 , "bin": "./bin.js"
 , "keywords":
