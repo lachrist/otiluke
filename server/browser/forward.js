@@ -2,6 +2,7 @@
 var Https = require("https");
 var Http = require("http");
 var Url = require("url");
+var Receptor = require("antena/receptor/node");
 
 module.exports = function (host, transform) {
   return Receptor({

@@ -4,7 +4,7 @@
 var Fs = require("fs");
 var Path = require("path");
 var Chalk = require("chalk");
-var OtilukeSpawnNode = require("./index.js");
+var Performance = require("./performance.js");
 
 function isfailure (result) {
   return result.stderr.length;
@@ -22,14 +22,13 @@ function summary (results) {
   console.log(Chalk.red("\n\n\nFailures: "+failures.length+" out of "+results.length+":\n"+failures.join("\n")));
 }
 
-module.exports = function (receptor, vpath, parameter, sources, parallel) {
+module.exports = function (spawn, parameter, sources, parallel) {
   if (!sources.length)
-    finish(0, []);
-  var spawn = OtilukeSpawnNode(receptor, vpath);
+    return summary([]);
   var results = [];
   function run (source, index) {
     console.log(Chalk.underline(Chalk.bold(Chalk.blue("Begin "+source+" ["+(index+1)+"/"+sources.length+"]"))));
-    var zero = process.hrtime();
+    var zero = Performance.now();
     spawn(parameter, source, null, function (error, result) {
       if (error)
         throw error;

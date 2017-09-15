@@ -27,11 +27,11 @@ module.exports = function (rpath, vpath, callback) {
             Fs.readFile(Path.join(__dirname, "index.html"), "utf8", function (error, page) {
               if (error)
                 return callback(error);
-              callback(null, page.replace(/<-- @([A-Z]+)-->/g, function (match, name) {
+              callback(null, page.replace(/<!-- @([A-Z]+) -->/g, function (match, name) {
                 if (name === "SCRIPT")
-                  return script;
+                  return "<script>\n"+script.replace("</script>", "<\\/script>")+"\n</script>";
                 if (name === "STYLE")
-                  return style;
+                  return "<style>\n"+style+"\n</style>";
                 throw new Error("Unknown template name: "+name);
               }));
             });

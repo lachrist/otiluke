@@ -1,24 +1,51 @@
+var Spawn = require("antena/spawn/browser");
+
+module.exports = function (receptor, vbundle) {
+  return function (source, parameter, argv) {
+    return Spawn({content:[
+      "var Virus = "+vbundle+";",
+      "var source = "+JSON.stringify(source)+";",
+      "process.argv[1] = source.path;",
+      "Virus("+JSON.stringify(parameter)+", process.emitter, function (error, infect) {",
+      "  if (error)",
+      "    throw error;",
+      "  if (source.content)",
+      "    return global.eval(infect(source.path, source.content));",
+      "  var req = new XMLHttpRequest();",
+      "  req.open('GET', source.path)"
+      "  req.onload = function () {",
+      "    if (req.status !== 200)",
+      "      throw new Error('Cannot load '+source.path+': '+req.status+' '+req.statusText);",
+      "    global.eval(infect(source.path, source.content));",
+      "  };"
+      "  req.send();"
+    ].join("\n")}, argv, receptor);
+  };
+};
+
+
+
+
 
 var Events = require("events");
-var ReceptorMerge = require("antena/receptor/merge");
-var Once = require("../once.js");
-var Stream = require("stream");
+var Receptor = require("antena/receptor/browser")
+var Collect = require("../util/collect.js");
 var Events = require("events");
-var BundledClient = require("./bundled-client.js");
 
-module.exports = function (receptor, vurl, require) {
-  vurl = typeof require !== "string" ? vurl : URL.createObjectURL(new Blob([
-    "var VIRUS = (function () {\n",
-    "  "+require+"\n",
-    "  var module = {exports:{}}\n;",
-    "  var exports = module.exports;\n",
-    "  "+vurl+"\n",
-    "  return module.exports;\n",
-    "} ());\n",
-    BundledClient
-  ], {type: "application/javascript"}));
-  return function (parameter, source, script, callback1) {
-    var worker = ReceptorMerge({
+function write (data) { this.emit("data", data) }
+
+module.exports = function (receptor, vurl) {
+  return function (source, parameter, argv) {
+
+
+    var child = new Events();
+    child.stdin = new Events();
+    child.stdout = new Events();
+    child.stderr = new Events();
+    child.stdin.write = write;
+    var zero = performance.now();
+    var worker = new Worker(vurl);
+    var handlers = Receptor({}).merge({
       begin: Receptor({
         onrequest: function (method, path, headers, body, callback2) {
           callback2(200, "ok", {}, JSON.stringify({
@@ -30,13 +57,13 @@ module.exports = function (receptor, vurl, require) {
         }
       }),
       stdio: Receptor({
-        connect: function (path, con) {
+        onconnect: function (path, con) {
           child.stdin.on("data", con.send.bind(con));
           con.on("message", function (message) {
-            if (message.indexOf("out"))
-              return child.stdout.push(message.substring(3));
-            if (message.indexOf("err"))
-              return child.stderr.push(message.substring(3));
+            if (message.indexOf("out") === 0)
+              return child.stdout.emit("data", message.substring(3));
+            if (message.indexOf("err") === 0)
+              return child.stderr.emit("data", message.substring(3));
             child.kill("Invalid stdio message: "+message);
           });
         }
@@ -46,58 +73,31 @@ module.exports = function (receptor, vurl, require) {
           terminate(JSON.parse(body), null);
         }
       }),
-    }).spawn(vurl);
-    worker.onerror = function (error) {
-      if (error instanceof Error)
-        child.stderr.push(error.stack);
-      child.stderr.error();
+      virus: receptor
+    }).trace().handlers(worker.postMessage.bind(worker));
+    worker.onmessage = function (message) {
+      handlers.message(message);
     };
-    var child = new Events();
-    child.stdin = new Stream.Readable();
-    child.stdout = new Stream.Readable();
-    child.stderr = new Stream.Readable();
+    worker.onerror = function (error) {
+      child.stderr.emit("data", error instanceof ErrorEvent ? (error.stack || error.message+"\n") : String(error));
+    };
     function terminate (code, signal) {
-      worker.terminate();
+      handlers.terminate();
       child.emit("exit", code, signal);
-      child.stdout.push(null);
-      child.stdout.on("close", function () {
-        child.stderr.push(null);
-        child.stderr.on("close", function () {
-          child.emit("close", code, signal);
+      child.stdin.on("close", function () {
+        child.stdout.on("close", function () {
+          child.stderr.on("close", function () {
+            child.emit("close", code, signal);
+          });
+          child.stderr.emit("close");
         });
+        child.stdout.emit("close");
       });
+      child.stdin.emit("close");
     }
     child.kill = terminate.bind(null, null);
-
-
-    var worker = receptor.merge("/otiluke-webworker-begin", Receptor({
-      onrequest: function (method, path, headers, body, callback2) {
-        callback2(200, "ok", {}, JSON.stringify({
-          autoclose: Boolean(callback1),
-          parameter: parameter,
-          source: source,
-          script: script
-        }));
-      }
-    })).merge("/otiluke-webworker-end", Receptor({
-      onrequest: function (method, path, headers, body, callback2) {
-        if (callback1)
-          ocallback1(null, JSON.parse(body));
-        else
-          interface.emit("close", Number(body), null);
-        worker.terminate();
-      }
-    })).spawn(bpath);
-    if (!callback1) {
-      var interface = new Events();
-      worker.onerror = interface.emit.bind(interface, "error");
-      interface.terminate = function (signal) {
-        worker.terminate();
-        interface.emit("close", null, signal);
-      };
-      return interface;
-    }
-    ocallback1 = Once(callback1);
-    worker.onerror = ocallback1;
+    if (!callback1)
+      return child;
+    Collect(child, zero, performance, callback);
   };
 };

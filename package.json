@@ -10,7 +10,7 @@
 , "dependencies":
     { "antena": "0.0.0"
     , "browserify": "14.4.0"
-    , "ws"
+    , "ws": "3.1.0" 
     }
 , "bin": "./bin.js"
 , "keywords":

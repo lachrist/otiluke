@@ -1,5 +1,5 @@
 
-var Receptor = require("antena/receptor");
+var Receptor = require("antena/receptor/node");
 
 module.exports = Receptor({
   onconnect: function (path, con) {

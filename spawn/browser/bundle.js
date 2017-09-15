@@ -1,6 +1,6 @@
 
 module.exports = function (vpath, callback) {
-  Fs.readFile(Path.join(__dirname, "template.js"), "utf8", function (error, content) {
+  Fs.readFile(Path.join(__dirname, "client.js"), "utf8", function (error, content) {
     if (error)
       return callback(error);
     var readable = new Readable();

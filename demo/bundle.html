@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+body {
+  font-family: monospace;
+}
+</style>
+    <title>Otiluke's Demo</title>
+  </head>
+  <body>
+    <script>
+var OTILUKE_CLIENT_BUNDLE = "(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require==\"function\"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error(\"Cannot find module '\"+o+\"'\");throw f.code=\"MODULE_NOT_FOUND\",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require==\"function\"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){\n\nvar Split = require(\"./split.js\");\nvar Trace = require(\"./trace.js\");\n\nexports.split = Split(exports);\nexports.trace = Trace(exports);\n\n},{\"./split.js\":2,\"./trace.js\":3}],2:[function(require,module,exports){\n\nmodule.exports = function (prototype) {\n  return function (splitters) {\n    var emitters = {};\n    for (var i=0; i<splitters.length; i++) {\n      emitters[splitters[i]] = Object.create(prototype);\n      Object.assign(emitters[splitters[i]], this);\n      emitters[splitters[i]].__prefix__ += \"/\"+splitters[i];\n    }\n    return emitters;\n  };\n};\n\n},{}],3:[function(require,module,exports){\n\nvar LogSocket = require(\"../../util/log-socket.js\");\n\nvar rcounter = 0;\nvar ccounter = 0;\n\nfunction request (method, path, headers, body, callback) {\n  var name = this.__name__;\n  var path = this.__prefix__+path;\n  var id = rcounter++;\n  console.log(name+\"req#\"+id+\" \"+method+\" \"+path+\" \"+JSON.stringify(headers)+\" \"+body);\n  if (!callback) {\n    var res = this.__emitter__.request(method, path, headers, body);\n    console.log(name+\"res#\"+id+\" \"+res[0]+\" \"+res[1]+\" \"+JSON.stringify(res[2])+\" \"+res[3]);\n    return res;\n  }\n  this.__emitter__.request(method, path, headers, body, function (error, status, reason, headers, body) {\n    console.log(name+\"res#\"+id+\" \"+status+\" \"+reason+\" \"+JSON.stringify(headers)+\" \"+body);\n    callback(error, status, reason, headers, body);\n  });\n}\n\nfunction connect (path) {\n  var id = ccounter++;\n  console.log(this.__name__+\"con#\"+id+\" \"+this.__prefix__+path);\n  return LogSocket(this.__emitter__.connect(this.__prefix__+path), this.__name__+\"con#\"+id);\n}\n\nmodule.exports = function (prototype) {\n  return function (name) {\n    var self = Object.create(prototype);\n    self.request = request;\n    self.connect = connect;\n    self.__prefix__ = \"\";\n    self.__emitter__ = this;\n    self.__name__ = name || \"\";\n    return self;\n  };\n};\n\n},{\"../../util/log-socket.js\":5}],4:[function(require,module,exports){\n\nvar Pool = require(\"../util/pool.js\");\nvar Prototype = require(\"./prototype\");\n\nfunction request (method, path, headers, body, callback) {\n  if (!callback) {\n    this.__views__.lock[0] = 1;\n    postMessage({\n      name: \"sync\",\n      method: method,\n      path: this.__prefix__+path,\n      headers: headers,\n      body: body\n    });\n    while (this.__views__.lock[0]);\n    if (this.__views__.length[0] > this.__views__.data.length)\n      throw new Error(\"Response too long for \"+method+\" \"+path);\n    var data = JSON.parse(String.fromCharCode.apply(null, this.__views__.data.slice(0, this.__views__.length[0])));;\n    return [data.status, data.reason, data.headers, data.body];\n  }\n  for (var i=0; i<=this.__callbacks__.length; i++) {\n    if (!this.__callbacks__[i]) {\n      this.__callbacks__[i] = callback;\n      return postMessage({\n        name: \"async\",\n        index: i,\n        method: method,\n        path: this.__prefix__+path,\n        headers: headers,\n        body: body\n      });\n    }\n  }\n}\n\nfunction connect (path) {\n  var index = this.__pool__free__();\n  postMessage({\n    name: \"open\",\n    path: this.__prefix__+path,\n    index: index\n  });\n  return this.__pool__add__(index);\n}\n\nvar singleton = false;\n\nmodule.exports = function (size) {\n  if (singleton)\n    throw new Error(\"Only one webworker emitter can be created...\");\n  singleton = true;\n  var callbacks = [];\n  var pool = Pool(postMessage);\n  var handlers = {\n    close: pool.onclose,\n    message: pool.onmessage,\n    open: pool.onopen,\n    async: function (data) {\n      callbacks[data.index](null, data.status, data.reason, data.headers, data.body);\n      delete callbacks[data.index];\n    }\n  };\n  onmessage = function (message) {\n    handlers[message.data.name](message.data)\n  };\n  var shared = new SharedArrayBuffer(2*(size||1024)+8);\n  postMessage(shared);\n  var views = {};\n  views.lock = new Uint8Array(shared, 0, 1);\n  views.length = new Uint32Array(shared, 4, 1);\n  views.data = new Uint16Array(shared, 8);\n  var self = Object.create(Prototype);\n  self.request = request;\n  self.connect = connect;\n  self.__prefix__ = \"\";\n  self.__callbacks__ = callbacks;\n  self.__views__ = views;\n  self.__pool__add__ = pool.add;\n  self.__pool__free__ = pool.free;\n  return self;\n};\n\n},{\"../util/pool.js\":6,\"./prototype\":1}],5:[function(require,module,exports){\n\nvar Events = require(\"events\");\n\nmodule.exports = function (con, name) {\n  var wrapper = new Events();\n  wrapper.send = function (message) {\n    console.log(name+\" >> \"+message);\n    con.send(message);\n  };\n  wrapper.close = function (code, reason) {\n    console.log(name+\" close \"+code+\" \"+reason);\n    con.close(code, reason);\n  };\n  con.on(\"message\", function (message) {\n    console.log(name+\" << \"+message);\n    wrapper.emit(\"message\", message);\n  });\n  con.on(\"close\", function (code, reason) {\n    console.log(name+\" onclose \"+code+\" \"+reason);\n    wrapper.emit(\"close\", code, reason);\n  });\n  con.on(\"open\", function () {\n    console.log(name+\" onopen\");\n    wrapper.emit(\"open\");\n  });\n  con.on(\"error\", function (error) {\n    console.log(name+\" onerror \"+error.message);\n    wrapper.emit(\"error\", error);\n  });\n  return wrapper;\n};\n\n},{\"events\":7}],6:[function(require,module,exports){\n\nvar Events = require(\"events\");\n\nfunction signal (error) { throw error } \n\nmodule.exports = function (post) {\n\n  var pool = [];\n\n  function send (message, callback) {\n    if (this !== pool[this._index_]) {\n      callback = callback || signal;\n      return callback(new Error(\"Connection closed\"));\n    }\n    post({\n      name: \"message\",\n      index: this._index_,\n      message: message\n    });\n    callback && callback();\n  }\n\n  function close (code, reason) {\n    if (this === pool[this._index_]) {\n      pool[this._index_] = null;\n      this.emit(\"close\", code, reason);\n      post({\n        name: \"close\",\n        index: this._index_,\n        code: code,\n        reason: reason\n      });\n    }\n  }\n\n  return {\n    free: function () {\n      index = pool.indexOf(null);\n      return index === -1 ? pool.length : index;\n    },\n    add: function (index) {\n      var con = new Events();\n      pool[index] = con;\n      con.send = send;\n      con.close = close;\n      Object.defineProperty(con, \"_index_\", {value:index});\n      return con;\n    },\n    terminate: function () {\n      pool.forEach(function (con) { con.emit(\"close\", 1001, \"CLOSE_GOING_AWAY\") });\n      pool = [];\n    },\n    onclose: function (data) {\n      pool[data.index].emit(\"close\", data.code, data.reason);\n      pool[data.index] = null;\n    },\n    onmessage: function (data) {\n      pool[data.index].emit(\"message\", data.message);\n    },\n    onopen: function (data) {\n      pool[data.index].emit(\"open\");\n    }\n  };\n\n};\n\n},{\"events\":7}],7:[function(require,module,exports){\n// Copyright Joyent, Inc. and other Node contributors.\n//\n// Permission is hereby granted, free of charge, to any person obtaining a\n// copy of this software and associated documentation files (the\n// \"Software\"), to deal in the Software without restriction, including\n// without limitation the rights to use, copy, modify, merge, publish,\n// distribute, sublicense, and/or sell copies of the Software, and to permit\n// persons to whom the Software is furnished to do so, subject to the\n// following conditions:\n//\n// The above copyright notice and this permission notice shall be included\n// in all copies or substantial portions of the Software.\n//\n// THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS\n// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF\n// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN\n// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,\n// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR\n// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE\n// USE OR OTHER DEALINGS IN THE SOFTWARE.\n\nfunction EventEmitter() {\n  this._events = this._events || {};\n  this._maxListeners = this._maxListeners || undefined;\n}\nmodule.exports = EventEmitter;\n\n// Backwards-compat with node 0.10.x\nEventEmitter.EventEmitter = EventEmitter;\n\nEventEmitter.prototype._events = undefined;\nEventEmitter.prototype._maxListeners = undefined;\n\n// By default EventEmitters will print a warning if more than 10 listeners are\n// added to it. This is a useful default which helps finding memory leaks.\nEventEmitter.defaultMaxListeners = 10;\n\n// Obviously not all Emitters should be limited to 10. This function allows\n// that to be increased. Set to zero for unlimited.\nEventEmitter.prototype.setMaxListeners = function(n) {\n  if (!isNumber(n) || n < 0 || isNaN(n))\n    throw TypeError('n must be a positive number');\n  this._maxListeners = n;\n  return this;\n};\n\nEventEmitter.prototype.emit = function(type) {\n  var er, handler, len, args, i, listeners;\n\n  if (!this._events)\n    this._events = {};\n\n  // If there is no 'error' event listener then throw.\n  if (type === 'error') {\n    if (!this._events.error ||\n        (isObject(this._events.error) && !this._events.error.length)) {\n      er = arguments[1];\n      if (er instanceof Error) {\n        throw er; // Unhandled 'error' event\n      } else {\n        // At least give some kind of context to the user\n        var err = new Error('Uncaught, unspecified \"error\" event. (' + er + ')');\n        err.context = er;\n        throw err;\n      }\n    }\n  }\n\n  handler = this._events[type];\n\n  if (isUndefined(handler))\n    return false;\n\n  if (isFunction(handler)) {\n    switch (arguments.length) {\n      // fast cases\n      case 1:\n        handler.call(this);\n        break;\n      case 2:\n        handler.call(this, arguments[1]);\n        break;\n      case 3:\n        handler.call(this, arguments[1], arguments[2]);\n        break;\n      // slower\n      default:\n        args = Array.prototype.slice.call(arguments, 1);\n        handler.apply(this, args);\n    }\n  } else if (isObject(handler)) {\n    args = Array.prototype.slice.call(arguments, 1);\n    listeners = handler.slice();\n    len = listeners.length;\n    for (i = 0; i < len; i++)\n      listeners[i].apply(this, args);\n  }\n\n  return true;\n};\n\nEventEmitter.prototype.addListener = function(type, listener) {\n  var m;\n\n  if (!isFunction(listener))\n    throw TypeError('listener must be a function');\n\n  if (!this._events)\n    this._events = {};\n\n  // To avoid recursion in the case that type === \"newListener\"! Before\n  // adding it to the listeners, first emit \"newListener\".\n  if (this._events.newListener)\n    this.emit('newListener', type,\n              isFunction(listener.listener) ?\n              listener.listener : listener);\n\n  if (!this._events[type])\n    // Optimize the case of one listener. Don't need the extra array object.\n    this._events[type] = listener;\n  else if (isObject(this._events[type]))\n    // If we've already got an array, just append.\n    this._events[type].push(listener);\n  else\n    // Adding the second element, need to change to array.\n    this._events[type] = [this._events[type], listener];\n\n  // Check for listener leak\n  if (isObject(this._events[type]) && !this._events[type].warned) {\n    if (!isUndefined(this._maxListeners)) {\n      m = this._maxListeners;\n    } else {\n      m = EventEmitter.defaultMaxListeners;\n    }\n\n    if (m && m > 0 && this._events[type].length > m) {\n      this._events[type].warned = true;\n      console.error('(node) warning: possible EventEmitter memory ' +\n                    'leak detected. %d listeners added. ' +\n                    'Use emitter.setMaxListeners() to increase limit.',\n                    this._events[type].length);\n      if (typeof console.trace === 'function') {\n        // not supported in IE 10\n        console.trace();\n      }\n    }\n  }\n\n  return this;\n};\n\nEventEmitter.prototype.on = EventEmitter.prototype.addListener;\n\nEventEmitter.prototype.once = function(type, listener) {\n  if (!isFunction(listener))\n    throw TypeError('listener must be a function');\n\n  var fired = false;\n\n  function g() {\n    this.removeListener(type, g);\n\n    if (!fired) {\n      fired = true;\n      listener.apply(this, arguments);\n    }\n  }\n\n  g.listener = listener;\n  this.on(type, g);\n\n  return this;\n};\n\n// emits a 'removeListener' event iff the listener was removed\nEventEmitter.prototype.removeListener = function(type, listener) {\n  var list, position, length, i;\n\n  if (!isFunction(listener))\n    throw TypeError('listener must be a function');\n\n  if (!this._events || !this._events[type])\n    return this;\n\n  list = this._events[type];\n  length = list.length;\n  position = -1;\n\n  if (list === listener ||\n      (isFunction(list.listener) && list.listener === listener)) {\n    delete this._events[type];\n    if (this._events.removeListener)\n      this.emit('removeListener', type, listener);\n\n  } else if (isObject(list)) {\n    for (i = length; i-- > 0;) {\n      if (list[i] === listener ||\n          (list[i].listener && list[i].listener === listener)) {\n        position = i;\n        break;\n      }\n    }\n\n    if (position < 0)\n      return this;\n\n    if (list.length === 1) {\n      list.length = 0;\n      delete this._events[type];\n    } else {\n      list.splice(position, 1);\n    }\n\n    if (this._events.removeListener)\n      this.emit('removeListener', type, listener);\n  }\n\n  return this;\n};\n\nEventEmitter.prototype.removeAllListeners = function(type) {\n  var key, listeners;\n\n  if (!this._events)\n    return this;\n\n  // not listening for removeListener, no need to emit\n  if (!this._events.removeListener) {\n    if (arguments.length === 0)\n      this._events = {};\n    else if (this._events[type])\n      delete this._events[type];\n    return this;\n  }\n\n  // emit removeListener for all listeners on all events\n  if (arguments.length === 0) {\n    for (key in this._events) {\n      if (key === 'removeListener') continue;\n      this.removeAllListeners(key);\n    }\n    this.removeAllListeners('removeListener');\n    this._events = {};\n    return this;\n  }\n\n  listeners = this._events[type];\n\n  if (isFunction(listeners)) {\n    this.removeListener(type, listeners);\n  } else if (listeners) {\n    // LIFO order\n    while (listeners.length)\n      this.removeListener(type, listeners[listeners.length - 1]);\n  }\n  delete this._events[type];\n\n  return this;\n};\n\nEventEmitter.prototype.listeners = function(type) {\n  var ret;\n  if (!this._events || !this._events[type])\n    ret = [];\n  else if (isFunction(this._events[type]))\n    ret = [this._events[type]];\n  else\n    ret = this._events[type].slice();\n  return ret;\n};\n\nEventEmitter.prototype.listenerCount = function(type) {\n  if (this._events) {\n    var evlistener = this._events[type];\n\n    if (isFunction(evlistener))\n      return 1;\n    else if (evlistener)\n      return evlistener.length;\n  }\n  return 0;\n};\n\nEventEmitter.listenerCount = function(emitter, type) {\n  return emitter.listenerCount(type);\n};\n\nfunction isFunction(arg) {\n  return typeof arg === 'function';\n}\n\nfunction isNumber(arg) {\n  return typeof arg === 'number';\n}\n\nfunction isObject(arg) {\n  return typeof arg === 'object' && arg !== null;\n}\n\nfunction isUndefined(arg) {\n  return arg === void 0;\n}\n\n},{}],8:[function(require,module,exports){\n(function (global){\n\nvar EmitterWebworker = require(\"antena/emitter/webworker\");\nvar Events = require(\"events\");\n\nvar emitters = EmitterWebworker().split([\"begin\", \"stdio\", \"end\", \"virus\"]);\n\nvar con = emitters.stdio.connect(\"/\");\ncon.on(\"open\", function () {\n  emitters.begin.request(\"GET\", \"/\", {}, \"\", function (error, status, reason, header, body) {\n    if (error)\n      throw error;\n    var mock = {\n      stdin: new Events(),\n      stdout: new Events(),\n      stderr: new Events(),\n      exit: function (code) {\n        emitters.end.request(\"GET\", \"/\", {}, JSON.stringify(code), function () {});\n      }\n    }\n    global.process = mock;\n    con.on(\"message\", mock.stdin.emit.bind(mock.stdin, \"data\"));\n    mock.stdout.write = function (string) { con.send(\"out\"+string) };\n    mock.stderr.write = function (string) { con.send(\"err\"+string) };\n    global.console = {\n      log: function () {\n        var args = [];\n        for (var i=0; i<arguments.length; i++)\n          args.push(\"\"+arguments[i]);\n        con.send(\"out\"+args.join(\" \")+\"\\n\");\n      }\n    };\n    var body = JSON.parse(body);\n    OTILUKE_VIRUS(body.parameter, emitters.virus, function (error, infect) {\n      function onload (script) {\n        global.eval(infect(body.source, body.script));\n        body.autoclose && mock.exit(0);\n      }\n      if (error)\n        throw error;\n      if (\"script\" in body)\n        return onload(body.script);\n      var req = new XMLHttpRequest();\n      req.open(\"GET\", source);\n      req.onload = function () {\n        if (req.status !== 200)\n          throw new Error(\"Cannot load \"+source+\": \"+req.status+\" \"+req.statusText);\n        onload(req.responseText);\n      };\n      req.send();\n    });\n  });\n});\n\n}).call(this,typeof global !== \"undefined\" ? global : typeof self !== \"undefined\" ? self : typeof window !== \"undefined\" ? window : {})\n},{\"antena/emitter/webworker\":4,\"events\":7}]},{},[8]);\n";
+var OTILUKE_RECEPTOR_DEPENDENCY = {"initial":"\nvar Receptor = require(\"antena/receptor/browser\");\n\nmodule.exports = Receptor({\n  onrequest: function (method, path, headers, body, callback) {\n    console.log(body);\n    callback(200, \"ok\", {}, \"\");\n  }\n});\n","names":["antena/receptor/browser"],"bundle":"require=(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require==\"function\"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error(\"Cannot find module '\"+o+\"'\");throw f.code=\"MODULE_NOT_FOUND\",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require==\"function\"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){\n\nfunction onrequest (method, path, headers, body, callback) {\n  callback(400, \"no-handler\", {}, this.__stack__);\n}\n\nfunction onconnect (path, con) {\n  con.send(this.__stack__);\n  con.close(4000, \"no-handler\");\n}\n\nmodule.exports = function (prototype) {\n  return function (methods) {\n    var self = Object.create(prototype);\n    if (typeof methods.onrequest !== \"function\" && typeof methods.onconnect !== \"function\")\n      self.__stack__ = (new Error(\"No handler\")).stack;\n    self.__onrequest__ = typeof methods.onrequest === \"function\" ? methods.onrequest : onrequest;\n    self.__onconnect__ = typeof methods.onconnect === \"function\" ? methods.onconnect : onconnect;\n    return self;\n  };\n};\n\n},{}],2:[function(require,module,exports){\n\nmodule.exports = function (receptor, path, con) {\n  var segments = path.split(\"/\");\n  segments.shift();\n  while (true) {\n    if (receptor.__onconnect__)\n      return receptor.__onconnect__(\"/\"+segments.join(\"/\"), con);\n    receptor = (segments[0] in receptor.__childs__) ? receptor.__childs__[segments.shift()] : receptor.__default__;\n  }\n};\n\n},{}],3:[function(require,module,exports){\n\nmodule.exports = function onrequest (receptor, method, path, headers, body, callback) {\n  var segments = path.split(\"/\");\n  segments.shift();\n  while (true) {\n    if (receptor.__onrequest__)\n      return receptor.__onrequest__(method, \"/\"+segments.join(\"/\"), headers, body, callback);\n    receptor = (segments[0] in receptor.__childs__) ? receptor.__childs__[segments.shift()] : receptor.__default__;\n  }\n};\n\n},{}],4:[function(require,module,exports){\n\nvar Trace = require(\"./trace.js\");\nvar Merge = require(\"./merge.js\");\nvar Webworker = require(\"./webworker.js\");\n\nexports.trace = Trace(exports);\nexports.merge = Merge(exports);\nexports.handlers = Webworker;\n\n},{\"./merge.js\":5,\"./trace.js\":6,\"./webworker.js\":7}],5:[function(require,module,exports){\n\nmodule.exports = function (prototype) {\n  return function (receptors) {\n    var self = Object.create(prototype);\n    self.__childs__ = receptors;\n    self.__default__ = this;\n    return self;\n  };\n};\n\n},{}],6:[function(require,module,exports){\n\nvar LogSocket = require(\"../../util/log-socket.js\");\nvar Onrequest = require(\"../dispatch/onrequest.js\");\nvar Onconnect = require(\"../dispatch/onconnect.js\");\n\nvar rcounter = 0;\nvar ccounter = 0;\n\nfunction onrequest (method, path, headers, body, callback) {\n  var id = rcounter++;\n  var name = this.__name__;\n  var receptor = this.__receptor__;\n  console.log(name+\"req#\"+id+\" \"+method+\" \"+path+\" \"+JSON.stringify(headers)+\" \"+body);\n  Onrequest(receptor, method, path, headers, body, function (status, reason, headers, body) {\n    console.log(name+\"res#\"+id+\" \"+status+\" \"+reason+\" \"+JSON.stringify(headers)+\" \"+body);\n    callback(status, reason, headers, body);\n  });\n}\n\nfunction onconnect (path, con) {\n  var id = ccounter++;\n  console.log(name+\"con#\"+id+\" \"+path);\n  Onconnect(this.__receptor__, path, LogSocket(con, this.__name__+\"con#\"+id));\n}\n\n\nmodule.exports = function (prototype) {\n  return function (name) {\n    var self = Object.create(prototype);\n    self.__onrequest__ = onrequest;\n    self.__onconnect__ = onconnect;\n    self.__receptor__ = this;\n    self.__name__ = name || \"\";\n    return self;\n  };\n};\n\n},{\"../../util/log-socket.js\":8,\"../dispatch/onconnect.js\":2,\"../dispatch/onrequest.js\":3}],7:[function(require,module,exports){\n\nvar Pool = require(\"../../util/pool.js\");\nvar Onrequest = require(\"../dispatch/onrequest.js\");\nvar Onconnect = require(\"../dispatch/onconnect.js\");\n\nmodule.exports = function (post) {\n  var self = this;\n  var pool = Pool(post);\n  var views = null;\n  var handlers = {\n    message: pool.onmessage,\n    close: pool.onclose,\n    open: function (data) {\n      post(data);\n      Onconnect(self, data.path, pool.add(data.index));\n    },\n    sync: function (data) {\n      Onrequest(self, data.method, data.path, data.headers, data.body, function (status, reason, headers, body) {\n        var response = JSON.stringify({\n          status: status,\n          reason: reason,\n          headers: headers,\n          body: body\n        });\n        views.length[0] = response.length;\n        for (var i=0, l=Math.min(response.length, views.data.length); i<l; i++)\n          views.data[i] = response.charCodeAt(i);\n        views.lock[0] = 0;\n      });\n    },\n    async: function (data) {\n      Onrequest(self, data.method, data.path, data.headers, data.body, function (status, reason, headers, body) {\n        post({\n          name: \"async\",\n          index: data.index,\n          status: status,\n          reason: reason,\n          headers: headers,\n          body: body\n        });\n      });\n    }\n  };\n  return {\n    message: function (message) {\n      if (views)\n        return handlers[message.data.name](message.data);\n      views = {};\n      views.lock = new Uint8Array(message.data, 0, 1);\n      views.length = new Uint32Array(message.data, 4, 1);\n      views.data = new Uint16Array(message.data, 8);\n    },\n    terminate: function () {\n      pool.terminate();\n      pool = null;\n      handlers = null;\n    }\n  };\n};\n\n},{\"../../util/pool.js\":9,\"../dispatch/onconnect.js\":2,\"../dispatch/onrequest.js\":3}],8:[function(require,module,exports){\n\nvar Events = require(\"events\");\n\nmodule.exports = function (con, name) {\n  var wrapper = new Events();\n  wrapper.send = function (message) {\n    console.log(name+\" >> \"+message);\n    con.send(message);\n  };\n  wrapper.close = function (code, reason) {\n    console.log(name+\" close \"+code+\" \"+reason);\n    con.close(code, reason);\n  };\n  con.on(\"message\", function (message) {\n    console.log(name+\" << \"+message);\n    wrapper.emit(\"message\", message);\n  });\n  con.on(\"close\", function (code, reason) {\n    console.log(name+\" onclose \"+code+\" \"+reason);\n    wrapper.emit(\"close\", code, reason);\n  });\n  con.on(\"open\", function () {\n    console.log(name+\" onopen\");\n    wrapper.emit(\"open\");\n  });\n  con.on(\"error\", function (error) {\n    console.log(name+\" onerror \"+error.message);\n    wrapper.emit(\"error\", error);\n  });\n  return wrapper;\n};\n\n},{\"events\":10}],9:[function(require,module,exports){\n\nvar Events = require(\"events\");\n\nfunction signal (error) { throw error } \n\nmodule.exports = function (post) {\n\n  var pool = [];\n\n  function send (message, callback) {\n    if (this !== pool[this._index_]) {\n      callback = callback || signal;\n      return callback(new Error(\"Connection closed\"));\n    }\n    post({\n      name: \"message\",\n      index: this._index_,\n      message: message\n    });\n    callback && callback();\n  }\n\n  function close (code, reason) {\n    if (this === pool[this._index_]) {\n      pool[this._index_] = null;\n      this.emit(\"close\", code, reason);\n      post({\n        name: \"close\",\n        index: this._index_,\n        code: code,\n        reason: reason\n      });\n    }\n  }\n\n  return {\n    free: function () {\n      index = pool.indexOf(null);\n      return index === -1 ? pool.length : index;\n    },\n    add: function (index) {\n      var con = new Events();\n      pool[index] = con;\n      con.send = send;\n      con.close = close;\n      Object.defineProperty(con, \"_index_\", {value:index});\n      return con;\n    },\n    terminate: function () {\n      pool.forEach(function (con) { con.emit(\"close\", 1001, \"CLOSE_GOING_AWAY\") });\n      pool = [];\n    },\n    onclose: function (data) {\n      pool[data.index].emit(\"close\", data.code, data.reason);\n      pool[data.index] = null;\n    },\n    onmessage: function (data) {\n      pool[data.index].emit(\"message\", data.message);\n    },\n    onopen: function (data) {\n      pool[data.index].emit(\"open\");\n    }\n  };\n\n};\n\n},{\"events\":10}],10:[function(require,module,exports){\n// Copyright Joyent, Inc. and other Node contributors.\n//\n// Permission is hereby granted, free of charge, to any person obtaining a\n// copy of this software and associated documentation files (the\n// \"Software\"), to deal in the Software without restriction, including\n// without limitation the rights to use, copy, modify, merge, publish,\n// distribute, sublicense, and/or sell copies of the Software, and to permit\n// persons to whom the Software is furnished to do so, subject to the\n// following conditions:\n//\n// The above copyright notice and this permission notice shall be included\n// in all copies or substantial portions of the Software.\n//\n// THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS\n// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF\n// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN\n// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,\n// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR\n// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE\n// USE OR OTHER DEALINGS IN THE SOFTWARE.\n\nfunction EventEmitter() {\n  this._events = this._events || {};\n  this._maxListeners = this._maxListeners || undefined;\n}\nmodule.exports = EventEmitter;\n\n// Backwards-compat with node 0.10.x\nEventEmitter.EventEmitter = EventEmitter;\n\nEventEmitter.prototype._events = undefined;\nEventEmitter.prototype._maxListeners = undefined;\n\n// By default EventEmitters will print a warning if more than 10 listeners are\n// added to it. This is a useful default which helps finding memory leaks.\nEventEmitter.defaultMaxListeners = 10;\n\n// Obviously not all Emitters should be limited to 10. This function allows\n// that to be increased. Set to zero for unlimited.\nEventEmitter.prototype.setMaxListeners = function(n) {\n  if (!isNumber(n) || n < 0 || isNaN(n))\n    throw TypeError('n must be a positive number');\n  this._maxListeners = n;\n  return this;\n};\n\nEventEmitter.prototype.emit = function(type) {\n  var er, handler, len, args, i, listeners;\n\n  if (!this._events)\n    this._events = {};\n\n  // If there is no 'error' event listener then throw.\n  if (type === 'error') {\n    if (!this._events.error ||\n        (isObject(this._events.error) && !this._events.error.length)) {\n      er = arguments[1];\n      if (er instanceof Error) {\n        throw er; // Unhandled 'error' event\n      } else {\n        // At least give some kind of context to the user\n        var err = new Error('Uncaught, unspecified \"error\" event. (' + er + ')');\n        err.context = er;\n        throw err;\n      }\n    }\n  }\n\n  handler = this._events[type];\n\n  if (isUndefined(handler))\n    return false;\n\n  if (isFunction(handler)) {\n    switch (arguments.length) {\n      // fast cases\n      case 1:\n        handler.call(this);\n        break;\n      case 2:\n        handler.call(this, arguments[1]);\n        break;\n      case 3:\n        handler.call(this, arguments[1], arguments[2]);\n        break;\n      // slower\n      default:\n        args = Array.prototype.slice.call(arguments, 1);\n        handler.apply(this, args);\n    }\n  } else if (isObject(handler)) {\n    args = Array.prototype.slice.call(arguments, 1);\n    listeners = handler.slice();\n    len = listeners.length;\n    for (i = 0; i < len; i++)\n      listeners[i].apply(this, args);\n  }\n\n  return true;\n};\n\nEventEmitter.prototype.addListener = function(type, listener) {\n  var m;\n\n  if (!isFunction(listener))\n    throw TypeError('listener must be a function');\n\n  if (!this._events)\n    this._events = {};\n\n  // To avoid recursion in the case that type === \"newListener\"! Before\n  // adding it to the listeners, first emit \"newListener\".\n  if (this._events.newListener)\n    this.emit('newListener', type,\n              isFunction(listener.listener) ?\n              listener.listener : listener);\n\n  if (!this._events[type])\n    // Optimize the case of one listener. Don't need the extra array object.\n    this._events[type] = listener;\n  else if (isObject(this._events[type]))\n    // If we've already got an array, just append.\n    this._events[type].push(listener);\n  else\n    // Adding the second element, need to change to array.\n    this._events[type] = [this._events[type], listener];\n\n  // Check for listener leak\n  if (isObject(this._events[type]) && !this._events[type].warned) {\n    if (!isUndefined(this._maxListeners)) {\n      m = this._maxListeners;\n    } else {\n      m = EventEmitter.defaultMaxListeners;\n    }\n\n    if (m && m > 0 && this._events[type].length > m) {\n      this._events[type].warned = true;\n      console.error('(node) warning: possible EventEmitter memory ' +\n                    'leak detected. %d listeners added. ' +\n                    'Use emitter.setMaxListeners() to increase limit.',\n                    this._events[type].length);\n      if (typeof console.trace === 'function') {\n        // not supported in IE 10\n        console.trace();\n      }\n    }\n  }\n\n  return this;\n};\n\nEventEmitter.prototype.on = EventEmitter.prototype.addListener;\n\nEventEmitter.prototype.once = function(type, listener) {\n  if (!isFunction(listener))\n    throw TypeError('listener must be a function');\n\n  var fired = false;\n\n  function g() {\n    this.removeListener(type, g);\n\n    if (!fired) {\n      fired = true;\n      listener.apply(this, arguments);\n    }\n  }\n\n  g.listener = listener;\n  this.on(type, g);\n\n  return this;\n};\n\n// emits a 'removeListener' event iff the listener was removed\nEventEmitter.prototype.removeListener = function(type, listener) {\n  var list, position, length, i;\n\n  if (!isFunction(listener))\n    throw TypeError('listener must be a function');\n\n  if (!this._events || !this._events[type])\n    return this;\n\n  list = this._events[type];\n  length = list.length;\n  position = -1;\n\n  if (list === listener ||\n      (isFunction(list.listener) && list.listener === listener)) {\n    delete this._events[type];\n    if (this._events.removeListener)\n      this.emit('removeListener', type, listener);\n\n  } else if (isObject(list)) {\n    for (i = length; i-- > 0;) {\n      if (list[i] === listener ||\n          (list[i].listener && list[i].listener === listener)) {\n        position = i;\n        break;\n      }\n    }\n\n    if (position < 0)\n      return this;\n\n    if (list.length === 1) {\n      list.length = 0;\n      delete this._events[type];\n    } else {\n      list.splice(position, 1);\n    }\n\n    if (this._events.removeListener)\n      this.emit('removeListener', type, listener);\n  }\n\n  return this;\n};\n\nEventEmitter.prototype.removeAllListeners = function(type) {\n  var key, listeners;\n\n  if (!this._events)\n    return this;\n\n  // not listening for removeListener, no need to emit\n  if (!this._events.removeListener) {\n    if (arguments.length === 0)\n      this._events = {};\n    else if (this._events[type])\n      delete this._events[type];\n    return this;\n  }\n\n  // emit removeListener for all listeners on all events\n  if (arguments.length === 0) {\n    for (key in this._events) {\n      if (key === 'removeListener') continue;\n      this.removeAllListeners(key);\n    }\n    this.removeAllListeners('removeListener');\n    this._events = {};\n    return this;\n  }\n\n  listeners = this._events[type];\n\n  if (isFunction(listeners)) {\n    this.removeListener(type, listeners);\n  } else if (listeners) {\n    // LIFO order\n    while (listeners.length)\n      this.removeListener(type, listeners[listeners.length - 1]);\n  }\n  delete this._events[type];\n\n  return this;\n};\n\nEventEmitter.prototype.listeners = function(type) {\n  var ret;\n  if (!this._events || !this._events[type])\n    ret = [];\n  else if (isFunction(this._events[type]))\n    ret = [this._events[type]];\n  else\n    ret = this._events[type].slice();\n  return ret;\n};\n\nEventEmitter.prototype.listenerCount = function(type) {\n  if (this._events) {\n    var evlistener = this._events[type];\n\n    if (isFunction(evlistener))\n      return 1;\n    else if (evlistener)\n      return evlistener.length;\n  }\n  return 0;\n};\n\nEventEmitter.listenerCount = function(emitter, type) {\n  return emitter.listenerCount(type);\n};\n\nfunction isFunction(arg) {\n  return typeof arg === 'function';\n}\n\nfunction isNumber(arg) {\n  return typeof arg === 'number';\n}\n\nfunction isObject(arg) {\n  return typeof arg === 'object' && arg !== null;\n}\n\nfunction isUndefined(arg) {\n  return arg === void 0;\n}\n\n},{}],\"antena/receptor/browser\":[function(require,module,exports){\n\nvar Common = require(\"./common.js\");\nvar Prototype = require(\"./prototype/browser.js\");\n\nmodule.exports = Common(Prototype);\n\n},{\"./common.js\":1,\"./prototype/browser.js\":4}]},{},[]);\n"};
+var OTILUKE_VIRUS_DEPENDENCY = {"initial":"\nmodule.exports = function (parameter, emitter, callback) {\n  global._otiluke_ = emitter;\n  callback(null, function (source, script) {\n    return [\n      \"_otiluke_.request(\\\"GET\\\", \\\"/\\\", {}, \\\"BEGIN \\\"+\"+JSON.stringify(source)+\");\",\n      script,\n      \"_otiluke_.request(\\\"GET\\\", \\\"/\\\", {}, \\\"END \\\"+\"+JSON.stringify(source)+\");\",\n    ].join(\"\\n\");\n  });\n};\n","names":[],"bundle":"(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require==\"function\"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error(\"Cannot find module '\"+o+\"'\");throw f.code=\"MODULE_NOT_FOUND\",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require==\"function\"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({},{},[]);\n"};
+(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+
+var Common = require("./common.js");
+var Prototype = require("./prototype/browser.js");
+
+module.exports = Common(Prototype);
+
+},{"./common.js":2,"./prototype/browser.js":5}],2:[function(require,module,exports){
+
+function onrequest (method, path, headers, body, callback) {
+  callback(400, "no-handler", {}, this.__stack__);
+}
+
+function onconnect (path, con) {
+  con.send(this.__stack__);
+  con.close(4000, "no-handler");
+}
+
+module.exports = function (prototype) {
+  return function (methods) {
+    var self = Object.create(prototype);
+    if (typeof methods.onrequest !== "function" && typeof methods.onconnect !== "function")
+      self.__stack__ = (new Error("No handler")).stack;
+    self.__onrequest__ = typeof methods.onrequest === "function" ? methods.onrequest : onrequest;
+    self.__onconnect__ = typeof methods.onconnect === "function" ? methods.onconnect : onconnect;
+    return self;
+  };
+};
+
+},{}],3:[function(require,module,exports){
+
+module.exports = function (receptor, path, con) {
+  var segments = path.split("/");
+  segments.shift();
+  while (true) {
+    if (receptor.__onconnect__)
+      return receptor.__onconnect__("/"+segments.join("/"), con);
+    receptor = (segments[0] in receptor.__childs__) ? receptor.__childs__[segments.shift()] : receptor.__default__;
+  }
+};
+
+},{}],4:[function(require,module,exports){
+
+module.exports = function onrequest (receptor, method, path, headers, body, callback) {
+  var segments = path.split("/");
+  segments.shift();
+  while (true) {
+    if (receptor.__onrequest__)
+      return receptor.__onrequest__(method, "/"+segments.join("/"), headers, body, callback);
+    receptor = (segments[0] in receptor.__childs__) ? receptor.__childs__[segments.shift()] : receptor.__default__;
+  }
+};
+
+},{}],5:[function(require,module,exports){
+
+var Trace = require("./trace.js");
+var Merge = require("./merge.js");
+var Webworker = require("./webworker.js");
+
+exports.trace = Trace(exports);
+exports.merge = Merge(exports);
+exports.handlers = Webworker;
+
+},{"./merge.js":6,"./trace.js":7,"./webworker.js":8}],6:[function(require,module,exports){
+
+module.exports = function (prototype) {
+  return function (receptors) {
+    var self = Object.create(prototype);
+    self.__childs__ = receptors;
+    self.__default__ = this;
+    return self;
+  };
+};
+
+},{}],7:[function(require,module,exports){
+
+var LogSocket = require("../../util/log-socket.js");
+var Onrequest = require("../dispatch/onrequest.js");
+var Onconnect = require("../dispatch/onconnect.js");
+
+var rcounter = 0;
+var ccounter = 0;
+
+function onrequest (method, path, headers, body, callback) {
+  var id = rcounter++;
+  var name = this.__name__;
+  var receptor = this.__receptor__;
+  console.log(name+"req#"+id+" "+method+" "+path+" "+JSON.stringify(headers)+" "+body);
+  Onrequest(receptor, method, path, headers, body, function (status, reason, headers, body) {
+    console.log(name+"res#"+id+" "+status+" "+reason+" "+JSON.stringify(headers)+" "+body);
+    callback(status, reason, headers, body);
+  });
+}
+
+function onconnect (path, con) {
+  var id = ccounter++;
+  console.log(name+"con#"+id+" "+path);
+  Onconnect(this.__receptor__, path, LogSocket(con, this.__name__+"con#"+id));
+}
+
+
+module.exports = function (prototype) {
+  return function (name) {
+    var self = Object.create(prototype);
+    self.__onrequest__ = onrequest;
+    self.__onconnect__ = onconnect;
+    self.__receptor__ = this;
+    self.__name__ = name || "";
+    return self;
+  };
+};
+
+},{"../../util/log-socket.js":9,"../dispatch/onconnect.js":3,"../dispatch/onrequest.js":4}],8:[function(require,module,exports){
+
+var Pool = require("../../util/pool.js");
+var Onrequest = require("../dispatch/onrequest.js");
+var Onconnect = require("../dispatch/onconnect.js");
+
+module.exports = function (post) {
+  var self = this;
+  var pool = Pool(post);
+  var views = null;
+  var handlers = {
+    message: pool.onmessage,
+    close: pool.onclose,
+    open: function (data) {
+      post(data);
+      Onconnect(self, data.path, pool.add(data.index));
+    },
+    sync: function (data) {
+      Onrequest(self, data.method, data.path, data.headers, data.body, function (status, reason, headers, body) {
+        var response = JSON.stringify({
+          status: status,
+          reason: reason,
+          headers: headers,
+          body: body
+        });
+        views.length[0] = response.length;
+        for (var i=0, l=Math.min(response.length, views.data.length); i<l; i++)
+          views.data[i] = response.charCodeAt(i);
+        views.lock[0] = 0;
+      });
+    },
+    async: function (data) {
+      Onrequest(self, data.method, data.path, data.headers, data.body, function (status, reason, headers, body) {
+        post({
+          name: "async",
+          index: data.index,
+          status: status,
+          reason: reason,
+          headers: headers,
+          body: body
+        });
+      });
+    }
+  };
+  return {
+    message: function (message) {
+      if (views)
+        return handlers[message.data.name](message.data);
+      views = {};
+      views.lock = new Uint8Array(message.data, 0, 1);
+      views.length = new Uint32Array(message.data, 4, 1);
+      views.data = new Uint16Array(message.data, 8);
+    },
+    terminate: function () {
+      pool.terminate();
+      pool = null;
+      handlers = null;
+    }
+  };
+};
+
+},{"../../util/pool.js":10,"../dispatch/onconnect.js":3,"../dispatch/onrequest.js":4}],9:[function(require,module,exports){
+
+var Events = require("events");
+
+module.exports = function (con, name) {
+  var wrapper = new Events();
+  wrapper.send = function (message) {
+    console.log(name+" >> "+message);
+    con.send(message);
+  };
+  wrapper.close = function (code, reason) {
+    console.log(name+" close "+code+" "+reason);
+    con.close(code, reason);
+  };
+  con.on("message", function (message) {
+    console.log(name+" << "+message);
+    wrapper.emit("message", message);
+  });
+  con.on("close", function (code, reason) {
+    console.log(name+" onclose "+code+" "+reason);
+    wrapper.emit("close", code, reason);
+  });
+  con.on("open", function () {
+    console.log(name+" onopen");
+    wrapper.emit("open");
+  });
+  con.on("error", function (error) {
+    console.log(name+" onerror "+error.message);
+    wrapper.emit("error", error);
+  });
+  return wrapper;
+};
+
+},{"events":12}],10:[function(require,module,exports){
+
+var Events = require("events");
+
+function signal (error) { throw error } 
+
+module.exports = function (post) {
+
+  var pool = [];
+
+  function send (message, callback) {
+    if (this !== pool[this._index_]) {
+      callback = callback || signal;
+      return callback(new Error("Connection closed"));
+    }
+    post({
+      name: "message",
+      index: this._index_,
+      message: message
+    });
+    callback && callback();
+  }
+
+  function close (code, reason) {
+    if (this === pool[this._index_]) {
+      pool[this._index_] = null;
+      this.emit("close", code, reason);
+      post({
+        name: "close",
+        index: this._index_,
+        code: code,
+        reason: reason
+      });
+    }
+  }
+
+  return {
+    free: function () {
+      index = pool.indexOf(null);
+      return index === -1 ? pool.length : index;
+    },
+    add: function (index) {
+      var con = new Events();
+      pool[index] = con;
+      con.send = send;
+      con.close = close;
+      Object.defineProperty(con, "_index_", {value:index});
+      return con;
+    },
+    terminate: function () {
+      pool.forEach(function (con) { con.emit("close", 1001, "CLOSE_GOING_AWAY") });
+      pool = [];
+    },
+    onclose: function (data) {
+      pool[data.index].emit("close", data.code, data.reason);
+      pool[data.index] = null;
+    },
+    onmessage: function (data) {
+      pool[data.index].emit("message", data.message);
+    },
+    onopen: function (data) {
+      pool[data.index].emit("open");
+    }
+  };
+
+};
+
+},{"events":12}],11:[function(require,module,exports){
+(function (global){
+
+// var OTILUKE_CLIENT_MAIN
+// var OTILUKE_RECEPTOR_REQUIRE
+// var OTILUKE_VIRUS_REQUIRE
+
+var OtilukeSpawnBrowser = require("../spawn/browser");
+var OtilukeSpawnBrowserGuiSpawner = require("../spawn/browser/gui/spawner.js");
+var OtilukeSpawnBrowserGuiEditorRequire = require("../spawn/browser/gui/editor-dependency.js");
+
+window.onload = function () {
+  var div1 = document.createElement("div");
+  var div2 = document.createElement("div");
+  var button1 = document.createElement("button");
+  var button2 = document.createElement("button");
+  var ol = document.createElement("ol");
+  [div1, div2, button1, button2, ol].forEach(document.body.appendChild.bind(document.body));
+  var reditor = OtilukeSpawnBrowserGuiEditorRequire(div1, OTILUKE_RECEPTOR_DEPENDENCY);
+  var veditor = OtilukeSpawnBrowserGuiEditorRequire(div2, OTILUKE_VIRUS_DEPENDENCY);
+  button2.innerText = "New";
+  var spawn = null;
+  var spawners = [];
+  function toggle (test) {
+    reditor[test ? "disable" : "enable"]();
+    veditor[test ? "disable" : "enable"]();
+    button1.innerText = test ? "Stop" : "Start";
+    button1.onclick = test ? stop : start;
+    button2.disabled = !test
+  }
+  button2.onclick = function () {
+    var li = document.createElement("li");
+    ol.appendChild(li);
+    spawners.push(OtilukeSpawnBrowserGuiSpawner(li, spawn));
+  };
+  function start () {
+    toggle(true);
+    spawn = OtilukeSpawnBrowser(global.eval(reditor.get()), URL.createObjectURL(new Blob([
+      "var OTILUKE_VIRUS = "+veditor.get()+";\n",
+      OTILUKE_CLIENT_BUNDLE
+    ], {type: "application/javascript"})));
+  }
+  function stop () {
+    toggle(false);
+    while (ol.firstChild)
+      ol.removeChild(ol.firstChild);
+    for (var i=0; i<spawners.length; i++)
+      spawners[i].terminate();
+    spawners = [];
+    spawn = null;
+  }
+  toggle(false);
+};
+
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{"../spawn/browser":17,"../spawn/browser/gui/editor-dependency.js":13,"../spawn/browser/gui/spawner.js":15}],12:[function(require,module,exports){
+// Copyright Joyent, Inc. and other Node contributors.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the
+// "Software"), to deal in the Software without restriction, including
+// without limitation the rights to use, copy, modify, merge, publish,
+// distribute, sublicense, and/or sell copies of the Software, and to permit
+// persons to whom the Software is furnished to do so, subject to the
+// following conditions:
+//
+// The above copyright notice and this permission notice shall be included
+// in all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+// USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+function EventEmitter() {
+  this._events = this._events || {};
+  this._maxListeners = this._maxListeners || undefined;
+}
+module.exports = EventEmitter;
+
+// Backwards-compat with node 0.10.x
+EventEmitter.EventEmitter = EventEmitter;
+
+EventEmitter.prototype._events = undefined;
+EventEmitter.prototype._maxListeners = undefined;
+
+// By default EventEmitters will print a warning if more than 10 listeners are
+// added to it. This is a useful default which helps finding memory leaks.
+EventEmitter.defaultMaxListeners = 10;
+
+// Obviously not all Emitters should be limited to 10. This function allows
+// that to be increased. Set to zero for unlimited.
+EventEmitter.prototype.setMaxListeners = function(n) {
+  if (!isNumber(n) || n < 0 || isNaN(n))
+    throw TypeError('n must be a positive number');
+  this._maxListeners = n;
+  return this;
+};
+
+EventEmitter.prototype.emit = function(type) {
+  var er, handler, len, args, i, listeners;
+
+  if (!this._events)
+    this._events = {};
+
+  // If there is no 'error' event listener then throw.
+  if (type === 'error') {
+    if (!this._events.error ||
+        (isObject(this._events.error) && !this._events.error.length)) {
+      er = arguments[1];
+      if (er instanceof Error) {
+        throw er; // Unhandled 'error' event
+      } else {
+        // At least give some kind of context to the user
+        var err = new Error('Uncaught, unspecified "error" event. (' + er + ')');
+        err.context = er;
+        throw err;
+      }
+    }
+  }
+
+  handler = this._events[type];
+
+  if (isUndefined(handler))
+    return false;
+
+  if (isFunction(handler)) {
+    switch (arguments.length) {
+      // fast cases
+      case 1:
+        handler.call(this);
+        break;
+      case 2:
+        handler.call(this, arguments[1]);
+        break;
+      case 3:
+        handler.call(this, arguments[1], arguments[2]);
+        break;
+      // slower
+      default:
+        args = Array.prototype.slice.call(arguments, 1);
+        handler.apply(this, args);
+    }
+  } else if (isObject(handler)) {
+    args = Array.prototype.slice.call(arguments, 1);
+    listeners = handler.slice();
+    len = listeners.length;
+    for (i = 0; i < len; i++)
+      listeners[i].apply(this, args);
+  }
+
+  return true;
+};
+
+EventEmitter.prototype.addListener = function(type, listener) {
+  var m;
+
+  if (!isFunction(listener))
+    throw TypeError('listener must be a function');
+
+  if (!this._events)
+    this._events = {};
+
+  // To avoid recursion in the case that type === "newListener"! Before
+  // adding it to the listeners, first emit "newListener".
+  if (this._events.newListener)
+    this.emit('newListener', type,
+              isFunction(listener.listener) ?
+              listener.listener : listener);
+
+  if (!this._events[type])
+    // Optimize the case of one listener. Don't need the extra array object.
+    this._events[type] = listener;
+  else if (isObject(this._events[type]))
+    // If we've already got an array, just append.
+    this._events[type].push(listener);
+  else
+    // Adding the second element, need to change to array.
+    this._events[type] = [this._events[type], listener];
+
+  // Check for listener leak
+  if (isObject(this._events[type]) && !this._events[type].warned) {
+    if (!isUndefined(this._maxListeners)) {
+      m = this._maxListeners;
+    } else {
+      m = EventEmitter.defaultMaxListeners;
+    }
+
+    if (m && m > 0 && this._events[type].length > m) {
+      this._events[type].warned = true;
+      console.error('(node) warning: possible EventEmitter memory ' +
+                    'leak detected. %d listeners added. ' +
+                    'Use emitter.setMaxListeners() to increase limit.',
+                    this._events[type].length);
+      if (typeof console.trace === 'function') {
+        // not supported in IE 10
+        console.trace();
+      }
+    }
+  }
+
+  return this;
+};
+
+EventEmitter.prototype.on = EventEmitter.prototype.addListener;
+
+EventEmitter.prototype.once = function(type, listener) {
+  if (!isFunction(listener))
+    throw TypeError('listener must be a function');
+
+  var fired = false;
+
+  function g() {
+    this.removeListener(type, g);
+
+    if (!fired) {
+      fired = true;
+      listener.apply(this, arguments);
+    }
+  }
+
+  g.listener = listener;
+  this.on(type, g);
+
+  return this;
+};
+
+// emits a 'removeListener' event iff the listener was removed
+EventEmitter.prototype.removeListener = function(type, listener) {
+  var list, position, length, i;
+
+  if (!isFunction(listener))
+    throw TypeError('listener must be a function');
+
+  if (!this._events || !this._events[type])
+    return this;
+
+  list = this._events[type];
+  length = list.length;
+  position = -1;
+
+  if (list === listener ||
+      (isFunction(list.listener) && list.listener === listener)) {
+    delete this._events[type];
+    if (this._events.removeListener)
+      this.emit('removeListener', type, listener);
+
+  } else if (isObject(list)) {
+    for (i = length; i-- > 0;) {
+      if (list[i] === listener ||
+          (list[i].listener && list[i].listener === listener)) {
+        position = i;
+        break;
+      }
+    }
+
+    if (position < 0)
+      return this;
+
+    if (list.length === 1) {
+      list.length = 0;
+      delete this._events[type];
+    } else {
+      list.splice(position, 1);
+    }
+
+    if (this._events.removeListener)
+      this.emit('removeListener', type, listener);
+  }
+
+  return this;
+};
+
+EventEmitter.prototype.removeAllListeners = function(type) {
+  var key, listeners;
+
+  if (!this._events)
+    return this;
+
+  // not listening for removeListener, no need to emit
+  if (!this._events.removeListener) {
+    if (arguments.length === 0)
+      this._events = {};
+    else if (this._events[type])
+      delete this._events[type];
+    return this;
+  }
+
+  // emit removeListener for all listeners on all events
+  if (arguments.length === 0) {
+    for (key in this._events) {
+      if (key === 'removeListener') continue;
+      this.removeAllListeners(key);
+    }
+    this.removeAllListeners('removeListener');
+    this._events = {};
+    return this;
+  }
+
+  listeners = this._events[type];
+
+  if (isFunction(listeners)) {
+    this.removeListener(type, listeners);
+  } else if (listeners) {
+    // LIFO order
+    while (listeners.length)
+      this.removeListener(type, listeners[listeners.length - 1]);
+  }
+  delete this._events[type];
+
+  return this;
+};
+
+EventEmitter.prototype.listeners = function(type) {
+  var ret;
+  if (!this._events || !this._events[type])
+    ret = [];
+  else if (isFunction(this._events[type]))
+    ret = [this._events[type]];
+  else
+    ret = this._events[type].slice();
+  return ret;
+};
+
+EventEmitter.prototype.listenerCount = function(type) {
+  if (this._events) {
+    var evlistener = this._events[type];
+
+    if (isFunction(evlistener))
+      return 1;
+    else if (evlistener)
+      return evlistener.length;
+  }
+  return 0;
+};
+
+EventEmitter.listenerCount = function(emitter, type) {
+  return emitter.listenerCount(type);
+};
+
+function isFunction(arg) {
+  return typeof arg === 'function';
+}
+
+function isNumber(arg) {
+  return typeof arg === 'number';
+}
+
+function isObject(arg) {
+  return typeof arg === 'object' && arg !== null;
+}
+
+function isUndefined(arg) {
+  return arg === void 0;
+}
+
+},{}],13:[function(require,module,exports){
+
+var Editor = require("./editor.js");
+
+module.exports = function (container, dependency) {
+  if (dependency.names && dependency.names.length) {
+    var div = document.createElement("div");
+    div.innerText = "Modules available for require: "+dependency.names.join(",")+".";
+    container.appendChild(div);
+  }
+  var self = Object.create(prototype);
+  self._bundle_ = dependency.bundle;
+  self._editor_ = Editor(container);
+  self._editor_.set(dependency.initial || "");
+  return self;
+};
+
+var prototype = {
+  disable: function () { this._editor_.disable() },
+  enable: function () { this._editor_.enable() },
+  set: function (value) { this._editor_.set(value) },
+  get: function () {
+    return [
+      "(function () {",
+      "  "+this._bundle_,
+      "  var global = this || window;",
+      "  var module = {exports:{}};",
+      "  var exports = module.exports;",
+      "  "+this._editor_.get(),
+      "  return module.exports;",
+      "} ())"
+    ].join("\n");
+  }
+};
+
+},{"./editor.js":14}],14:[function(require,module,exports){
+(function (global){
+
+if (global.ace) {
+  var prototype = {
+    get: function () { return this._editor_.getValue() },
+    set: function (value) { return this._editor_.setValue(value) },
+    enable: function () { return this._editor_.setReadOnly(false) },
+    disable: function () { return this._editor_.setReadOnly(true) }
+  };
+  module.exports = function (container) {
+    var self = Object.create(prototype);
+    self._editor_ = ace.edit(container);
+    self._editor_.setTheme("ace/theme/chrome");
+    self._editor_.getSession().setMode("ace/mode/javascript");
+    self._editor_.$blockScrolling = Infinity;
+    self._editor_.setOption("showPrintMargin", false);
+    self._editor_.getSession().setTabSize(2);
+    self._editor_.getSession().setUseSoftTabs(true);
+    return self;
+  };
+} else {
+  var prototype = {
+    get: function () { return this._textarea_.value },
+    set: function (value) { this._textarea_.value = value },
+    enable: function () { this._textarea_.disabled = false },
+    disable: function () { this._textarea_.disabled = true }
+  };
+  module.exports = function (container) {
+    var self = Object.create(prototype);
+    self._textarea_ = document.createElement("textarea");
+    self._textarea_.style.fontFamily = "monospace";
+    container.appendChild(self._textarea_);
+    return self;
+  };
+}
+
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{}],15:[function(require,module,exports){
+
+var Editor = require("./editor.js");
+var Terminal = require("./terminal.js");
+
+var prototype = {
+  terminate: function () {
+    this._child_ && this._child_.terminate();
+  }
+};
+
+module.exports = function (container, spawn) {
+  var self = Object.create(prototype);
+  self._child_ = null;
+  var input1 = document.createElement("input");
+  var input2 = document.createElement("input");
+  var div1 = document.createElement("div");
+  var button = document.createElement("button");
+  var div2 = document.createElement("div");
+  [input1, input2, div1, button, div2].forEach(container.appendChild.bind(container));
+  var editor = Editor(div1);
+  var terminal = Terminal(div2);
+  input1.placeholder = "Source...";
+  input2.placeholder = "Parameter...";
+  function toggle (test) {
+    input1.disabled = !test;
+    input2.disabled = !test;
+    editor[test ? "enable" : "disable"]();
+    terminal[test ? "disable" : "enable"]();
+    button.innerText = test ? "Spawn" : "Terminate";
+    button.onclick = test ? start : stop;
+  }
+  function stop () {
+    toggle(true);
+    self._child_.kill();
+    self._child_ = null;
+  }
+  function start () {
+    toggle(false);
+    self._child_ = spawn(input2.value, input1.value, editor.get());
+    self._child_.on("error", function (error) {
+      stop();
+      alert("Spawning error: "+error.message);
+      throw error;
+    });
+    terminal.link(self._child_);
+  }
+  toggle(true);
+  return self;
+};
+
+},{"./editor.js":14,"./terminal.js":16}],16:[function(require,module,exports){
+
+var prototype = {
+  enable: function () { this._textarea1_.disabled = false },
+  disable: function () { this._textarea1_.disabled = true },
+  link: function (child) {
+    var self = this;
+    self._textarea1_.onblur = function () {
+      child.stdin.write(self._textarea1_.value);
+      self._textarea1_.value = "";
+    };
+    child.stdout.on("data", function (data) { self._textarea2_.value += data });
+    child.stderr.on("data", function (data) { self._textarea3_.value += data });
+  }
+};
+
+module.exports = function (container, child) {
+  var self = Object.create(prototype);
+  var button = document.createElement("button");
+  button.innerText = "Clear";
+  button.onclick = function () {
+    self._textarea1_.value = "";
+    self._textarea2_.value = "";
+    self._textarea3_.value = ""; 
+  };
+  self._child_ = child;
+  self._textarea1_ = document.createElement("textarea");
+  self._textarea2_ = document.createElement("textarea");
+  self._textarea3_ = document.createElement("textarea");
+  [button, self._textarea1_, self._textarea2_, self._textarea3_].forEach(container.appendChild.bind(container));
+  self._textarea2_.disabled = true;
+  self._textarea3_.disabled = true;
+  return self;
+};
+
+},{}],17:[function(require,module,exports){
+
+var Events = require("events");
+var Receptor = require("antena/receptor/browser")
+var Collect = require("../util/collect.js");
+var Events = require("events");
+
+function write (data) { this.emit("data", data) }
+
+module.exports = function (receptor, vurl) {
+  return function (parameter, source, script, callback1) {
+    var child = new Events();
+    child.stdin = new Events();
+    child.stdout = new Events();
+    child.stderr = new Events();
+    child.stdin.write = write;
+    var zero = performance.now();
+    var worker = new Worker(vurl);
+    var handlers = Receptor({}).merge({
+      begin: Receptor({
+        onrequest: function (method, path, headers, body, callback2) {
+          callback2(200, "ok", {}, JSON.stringify({
+            autoclose: Boolean(callback1),
+            parameter: parameter,
+            source: source,
+            script: script
+          }));
+        }
+      }),
+      stdio: Receptor({
+        onconnect: function (path, con) {
+          child.stdin.on("data", con.send.bind(con));
+          con.on("message", function (message) {
+            if (message.indexOf("out") === 0)
+              return child.stdout.emit("data", message.substring(3));
+            if (message.indexOf("err") === 0)
+              return child.stderr.emit("data", message.substring(3));
+            child.kill("Invalid stdio message: "+message);
+          });
+        }
+      }),
+      end: Receptor({
+        onrequest: function (method, path, headers, body, callback2) {
+          terminate(JSON.parse(body), null);
+        }
+      }),
+      virus: receptor
+    }).trace().handlers(worker.postMessage.bind(worker));
+    worker.onmessage = function (message) {
+      handlers.message(message);
+    };
+    worker.onerror = function (error) {
+      child.stderr.emit("data", error instanceof ErrorEvent ? (error.stack || error.message+"\n") : String(error));
+    };
+    function terminate (code, signal) {
+      handlers.terminate();
+      child.emit("exit", code, signal);
+      child.stdin.on("close", function () {
+        child.stdout.on("close", function () {
+          child.stderr.on("close", function () {
+            child.emit("close", code, signal);
+          });
+          child.stderr.emit("close");
+        });
+        child.stdout.emit("close");
+      });
+      child.stdin.emit("close");
+    }
+    child.kill = terminate.bind(null, null);
+    if (!callback1)
+      return child;
+    Collect(child, zero, performance, callback);
+  };
+};
+
+},{"../util/collect.js":18,"antena/receptor/browser":1,"events":12}],18:[function(require,module,exports){
+
+var Once = require("./once.js");
+
+module.exports = function (child, zero, performance, callback) {
+  var stdout = "";
+  var stderr = "";
+  child.stdout.on("data", function (data) { stdout += data });
+  child.stderr.on("data", function (data) { stderr += data });
+  var ocallback = Once(callback);
+  child.on("error", ocallback);
+  child.on("exit", function () {
+    ocallback(null, {
+      time: performance.now() - zero,
+      stdout: stdout,
+      stderr: stderr
+    });
+  });
+};
+
+},{"./once.js":19}],19:[function(require,module,exports){
+
+module.exports = function (f) {
+  return function () {
+    var g = f;
+    f = function () {};
+    return g.apply(this, arguments);
+  };
+};
+
+},{}]},{},[11]);
+
+</script>
+  </body>
+</html>
