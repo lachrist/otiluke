@@ -26,12 +26,12 @@ function stripBOM(content) {
 }
 
 module.exports = function (port, parameter, source) {
-  var emitters = EmitterNode(port, false).split(["otiluke", "other"]);
-  emitters.otiluke.request("GET", "/", {}, "", function (error, status, reason, headers, body) {
+  var emitter = EmitterNode(port, false);
+  emitter.request("GET", "/", {}, "", function (error, status, reason, headers, body) {
     if (error || status !== 200)
       throw error || new Error(status+" "+reason);
     var Virus = require(body);
-    Virus(parameter, emitters.other, function (error, infect) {
+    Virus(parameter, emitter.fork("x"), function (error, infect) {
       if (error)
         throw error;
       Module._extensions[".js"] = function (module, filename) {

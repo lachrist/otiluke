@@ -8,8 +8,8 @@ module.exports = function (host, transform) {
   return Receptor({
     onconnect: function (path, con1) {
       var messages = [];
+      var con2 = new Ws("wss"+"://"+host+path);
       con1.on("message", function (message) { messages.push(message) });
-      var con2 = new Ws("wss"+"://"+host+ws1.upgradeReq.url);
       con2.on("open", function () {
         con1.removeAllListeners("message");
         messages.forEach(function (message) { con2.send(message.data, message.flags) });
