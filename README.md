@@ -1,14 +1,82 @@
-# Otiluke <img src="img/otiluke.png" align="right" alt="otiluke-logo" title="Resilient instrument of Otiluke">
+# Otiluke <img src="img/otiluke.png" align="right" alt="otiluke-logo" title="Resilient sphere of Otiluke">
 
 Otiluke is a toolbox for developping JavaScript code transformers and deploying them on node and browsers.
-Code transformation is a keystone technology for various kind of dynamic analyses such as tracers and profilers.
-To use Otiluke, one may provide three distinct JS modules.
-One, called *virus module*, should asynchronously return a code transformation function.
-It will be executed on the same process as the application to be transformed (infected process).
-The two others, called *onrequest module* and *onconnect module*, are listeners for respectively HTTP requests and WebSocket connections
-They are both executed on a separated process which insert the virus into the application to be transformed (infector process).
-Otiluke is a [npm module](https://www.npmjs.com/package/otiluke) and is better installed globally (ie: `npm install otiluke -g`).
-Otiluke features four tools:
+Code transformation such as instrumentation is a keystone technology for various kind of dynamic analyses such as tracers and profilers.
+
+## Virus
+
+### `Virus(parameter, emitter, callback)`
+
+* `parameter :: string`
+* `emitter :: antena.Emitter`
+* `callback(error, virus)`
+  * `error :: Error | null`
+  * `infected = virus(script, source)`
+    * `script :: string`
+    * `source :: string`
+    * `infected :: string`
+
+## Server
+
+### `server = require("otiluke/server/node")(receptor, vpath)`
+
+* `receptor :: antena.Receptor`
+* `vpath :: string`
+* `server :: http.Server`
+
+### `server = require("otiluke/server/browser")(receptor, vpath, constants)`
+
+* `receptor :: antena.Receptor`
+* `vpath :: string`
+* `constants :: object`
+  * `namespace :: string`
+  * `splitter :: string`
+  * `urlkey :: string`
+* `server :: http.Server`
+
+## Spawn
+
+### `spawn = require("otiluke/spawn/mock")(receptor, vscript)`
+
+* `receptor :: antena.Receptor`
+* `vscript :: string`
+* `child = spawn(script, argv)`
+  * `script :: string`
+  * `argv :: [string]`
+  * `child :: child_process.ChildProcess`
+
+### `Spawn = require("otiluke/spawn/node")`
+
+* `receptor :: antena.ReceptorServer`
+* `vscript :: string`
+* `child = spawn(script, argv)`
+  * `script :: string`
+  * `argv :: [string]`
+  * `child :: child_process.ChildProcess`
+
+### `Spawn = require("otiluke/spawn/worker")`
+
+* `receptor :: antena.ReceptorWorker`
+* `vscript :: string`
+* `child = spawn(script, argv)`
+  * `script :: string`
+  * `argv :: [string]`
+  * `child :: child_process.ChildProcess`
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 Tool Name     | Intended Purpose                    | Target Programs    | Infector Process
 --------------|-------------------------------------|--------------------|-------------------

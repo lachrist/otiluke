@@ -31,7 +31,7 @@ module.exports = function (port, parameter, source) {
     if (error || status !== 200)
       throw error || new Error(status+" "+reason);
     var Virus = require(body);
-    Virus(parameter, emitter.fork("x"), function (error, infect) {
+    Virus(parameter, emitter.fork("x"), function (error, virus) {
       if (error)
         throw error;
       Module._extensions[".js"] = function (module, filename) {
@@ -40,7 +40,7 @@ module.exports = function (port, parameter, source) {
         // if (filename.indexOf("node_modules") !== -1)
         //   return module._compile(stripBOM(content), filename);
         // END TODO
-        module._compile(stripBOM(infect(filename, content)), filename);
+        module._compile(stripBOM(virus(content, filename)), filename);
       };
       require(Path.resolve(source));
     });

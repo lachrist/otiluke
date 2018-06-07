@@ -19,12 +19,12 @@ if (!global[CONSTANTS.namespace]) {
     }
     return null;
   }
-  VIRUS(lookup(CONSTANTS.key), EmitterBrowser(location.host, location.protocol === "https:").split(CONSTANTS.splitter), function (error, infect) {
+  VIRUS(lookup(CONSTANTS.key), EmitterBrowser(location.host, location.protocol === "https:").split(CONSTANTS.splitter), function (error, virus) {
     global[CONSTANTS.namespace] = function (source, script) {
-      global.eval(infect(source, script));
+      global.eval(virus(script, source));
     };
     for (var i=0; i<length; i++)
-      global[CONSTANTS.namespace](sources[i], scripts[i]);
+      global[CONSTANTS.namespace](scripts[i], sources[i]);
     sources = null;
     scripts = null;
   });
