@@ -1,4 +1,3 @@
-
 module.exports = function (Spawn) {
   return function (receptor, vscript) {
     return function (script, argv) {

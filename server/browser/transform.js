@@ -1,4 +1,9 @@
 
+const Fs = require("fs");
+const Path = require("path");
+const Stream = require("stream");
+const Browserify = require("browserify");
+
 module.exports = function (path, constants) {
   var setup = "alert(\"Otiluke >> bundling not yet performed, retry in a sec...\")l";
   function done (js) {

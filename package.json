@@ -6,16 +6,19 @@
     "name": "Laurent Christophe",
     "email": "lachrist@vub.ac.be"
   },
-  "file": {
-    
-  } 
+  "file": [
+    "/bin.js",
+    "/spawn/",
+    "/server/"
+  ],
   "repository": "lachrist/otiluke",
   "license": "MIT",
   "dependencies": {
     "antena": "0.1.5",
     "browserify": "14.4.0",
-    "ws": "3.1.0"
+    "ws": "3.2.0"
   },
+  "main": "/server/node/index.js",
   "bin": "./bin.js",
   "keywords": [
     "JavaScript",
