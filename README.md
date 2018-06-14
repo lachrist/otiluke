@@ -1,11 +1,114 @@
 # Otiluke <img src="img/otiluke.png" align="right" alt="otiluke-logo" title="Resilient sphere of Otiluke">
 
-Otiluke is a toolbox for developping JavaScript code transformers and deploying them on node and browsers.
-Code transformation such as instrumentation is a keystone technology for various kind of dynamic analyses such as tracers and profilers.
+Otiluke is a toolbox for deploying isomorphic JavaScript code transformers on node and browsers.
+
+## Transform Module
+
+```js
+module.exports = (antena, data, callback) => {
+  // setup
+  if (something_went_wrong) {
+    callback(error);
+  } else {
+    callback(null, (script, source) => {
+      // transform source
+      return transformed_source;
+    });
+  }
+};
+```
+
+## CLI
+
+### Subscribe Module
+
+The subscribe module is only used by the command line interface, not by the API.
+It should only subscribe to events emitted by otiluke servers.
+The upgrade event will be emitted as the transform module calls `antena.connect()`.
+WebSocket libraries can handle this event to establish a proper WebSocket connection; e.g.: `ws.Server.handlerUpgrade(request, socket, head)`.
+
+```
+module.exports = (server) => {
+  server.on("request", (request, response) => { ... });
+  server.on("upgrade", (request, socket, head) => { ... });
+  server.on("error", (error) => { ... });
+};
+```
+
+### `otiluke --node-server`
+
+### `otiluke --node-client`
+
+### `otilule --mitm-proxy`
+
+### `otiluke --mitm-reset`
+
+## API
+
+### `require("otiluke/node/client")({port, transform, data, _})`
+
+* `port :: number || string`, default 0
+  Either a port number or a path to a unix domain socket ()
+* `transform :: string`
+  Path to transform module
+* `data :: string || null`, default null 
+* `_ :: [string]`
+
+### `proxy = require("otiluke/mitm/proxy")({transform, ca})`
+
+* `transform :: string`:
+  Path to transform module.
+* `ca :: string`, default 
+  Path to certificate authority.
+
+### `require("otiluke/mitm/reset")({ca})`
+
+* 
+
+
+## Getting started 
+
+```
+module.exports = (antena, param, callback) => {
+  const websocket = antena.connect("/foobar");
+  websocket.onerror = () => {
+    callback(new Error("Could not connect"));
+  }; 
+  websocket.onopen = () => {
+    callback(null, (script, source) => {
+      websocket.send(source);
+      return script;
+    });
+  }
+};
+```
+
+```
+const Events = require("events");
+const Ws = require("ws");
+const wss = new Ws.Server({noServer:true});
+module.exports = new Event();
+module.exports.on("upgrade", (request, socket, head) => {
+  if (request.url !== "/foobar")
+    throw new Error("Unexpected url");
+  wss.handleUpgrade(request, socket head, (websocket) => {
+    websocket.on("message", (message) => console.log(message));
+  });
+});
+```
 
 ## Virus
 
-### `Virus(parameter, emitter, callback)`
+```js
+module.exports = (antena, parameter, callback) => {
+  ....
+  callback(error, (script, source) => {
+    return ...;
+  });
+}
+```
+
+### `Virus(antena, parameter, callback)`
 
 * `parameter :: string`
 * `emitter :: antena.Emitter`

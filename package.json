@@ -1,7 +1,7 @@
 {
   "name": "otiluke",
   "description": "Otiluke is a toolbox for JavaScript source-to-source compilers written in JavaScript themselves.",
-  "version": "3.0.1",
+  "version": "4.0.0",
   "author": {
     "name": "Laurent Christophe",
     "email": "lachrist@vub.ac.be"
@@ -13,10 +13,13 @@
   ],
   "repository": "lachrist/otiluke",
   "license": "MIT",
+  "devDependencies": {
+    "ws": "^5.2.0"
+  },
   "dependencies": {
-    "antena": "0.1.5",
-    "browserify": "14.4.0",
-    "ws": "3.2.0"
+    "antena": "^1.0.1",
+    "browserify": "^16.2.2",
+    "minimist": "^1.2.0"
   },
   "main": "/server/node/index.js",
   "bin": "./bin.js",
