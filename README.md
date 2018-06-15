@@ -1,6 +1,6 @@
 # Otiluke <img src="img/otiluke.png" align="right" alt="otiluke-logo" title="Resilient sphere of Otiluke">
 
-Otiluke is a toolbox for deploying isomorphic JavaScript code transformers on node and browsers.
+Toolbox for deploying JavaScript code transformers written in JavaScript themselves on node and browsers.
 
 ## Transform Module
 
