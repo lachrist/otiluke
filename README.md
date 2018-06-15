@@ -36,12 +36,14 @@ It should subscribe to events emitted by otiluke servers.
   * `head :: Buffer`
 * `error`: An error occurred.
   * `error :: Error`
+  * `location :: string` OtilukeMitm only
+  * `target :: object` OtilukeMitm only
 
 ```js
 module.exports = (server) => {
   server.on("request", (request, response) => { ... });
   server.on("upgrade", (request, socket, head) => { ... });
-  server.on("error", (error) => { ... });
+  server.on("error", (error, location, target) => { ... });
 };
 ```
 
@@ -50,38 +52,35 @@ module.exports = (server) => {
 OtilukeMitm transforms html pages served over http(s) by performing a man-in-the-middle attack with a forward proxy.
 Such attack requires the browser to redirect all its request to the forward proxy.
 For pages securly served over https it also requires the browser to trust the self-signed certificate at [mitm/ca/cert.pem](mitm/ca/cert.pem).
-See [test/mitm.sh](test/mitm.sh) for example.
+Examples: [test/mitm-hello.sh](test/mitm-hello.sh) and [test/mitm-google.sh](test/mitm-hello.sh).
 
 <img src="img/mitm.png" align="center" title="OtilukeMitm"/>
 
 ### Redirect Firefox requests to the mitm proxy
 
-First, you have to redirect all Firefox requests to the local port where the proxy from OtilukeMitm has been deployed.
 Go to `about:preferences`, at the bottom of the *General* menu, click on *Settings...*.
-You can now tick the checkbox *Manual proxy configuration* and *Use this proxy server for all protocols*.
-The HTTP proxy fields should be the localhost `127.0.0.1` and the port on which proxy from the OtilukeMitm is listening.
+Tick the checkbox *Manual proxy configuration* and *Use this proxy server for all protocols*.
+The *HTTP Proxy* field should be *localhost* and the *Port* field should be were OtilukeMitm is listening.
 
 <img src="img/firefox-proxy.png" align="center" title="Firefox's proxy settings"/>
 
 ### Make Firefox trust Otiluke's root certificate
 
-Second, you have to indicate Firefox that you trust Otiluke's root certificate.
 This step is only required if you need to transform html pages securely served via https.
-Go agains to `about:preferences`, at the bottom of the *Privacy & Security* menu, click on *View Certificates*.
-You can now import Otiluke's root certificate which can be found by default at `otiluke/mitm/ca/cert.pem`.
-After changes in certificates' trust, restart Firefox to avoid `sec_error_reused_issuer_and_serial` error.
+Go to `about:preferences`, at the bottom of the *Privacy & Security* menu, click on *View Certificates*.
+Import Otiluke's root certificate which can be found by default at `otiluke/mitm/ca/cert.pem`.
+Restart Firefox to avoid `sec_error_reused_issuer_and_serial` error.
 
 <img src="img/firefox-cert.png" align="center" title="Firefox's proxy settings"/>
 
 ### Security Implication
 
 Making a browser trust a root certificate has dire security consequences.
-Everyone having access to the corresponding private key can falsify *any* identity on that browser.
-Which is exactly what OtilukeMitm needs to do.
+Everyone having access to the corresponding private key can falsify **any** identity on that browser (which is exactly what OtilukeMitm needs to do).
 There is two ways approach this:
-1. Not caring about security by using a dedicated browser and never fill in it any sensitive information.
+1. Not caring about security by using a dedicated browser and **never** fill in it any sensitive information.
 2. Reset Otiluke's certificate authority to generate a new random private root key.
-   Note that this root key is stored in plain text by default at `otiluke/mitm/ca/key.pem`, so makes sure that *absolutely* no one can access this file.
+   Note that this root key is stored in plain text by default at `otiluke/mitm/ca/key.pem`, so makes sure that **absolutely** no one can access this file.
    We could have encrypted this key with a user password that should be entered every-time the mitm attack is deployed but we don't do that at the moment.
 
 ## OtilukeNode
@@ -102,9 +101,9 @@ See [test/node.sh](test/node.sh) for example.
 * `[--secure]`
   Use `https` or `http`
 * `[--key]`
-  Path to key file
+  Path to key file (only if `--secure` is enabled)
 * `[--cert]`
-  Path to certificate file
+  Path to certificate file (only if `--secure` is enabled)
 
 ### `otiluke --node-client --host <number|path|host> --transform <path> -- <path> arg0 arg1 ...`
 
@@ -115,25 +114,23 @@ See [test/node.sh](test/node.sh) for example.
 * `--transform`:
   Path to transform module.
 * `[--secure]`
-  Tells if the antena passed to the transform should perform secure communication.
+  Tells if the `antena` passed to the transform should perform secure communication.
 
 ### `otilule --mitm-proxy --port <number> --transform <path> --subscribe <path>`
 
-* `--port <number>`:
-  Port which the mitm proxy should listen to.
-* `--transform <path>`:
-  Path to transform module.
-* `[--subscribe <path>]`:
-  Path to subscribe module.
-* `[--ca <path>]`, default `otiluke/mitm/ca`:
+* `--port <number>`: Port which the mitm proxy should listen to.
+* `--transform <path>`: Path to transform module.
+* `[--subscribe <path>]`: Path to subscribe module.
+* `[--ca <path>]`, default: `otiluke/mitm/ca`.
   Path to certificate authority (directory where Otiluke will store openssl material).
-* `[--http-splitter <string>]`, default random value.
+* `[--http-splitter <string>]`, default: random value.
   Marker for recognizing communication from the transform module
-* `[--transform-variable]`, default random value.
+* `[--transform-variable]`, default: random value.
   Global variable name used to store the transform function.
-* `[--parameter-key <string>]`, default `otiluke`:
+* `[--parameter-key <string>]`, default: `otiluke`.
   Url search key for retreiving the `parameter` argument to pass to the transform module.
-* `[--server-namespace]`, default timestamped random value in `/tmp` or in `\\pipe?\`.
+* `[--server-namespace]`, default: timestamped random value in `/tmp` or in `\\pipe?\`.
+  Path prefix before unix domain Socket or Windows pipe for mock servers.
 
 ### `otiluke --mitm-reset`
 
@@ -164,7 +161,7 @@ See [test/node.sh](test/node.sh) for example.
 * `[--transform-variable]`, default random value.
   Global variable name used to store the transform function.
 * `[--parameter-key <string>]`, default `otiluke`:
-  Url search key for retreiving the `parameter` argument to pass to the transform module.
+  Url search key for retrieving the `parameter` argument to pass to the transform module.
 
 ### `require("otiluke/mitm/reset")({ca})`
 
