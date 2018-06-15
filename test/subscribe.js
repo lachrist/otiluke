@@ -1,8 +1,9 @@
 const Ws = require("ws");
 module.exports = (server) => {
   const wss = new Ws.Server({noServer:true});
-  server.on("error", (error) => {
-    throw error;
+  server.on("error", (error, location, target) => {
+    console.log(error.message+" @"+location);
+    console.log(error.stack);
   });
   server.on("request", (request, response) => {
     console.log("Request: "+request.method+" "+request.url+" HTTP/"+request.httpVersion);

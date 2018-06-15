@@ -17,9 +17,9 @@
     "ws": "^5.2.0"
   },
   "dependencies": {
-    "antena": "^1.0.1",
-    "browserify": "^16.2.2",
-    "minimist": "^1.2.0"
+    "antena": "1.1.1",
+    "browserify": "16.2.2",
+    "minimist": "1.2.0"
   },
   "main": "/server/node/index.js",
   "bin": "./bin.js",

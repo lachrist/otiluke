@@ -14,7 +14,7 @@ function stripBOM(content) {
 
 module.exports = (options) => {
   process.argv = ["node"].concat(options._);
-  require(Path.resolve(options.transform))(new Antena(options.port, options.secure), options.data, (error, transform) => {
+  options.transform(new Antena(options.host, options.secure), options.parameter, (error, transform) => {
     if (error)
       throw error;
     // https://github.com/nodejs/node/blob/master/lib/internal/modules/cjs/loader.js
