@@ -5,7 +5,7 @@ const Events = require("events");
 const Path = require("path");
 const Mock = require("./mock.js");
 const Tunnel = require("./tunnel.js");
-const Intercept = require("./intercept.js");
+const Infect = require("./infect.js");
 const Forward = require("./forward.js");
 const OnError = require("./on-error.js");
 
@@ -16,11 +16,12 @@ module.exports = (options) => {
       "otiluke-"+(new Date().getTime()).toString(36)+"-"+Math.random().toString(36).substring(2,10));
   options["http-splitter"] = options["http-splitter"] || "otiluke-"+Math.random().toString(36).substring(2);
   options["ca"] = options["ca"] || Path.join(__dirname, "..", "ca");
-  const intercept = Intercept(emitter, {
-    transform: options["transform"],
-    key: options["parameter-key"] || "otiluke",
-    name: options["transform-variable"] || "otiluke_"+Math.random().toString(36).substring(2),
-    splitter: options["http-splitter"]
+  options.heartbeat = options.heartbeat || 120 * 1000;
+  const infect = Infect(emitter, {
+    "virus": options["virus"],
+    "url-search-prefix": options["url-search-prefix"] || "otiluke-",
+    "global-variable": options["global-variable"] || "otiluke_"+Math.random().toString(36).substring(2),
+    "http-splitter": options["http-splitter"]
   });
   const servers = {};
   const proxy = Http.createServer();
@@ -39,7 +40,7 @@ module.exports = (options) => {
         if (error) {
           OnError("mock-creation", emitter).call(request, error);
         } else {
-          const forward = Forward(intercept, {
+          const forward = Forward(infect, {
             host: request.url,
             splitter: options["http-splitter"],
             emitter: emitter
@@ -58,10 +59,10 @@ module.exports = (options) => {
               server.close();
               delete servers[request.url];
             } else {
-              setTimeout(heart, 120000);
+              setTimeout(heart, options["heartbeat"]);
             }
           }
-          setTimeout(heart, 120000);
+          setTimeout(heart, options["heartbeat"]);
           server.listen(options["server-namespace"]+"_"+request.url, () => {
             servers[request.url].forEach((pair) => {
               Tunnel({server:server, socket:pair[0], head:pair[1], emitter:emitter});
@@ -76,7 +77,7 @@ module.exports = (options) => {
     // https://www.w3.org/Protocols/HTTP/1.1/rfc2616bis/draft-lafon-rfc2616bis-03.html#rfc.section.5.1.2
     const url = new URL(request.url);
     request.url = url.pathname + url.search + url.hash;
-    Forward(intercept, {
+    Forward(infect, {
       host: url.host,
       splitter: options["http-splitter"],
       emitter: emitter
@@ -84,19 +85,22 @@ module.exports = (options) => {
   });
   proxy.on("error", OnError("mitm-proxy", emitter));
   proxy.on("close", (haderror) => {
-    Object.keys(servers).forEach((host) => {
-      if (!Array.isArray(servers[host])) {
-        servers[host].close();
-      }
-    });
-    servers = [];
     emitter.emit("close", haderror);
   });
   proxy.on("listening", () => {
     emitter.emit("listening");
   });
+  emitter.close = (callback) => {
+    proxy.close(callback);
+    proxy.removeAllListeners("connect");
+    Object.keys(servers).forEach((host) => {
+      if (!Array.isArray(servers[host])) {
+        servers[host].close();
+      }
+      delete servers[host];
+    });
+  };
   emitter.listen = proxy.listen.bind(proxy);
-  emitter.close = proxy.close.bind(proxy);
   emitter.address = proxy.address.bind(proxy);
   return emitter;
 };

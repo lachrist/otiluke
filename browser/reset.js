@@ -14,12 +14,11 @@ const openssl = (argv) => {
 
 module.exports = (options) => {
   const ca = options.ca || Path.join(__dirname, "ca");
+  try { Fs.mkdirSync(ca) } catch (error) {}
   ["cert", "key", "req"].forEach((dirname) => {
     try { Fs.mkdirSync(Path.join(ca, dirname)) } catch (error) {}
     Fs.readdirSync(Path.join(ca, dirname)).forEach((filename) => {
-      if (filename !== ".gitignore") {
-        Fs.unlinkSync(Path.join(ca, dirname, filename));
-      }
+      Fs.unlinkSync(Path.join(ca, dirname, filename));
     });
   });
   Fs.writeFileSync(Path.join(ca, "serial.srl"), "01");

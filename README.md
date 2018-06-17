@@ -2,168 +2,134 @@
 
 Toolbox for deploying JavaScript code transformers written in JavaScript themselves on node and browsers.
 
-## Transform Module
+## Virus Interface
 
-The transform module receive an [Antena](https://github.com/lachrist/antena) (isomorphic http client), a parameter entered by the user and should asynchronously return a transformation function.
+In Otiluke, code transformers should adhere to the virus interface.
+A virus is a function which receives an [Antena](https://github.com/lachrist/antena) (isomorphic http client) as well as a set of options entered by the user and it should asynchronously return a code transformation function.
+A virus module is a commonjs module exporting a virus function.
 
 ```js
-module.exports = (antena, parameter, callback) => {
-  // perform setup
+module.exports = (antena, options, callback) => {
+  // Perform setup
   if (something_went_wrong) {
     callback(error);
   } else {
     callback(null, (script, source) => {
-      // transform source
+      // Transform source
       return transformed_source;
     });
   }
 };
 ```
 
-## Subscribe Module
+## OtilukeBrowser
 
-The subscribe module is only used by the CLI, not by the API.
-It should subscribe to events emitted by otiluke servers.
-* `request`: transform module called `antena.request(method, path, headers, body, [callback])`.
-  * `request :: http.IncomingMessage`
-    `request.url` is equal to `path`.
-  * `response :: http.ServerResponse`
-* `upgrade`: transform module called `antena.WebSocket(path)`.
-  WebSocket libraries can handle this event to establish a proper WebSocket connection; e.g.: `ws.Server.handleUpgrade(request, socket, head)`.
-  * `request :: http.IncomingMessage`
-    `request.url` is equal to `path`.
-  * `socket :: net.Socket`
-  * `head :: Buffer`
-* `error`: An error occurred.
-  * `error :: Error`
-  * `location :: string` OtilukeMitm only
-  * `target :: object` OtilukeMitm only
-
-```js
-module.exports = (server) => {
-  server.on("request", (request, response) => { ... });
-  server.on("upgrade", (request, socket, head) => { ... });
-  server.on("error", (error, location, target) => { ... });
-};
-```
-
-## OtilukeMitm
-
-OtilukeMitm transforms html pages served over http(s) by performing a man-in-the-middle attack with a forward proxy.
+OtilukeBrowser modifies html pages served over http(s) by performing a man-in-the-middle attack with a forward proxy.
 Such attack requires the browser to redirect all its request to the forward proxy.
-For pages securly served over https it also requires the browser to trust the self-signed certificate at [mitm/ca/cert.pem](mitm/ca/cert.pem).
-Examples: [test/mitm-hello.sh](test/mitm-hello.sh) and [test/mitm-google.sh](test/mitm-hello.sh).
+For pages securely served over https it also requires the browser to trust the self-signed certificate at [browser/ca/cert.pem](browser/ca/cert.pem).
+Examples: [test/browser-hello.sh](test/browser-hello.sh) and [test/browser-google.sh](test/browser-hello.sh).
 
-<img src="img/mitm.png" align="center" title="OtilukeMitm"/>
+<img src="img/browser.png" align="center" title="OtilukeBrowser"/>
 
-### Redirect Firefox requests to the mitm proxy
+### `otiluke --ca <path>`
+
+Upon calling this command, Otiluke will prepare a directory to serve as a certificate authority.
+That the end, this directory will be populated with the subdirectories: `req`, `key` and `cert` and the files: `req.pem`, `key.pem` and `cert.pem`.
+To make a browser trust Otiluke, you will need to import `cert.pem` which is Otiluke's root certificate.
+* `--ca`, default `node_modules/otiluke/browser/ca`
+  Path to a certificate authority directory.
+
+**Warning**
+Making a browser trust a root certificate implies *serious* security consequences.
+Everyone having access to the corresponding private key can falsify *any* identity on that browser (which is exactly what OtilukeBrowser needs to do).
+To avoid security breach, we recommend to use a dedicated browser and *never* fill in it any sensitive information.
+
+### `require("otiluke/browser/reset")({ca})`
+
+API version of `otiluke --ca <path>`.
+
+### `proxy = require("otiluke/browser/proxy")({virus, ca, "http-splitter", "global-variable", "url-search-prefix"})`
+
+Create a man-in-the-middle proxy.
+* `virus :: string`:
+  Path to a virus module.
+* `ca :: string`, default `"otiluke/browser/ca"`
+  Path to a certificate authority directory.
+* `url-search-prefix :: string`, default `"otiluke-"`:
+  Url search prefix for creating the `options` object to pass to the virus module.
+  For instance, the url `http://example.com/path?otiluke-foo=123&otiluke-bar=456&qux=789` will result into `{foo:123, bar:456}` being passed to the virus module.
+* `http-splitter :: string`, default random value.
+  Marker for recognizing communication from the virus module.
+* `global-variable :: string`, default random value.
+  Global variable name used to store the transformation function asynchronously returned by the virus module.
+* `proxy :: object`
+  An imitation of a regular `http.Server`.
+    * Event: `request`
+      * `request :: http.IncomingMessage`
+      * `response :: http.ServerResponse`
+    * Event: `upgrade`
+      * `request :: http.IncomingMessage`
+      * `socket :: Net.Socket`
+      * `head :: buffer`
+    * Event: `listening`
+    * Event: `close`
+      * `hadError :: boolean`
+    * Event: `error`
+      * `error :: Error`
+      * `location :: string`
+      * `origin :: events.EventEmitter`
+    * `proxy.listen(port, callback)`
+    * `proxy.close(callback)`
+    * `proxy.address()`
+
+### Redirect Firefox requests to the man-in-the-middle proxy
 
 Go to `about:preferences`, at the bottom of the *General* menu, click on *Settings...*.
 Tick the checkbox *Manual proxy configuration* and *Use this proxy server for all protocols*.
-The *HTTP Proxy* field should be *localhost* and the *Port* field should be were OtilukeMitm is listening.
+The *HTTP Proxy* field should be *localhost* and the *Port* field should refer to the port to which is the proxy is listening.
 
 <img src="img/firefox-proxy.png" align="center" title="Firefox's proxy settings"/>
 
 ### Make Firefox trust Otiluke's root certificate
 
-This step is only required if you need to transform html pages securely served via https.
+This step is only required if you need to infect html pages securely served over https.
 Go to `about:preferences`, at the bottom of the *Privacy & Security* menu, click on *View Certificates*.
-Import Otiluke's root certificate which can be found by default at `otiluke/mitm/ca/cert.pem`.
-Restart Firefox to avoid `sec_error_reused_issuer_and_serial` error.
+Import Otiluke's root certificate an restart Firefox to avoid `sec_error_reused_issuer_and_serial` error.
 
 <img src="img/firefox-cert.png" align="center" title="Firefox's proxy settings"/>
 
-### Security Implication
-
-Making a browser trust a root certificate has dire security consequences.
-Everyone having access to the corresponding private key can falsify **any** identity on that browser (which is exactly what OtilukeMitm needs to do).
-There is two ways approach this:
-1. Not caring about security by using a dedicated browser and **never** fill in it any sensitive information.
-2. Reset Otiluke's certificate authority to generate a new random private root key.
-   Note that this root key is stored in plain text by default at `otiluke/mitm/ca/key.pem`, so makes sure that **absolutely** no one can access this file.
-   We could have encrypted this key with a user password that should be entered every-time the mitm attack is deployed but we don't do that at the moment.
-
 ## OtilukeNode
 
-OtilukeNode transform node applications by modifying the require procedure performed by node.
+OtilukeNode infects node applications by modifying the require procedure performed by node.
 See [test/node.sh](test/node.sh) for example.
 
-<img src="img/mitm.png" align="center" title="OtilukeNode"/>
+<img src="img/node.png" align="center" title="OtilukeNode"/>
 
-## CLI
+### `otiluke --virus <path> --host <number|path|host> [--secure]  ... -- <target-command>`
 
-### `otiluke --node-server --port <number|path> --subscribe <path>`
-
-* `--port <number|path>`:
-  Local port or unix domain socket or windows pipe.
-* `--subscribe <path>`:
-  Path to subscribe module.
-* `[--secure]`
-  Use `https` or `http`
-* `[--key]`
-  Path to key file (only if `--secure` is enabled)
-* `[--cert]`
-  Path to certificate file (only if `--secure` is enabled)
-
-### `otiluke --node-client --host <number|path|host> --transform <path> -- <path> arg0 arg1 ...`
-
+* `--virus`:
+  Path to a virus module.
 * `--host <number|path|host>`:
+  Defines the host to which the `antena` passed to the virus module should be directed.
     * `number`: Local port.
     * `path`: Unix domain socket or windows pipe.
     * `host`: `hostname[:port]`.
-* `--transform`:
-  Path to transform module.
 * `[--secure]`
-  Tells if the `antena` passed to the transform should perform secure communication.
+  Tells if the `antena` passed to the virus module should perform secure communication.
+* `...`
+  Additional arguments will be passed as `options` to the virus module. 
+* `--`:
+  The double dash separates Otiluke-related arguments from the target node command.
 
-### `otilule --mitm-proxy --port <number> --transform <path> --subscribe <path>`
+### `require("otiluke/node/client")({virus, host, secure, ..., _})`
 
-* `--port <number>`: Port which the mitm proxy should listen to.
-* `--transform <path>`: Path to transform module.
-* `[--subscribe <path>]`: Path to subscribe module.
-* `[--ca <path>]`, default: `otiluke/mitm/ca`.
-  Path to certificate authority (directory where Otiluke will store openssl material).
-* `[--http-splitter <string>]`, default: random value.
-  Marker for recognizing communication from the transform module
-* `[--transform-variable]`, default: random value.
-  Global variable name used to store the transform function.
-* `[--parameter-key <string>]`, default: `otiluke`.
-  Url search key for retreiving the `parameter` argument to pass to the transform module.
-* `[--server-namespace]`, default: timestamped random value in `/tmp` or in `\\pipe?\`.
-  Path prefix before unix domain Socket or Windows pipe for mock servers.
-
-### `otiluke --mitm-reset`
-
-* `[--ca <path>]`, default `otiluke/mitm/ca`:
-  Path to certificate authority 
-
-## API
-
-### `require("otiluke/node/client")({host, secure, transform, parameter, _})`
-
-* `host :: number || string`
+* `virus :: function`:
+  A virus function.
+* `host :: number | string`:
   A local port number or `hostname:port` or a Unix domain socket or a Windows pipe.
-* `transform :: function`
-  A function which has the same signature as the transform module.
-* `parameter :: *`
-  Some data to pass to the transform function.
-* `_ :: [string]`
+* `secure :: boolean`:
+* `...`:
+  Additional properties will be passed as `options` to the virus module.
+* `_ :: [string]`:
   The command line to execute, e.g: `["main.js", "arg0", "arg1"]`.
 
-### `proxy = require("otiluke/mitm/proxy")({transform, ca, "http-splitter", "transform-variable", "parameter-key"})`
-
-* `transform :: string`:
-  Path to transform module.
-* `ca :: string`, default `"otiluke/mitm/ca"`
-  Path to certificate authority.
-* `[--http-splitter <string>]`, default random value.
-  Marker for recognizing communication from the transform module
-* `[--transform-variable]`, default random value.
-  Global variable name used to store the transform function.
-* `[--parameter-key <string>]`, default `otiluke`:
-  Url search key for retrieving the `parameter` argument to pass to the transform module.
-
-### `require("otiluke/mitm/reset")({ca})`
-
-* `ca :: string`, default `"otiluke/mitm/ca"`
-  Path to certificate authority.

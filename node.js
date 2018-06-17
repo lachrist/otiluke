@@ -14,7 +14,14 @@ function stripBOM(content) {
 
 module.exports = (options) => {
   process.argv = ["node"].concat(options._);
-  options.transform(new Antena(options.host, options.secure), options.parameter, (error, transform) => {
+  const antena = "host" in options ? new Antena(options.host, options.secure) : null;
+  const Virus = options.virus;
+  options = Object.assign({}, options);
+  delete options._;
+  delete options.host;
+  delete options.secure;
+  delete options.virus;
+  Virus(antena, options, (error, transform) => {
     if (error)
       throw error;
     // https://github.com/nodejs/node/blob/master/lib/internal/modules/cjs/loader.js
