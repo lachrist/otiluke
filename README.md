@@ -48,10 +48,10 @@ To avoid security breach, we recommend to use a dedicated browser and *never* fi
 
 API version of `otiluke --ca <path>`.
 
-### `proxy = require("otiluke/browser/proxy")(...)`
+### `proxy = require("otiluke/browser/proxy")({virus})`
 
 ```js
-proxy = require("otiluke/browser/proxy")({virus, ca, "http-splitter", "global-variable", "url-search-prefix"})`
+proxy = require("otiluke/browser/proxy")({virus, ca, "http-splitter", "global-variable", "url-search-prefix"});
 ```
 
 Create a man-in-the-middle proxy.
@@ -109,9 +109,11 @@ See [test/node.sh](test/node.sh) for example.
 
 <img src="img/node.png" align="center" title="OtilukeNode"/>
 
-### `otiluke --virus <path> [--host <number|path|host>] [--secure]  ... -- <target-command>`
+### `otiluke --virus <path>`
 
-
+```
+otiluke --virus <path> [--host <number|path|host>] [--secure]  ... -- <target-command>`
+```
 
 * `--virus`:
   Path to a virus module.
@@ -127,7 +129,11 @@ See [test/node.sh](test/node.sh) for example.
 * `--`:
   The double dash separates Otiluke-related arguments from the target node command.
 
-### `require("otiluke/node/client")({virus, host, secure, ..., _})`
+### `require("otiluke/node/client")({virus})`
+
+```js
+require("otiluke/node/client")({virus, host, secure, ..., _})`
+```
 
 * `virus :: function`:
   A virus function.
