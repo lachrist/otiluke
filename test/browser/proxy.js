@@ -1,6 +1,6 @@
 const OtilukeBrowserProxy = require("../../browser/proxy");
 const Subscribe = require("../subscribe.js");
-const proxy = OtilukeBrowserProxy({virus: "../virus.js"});
+const proxy = OtilukeBrowserProxy("../virus.js");
 proxy.on("error", (error, location, target) => {
   console.log(error.message+" @"+location);
   console.log(error.stack);

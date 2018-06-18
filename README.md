@@ -51,7 +51,7 @@ API version of `otiluke --ca <path>`.
 ### `proxy = require("otiluke/browser/proxy")({virus})`
 
 ```js
-proxy = require("otiluke/browser/proxy")({virus, ca, "http-splitter", "global-variable", "url-search-prefix"});
+proxy = require("otiluke/browser/proxy")(virus, {ca, "http-splitter", "global-variable", "url-search-prefix"});
 ```
 
 Create a man-in-the-middle proxy.
@@ -132,7 +132,7 @@ otiluke --virus <path> [--host <number|path|host>] [--secure]  ... -- <target-co
 ### `require("otiluke/node/client")({virus})`
 
 ```js
-require("otiluke/node/client")({virus, host, secure, ..., _})`
+require("otiluke/node/client")(virus, {host, secure, ..., _})`
 ```
 
 * `virus :: function`:

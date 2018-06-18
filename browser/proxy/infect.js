@@ -5,16 +5,13 @@ const Stream = require("stream");
 const Browserify = require("browserify");
 const OnError = require("./on-error.js");
 
-module.exports = (emitter, options) => {
-  var setup = "alert(\"Otiluke >> bundling not yet performed, retry in a sec...\")l";
-  const done = (js) => {
-    setup = "<script>"+js.replace("</script>", "<\\/script>")+"</script>";
-  };
+module.exports = (virus, options) => {
+  var setup = "alert(\"Otiluke >> bundling not yet performed, retry in a sec...\");";
   const readable = new Stream.Readable();
   readable.push(`
     if (!global.${options["global-variable"]}) {
       const Antena = require("antena/browser");
-      const Virus = require(${JSON.stringify(Path.resolve(options["virus"]))});
+      const Virus = require(${JSON.stringify(Path.resolve(virus))});
       let pairs = [];
       global.${options["global-variable"]} = (script, source) => {
         pairs[pairs.length] = [script, source];
@@ -39,12 +36,9 @@ module.exports = (emitter, options) => {
     }`);
   readable.push(null);
   Browserify(readable, {basedir:__dirname}).bundle((error, bundle) => {
-    if (error) {
-      done("alert(\"Otiluke >> bundling error: \"+"+JSON.stringify(error.message)+");");
-      OnError("browserify", emitter)(error);
-    } else {
-      done(bundle.toString("utf8"));
-    }
+    if (error)
+      throw error
+    setup = "<script>"+bundle.toString("utf8").replace("</script>", "<\\/script>")+"</script>";
   });
   const javascript = (script, url) => options["global-variable"]+"("+JSON.stringify(script)+", "+JSON.stringify(url.origin+url.pathname)+");";
   const html = (page, url) => {

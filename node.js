@@ -12,15 +12,13 @@ function stripBOM(content) {
   return content;
 }
 
-module.exports = (options) => {
+module.exports = (Virus, options) => {
   process.argv = ["node"].concat(options._);
   const antena = "host" in options ? new Antena(options.host, options.secure) : null;
-  const Virus = options.virus;
   options = Object.assign({}, options);
   delete options._;
   delete options.host;
   delete options.secure;
-  delete options.virus;
   Virus(antena, options, (error, transform) => {
     if (error)
       throw error;
