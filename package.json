@@ -1,7 +1,7 @@
 {
   "name": "otiluke",
   "description": "Deploy JavaScript code transformers written in JavaScript themselves on node and browsers",
-  "version": "4.2.1",
+  "version": "4.2.2",
   "author": {
     "name": "Laurent Christophe",
     "email": "lachrist@vub.ac.be"
@@ -10,6 +10,10 @@
   "license": "MIT",
   "devDependencies": {
     "ws": "5.2.0"
+  },
+  "file": {
+    "./browser/"
+    "./node/"
   },
   "dependencies": {
     "antena": "1.1.1",
