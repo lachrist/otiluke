@@ -31,7 +31,7 @@ Examples: [test/browser-hello.sh](test/browser-hello.sh) and [test/browser-googl
 
 <img src="img/browser.png" align="center" title="OtilukeBrowser"/>
 
-### `otiluke --ca <path>`
+### `otiluke-browser-reset --ca <path>`
 
 Upon calling this command, Otiluke will prepare a directory to serve as a certificate authority.
 That the end, this directory will be populated with the subdirectories: `req`, `key` and `cert` and the files: `req.pem`, `key.pem` and `cert.pem`.
@@ -46,7 +46,7 @@ To avoid security breach, we recommend to use a dedicated browser and *never* fi
 
 ### `require("otiluke/browser/reset")({ca})`
 
-API version of `otiluke --ca <path>`.
+API version of `otiluke-browser-reset --ca <path>`.
 
 ### `proxy = require("otiluke/browser/proxy")({virus})`
 
@@ -109,7 +109,7 @@ See [test/node.sh](test/node.sh) for example.
 
 <img src="img/node.png" align="center" title="OtilukeNode"/>
 
-### `otiluke --virus <path>`
+### `otiluke-node --virus <path>`
 
 ```
 otiluke --virus <path> [--host <number|path|host>] [--secure]  ... -- <target-command>`
@@ -129,10 +129,10 @@ otiluke --virus <path> [--host <number|path|host>] [--secure]  ... -- <target-co
 * `--`:
   The double dash separates Otiluke-related arguments from the target node command.
 
-### `require("otiluke/node/client")({virus})`
+### `require("otiluke/node")({virus})`
 
 ```js
-require("otiluke/node/client")(virus, {host, secure, ..., _})`
+require("otiluke/node")(virus, {host, secure, ..., _})`
 ```
 
 * `virus :: function`:

@@ -6,11 +6,6 @@
     "name": "Laurent Christophe",
     "email": "lachrist@vub.ac.be"
   },
-  "file": [
-    "/bin.js",
-    "/spawn/",
-    "/server/"
-  ],
   "repository": "lachrist/otiluke",
   "license": "MIT",
   "devDependencies": {
@@ -21,8 +16,10 @@
     "browserify": "16.2.2",
     "minimist": "1.2.0"
   },
-  "main": "/server/node/index.js",
-  "bin": "./bin.js",
+  "bin": {
+    "otiluke-node": "./node/bin.js",
+    "otiluke-browser-reset": "./browser/reset/bin.js"
+  },
   "keywords": [
     "JavaScript",
     "Toolbox",
