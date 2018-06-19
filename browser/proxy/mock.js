@@ -14,23 +14,23 @@ const openssl = (argv, callback) => {
   });
 };
 
-module.exports = (host, ca, callback) => {
+module.exports = (host, home, callback) => {
   Http.request("http://"+host).on("response", () => {
     callback(null, Http.createServer());
   }).on("error", () => {
     const hostname = host.split(":")[0];
     const done = () => {
-      Fs.readFile(Path.join(ca, "key", hostname+".pem"), (error, key) => {
+      Fs.readFile(Path.join(home, "key", hostname+".pem"), (error, key) => {
         if (error)
           return callback(error);
-        Fs.readFile(Path.join(ca, "cert", hostname+".pem"), (error, cert) => {
+        Fs.readFile(Path.join(home, "cert", hostname+".pem"), (error, cert) => {
           if (error)
             return callback(error);
           callback(null, Https.createServer({key:key, cert:cert}));
         });
       });
     };
-    Fs.readdir(Path.join(ca, "key"), (error, filenames) => {
+    Fs.readdir(Path.join(home, "key"), (error, filenames) => {
       if (error)
         return callback(error);
       if (filenames.indexOf(hostname+".pem") !== -1)
@@ -50,12 +50,12 @@ module.exports = (host, ca, callback) => {
         // openssl x509 -CA  -req -in csr.pem -signkey key.pem -out crt.pem
         openssl([
           "x509",
-          "-CA", Path.join(ca, "cert.pem"),
-          "-CAkey", Path.join(ca, "key.pem"),
-          "-CAserial", Path.join(ca, "serial.srl"),
+          "-CA", Path.join(home, "cert.pem"),
+          "-CAkey", Path.join(home, "key.pem"),
+          "-CAserial", Path.join(home, "serial.srl"),
           "-days", "3600",
-          "-req", "-in", Path.join(ca, "req", hostname+".pem"),
-          "-out", Path.join(ca, "cert", hostname+".pem")
+          "-req", "-in", Path.join(home, "req", hostname+".pem"),
+          "-out", Path.join(home, "cert", hostname+".pem")
         ], (error) => {
           if (error)
             return callback(error);

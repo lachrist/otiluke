@@ -11,12 +11,12 @@ const OnError = require("./on-error.js");
 
 module.exports = (vpath, options) => {
   const emitter = new Events();
-  options = options || {};
+  options = Object.assign({}, options);
   options["server-namespace"] = options["server-namespace"] || Path.join(
       Os.platform() === "win32" ? "\\\\?\\pipe" : "/tmp",
       "otiluke-"+(new Date().getTime()).toString(36)+"-"+Math.random().toString(36).substring(2,10));
   options["http-splitter"] = options["http-splitter"] || "otiluke-"+Math.random().toString(36).substring(2);
-  options["ca"] = options["ca"] || Path.join(__dirname, "..", "ca");
+  options["ca-home"] = options["ca-home"] || Path.join(__dirname, "..", "ca-home");
   options.heartbeat = options.heartbeat || 120 * 1000;
   const infect = Infect(vpath, {
     "url-search-prefix": options["url-search-prefix"] || "otiluke-",
@@ -36,7 +36,7 @@ module.exports = (vpath, options) => {
       }
     } else {
       servers[request.url] = [[socket, head]];
-      Mock(request.url, options["ca"], (error, server) => {
+      Mock(request.url, options["ca-home"], (error, server) => {
         if (error) {
           OnError("mock-creation", emitter).call(request, error);
         } else {

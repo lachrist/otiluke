@@ -31,7 +31,7 @@ Examples: [test/browser-hello.sh](test/browser-hello.sh) and [test/browser-googl
 
 <img src="img/browser.png" align="center" title="OtilukeBrowser"/>
 
-### `require("otiluke/browser/reset")(options)`
+### `require("otiluke/browser/ca").initialize(options)`
 
 Upon calling this module, Otiluke will prepare a directory to serve as a certificate authority.
 That the end, this directory will be populated with the subdirectories: `req`, `key` and `cert` and the files: `req.pem`, `key.pem` and `cert.pem`.
@@ -43,37 +43,41 @@ Everyone having access to the corresponding private key can falsify *any* identi
 To avoid security breach, we recommend to use a dedicated browser and *never* fill in it any sensitive information.
 
 ```js
-require("otiluke/browser/reset")({ca})
+require("otiluke/browser/ca").initialize({home, subj})
 ```
 
-* `ca :: string`, default `"node_modules/otiluke/browser/ca"`:
+* `home :: string`, default `"node_modules/otiluke/browser/ca-home"`:
   Path to a certificate authority directory.
+* `subj :: string`, default `"/CN=otiluke/O=Otiluke"`:
+  The `-subj` argument to pass to [`openssl -req`](https://www.openssl.org/docs/manmaster/man1/req.html).
 
 ```
-otiluke-browser-reset [--ca <path>]
+otiluke-browser-ca --initialize [--home <path>] [--subj arg]
 ```
 
-* `--ca`, default `node_modules/otiluke/browser/ca`:
-  Path to a certificate authority moule.
+* `--home`, default `node_modules/otiluke/browser/ca-home`:
+  Path to a certificate authority directory.
+* `--subj`, default `/CN=otiluke/O=Otiluke`:
+  The `-subj` argument to pass to [`openssl -req`](https://www.openssl.org/docs/manmaster/man1/req.html).
 
 ### `proxy = require("otiluke/browser/proxy")(vpath, options)`
 
 Create a man-in-the-middle proxy.
 
 ```js
-proxy = require("otiluke/browser/proxy")(vpath, {ca, "http-splitter", "global-variable", "url-search-prefix"});
+proxy = require("otiluke/browser/proxy")(virus_path, {"ca-home":ca_home, "url-search-prefix":url_search_prefix, "http-splitter":http_splitter, "global-variable":global_variable});
 ```
 
-* `vpath :: string`:
+* `virus_path :: string`:
   Path to a virus module.
-* `ca :: string`, default `"node_modules/otiluke/browser/ca"`
+* `ca_home :: string`, default `"node_modules/otiluke/browser/ca-home"`
   Path to a certificate authority directory.
-* `url-search-prefix :: string`, default `"otiluke-"`:
+* `url_search_prefix :: string`, default `"otiluke-"`:
   Url search prefix for creating the `options` object to pass to the virus module.
   For instance, the url `http://example.com/path?otiluke-foo=123&otiluke-bar=456&qux=789` will result into `{foo:123, bar:456}` being passed to the virus module.
-* `http-splitter :: string`, default random value.
+* `http_splitter :: string`, default random value.
   Marker for recognizing communication from the virus module.
-* `global-variable :: string`, default random value.
+* `global_variable :: string`, default random value.
   Global variable name used to store the transformation function asynchronously returned by the virus module.
 * `proxy :: object`
   An imitation of a regular `http.Server`.
@@ -118,21 +122,26 @@ See [test/node.sh](test/node.sh) for example.
 
 <img src="img/node.png" align="center" title="OtilukeNode"/>
 
-### `require("otiluke/node")(virus, options)`
+### `require("otiluke/node")(virus, command, antena_options, virus_options)`
 
 ```js
-require("otiluke/node")(virus, {host, secure, ..., _});
+require("otiluke/node")(virus, [main, ...argv], {host, secure}, virus_options);
 ```
 
 * `virus :: function`:
   A virus function.
-* `host :: number | string`:
+* `main :: string`:
+  Path to main module.
+* `argv :: [string]`:
+  Command line arguments.
+* `host :: number | string | null` default `null`:
   A local port number or `hostname:port` or a Unix domain socket or a Windows pipe.
+  If `null` the `antena` passed to the virus module will be `null`.
 * `secure :: boolean`:
-* `...`:
-  Additional properties will be passed as `options` to the virus module.
-* `_ :: [string]`:
-  The command line to execute, e.g: `["main.js", "arg0", "arg1"]`.
+  Indicates whether the `antena` argument passed to `virus` should perform remote communication.
+  Non applicable if `host` is `null`.
+* `virus_options :: *`:
+  The `options` argument to pass `virus`.
 
 ```
 otiluke --virus <path> [--host <number|path|host>] [--secure]  ... -- <target-command>`
@@ -148,7 +157,7 @@ otiluke --virus <path> [--host <number|path|host>] [--secure]  ... -- <target-co
 * `[--secure]`
   Tells if the `antena` passed to the virus module should perform secure communication.
 * `...`
-  Additional arguments will be passed as `options` to the virus module. 
+  Additional arguments will be passed as `options` properties to the virus module. 
 * `--`:
   The double dash separates Otiluke-related arguments from the target node command.
 
