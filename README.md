@@ -31,31 +31,40 @@ Examples: [test/browser-hello.sh](test/browser-hello.sh) and [test/browser-googl
 
 <img src="img/browser.png" align="center" title="OtilukeBrowser"/>
 
-### `otiluke-browser-reset --ca <path>`
+### `require("otiluke/browser/reset")(options)`
 
-Upon calling this command, Otiluke will prepare a directory to serve as a certificate authority.
+Upon calling this module, Otiluke will prepare a directory to serve as a certificate authority.
 That the end, this directory will be populated with the subdirectories: `req`, `key` and `cert` and the files: `req.pem`, `key.pem` and `cert.pem`.
 To make a browser trust Otiluke, you will need to import `cert.pem` which is Otiluke's root certificate.
-* `--ca`, default `node_modules/otiluke/browser/ca`
-  Path to a certificate authority directory.
 
 **Warning**
 Making a browser trust a root certificate implies *serious* security consequences.
 Everyone having access to the corresponding private key can falsify *any* identity on that browser (which is exactly what OtilukeBrowser needs to do).
 To avoid security breach, we recommend to use a dedicated browser and *never* fill in it any sensitive information.
 
-### `require("otiluke/browser/reset")({ca})`
-
-API version of `otiluke-browser-reset --ca <path>`.
-
-### `proxy = require("otiluke/browser/proxy")({virus})`
-
 ```js
-proxy = require("otiluke/browser/proxy")(virus, {ca, "http-splitter", "global-variable", "url-search-prefix"});
+require("otiluke/browser/reset")({ca})
 ```
 
+* `ca :: string`, default `"node_modules/otiluke/browser/ca"`:
+  Path to a certificate authority directory.
+
+```
+otiluke-browser-reset [--ca <path>]
+```
+
+* `--ca`, default `node_modules/otiluke/browser/ca`:
+  Path to a certificate authority moule.
+
+### `proxy = require("otiluke/browser/proxy")(vpath, options)`
+
 Create a man-in-the-middle proxy.
-* `virus :: string`:
+
+```js
+proxy = require("otiluke/browser/proxy")(vpath, {ca, "http-splitter", "global-variable", "url-search-prefix"});
+```
+
+* `vpath :: string`:
   Path to a virus module.
 * `ca :: string`, default `"node_modules/otiluke/browser/ca"`
   Path to a certificate authority directory.
@@ -109,7 +118,21 @@ See [test/node.sh](test/node.sh) for example.
 
 <img src="img/node.png" align="center" title="OtilukeNode"/>
 
-### `otiluke-node --virus <path>`
+### `require("otiluke/node")(virus, options)`
+
+```js
+require("otiluke/node")(virus, {host, secure, ..., _});
+```
+
+* `virus :: function`:
+  A virus function.
+* `host :: number | string`:
+  A local port number or `hostname:port` or a Unix domain socket or a Windows pipe.
+* `secure :: boolean`:
+* `...`:
+  Additional properties will be passed as `options` to the virus module.
+* `_ :: [string]`:
+  The command line to execute, e.g: `["main.js", "arg0", "arg1"]`.
 
 ```
 otiluke --virus <path> [--host <number|path|host>] [--secure]  ... -- <target-command>`
@@ -128,20 +151,4 @@ otiluke --virus <path> [--host <number|path|host>] [--secure]  ... -- <target-co
   Additional arguments will be passed as `options` to the virus module. 
 * `--`:
   The double dash separates Otiluke-related arguments from the target node command.
-
-### `require("otiluke/node")({virus})`
-
-```js
-require("otiluke/node")(virus, {host, secure, ..., _})`
-```
-
-* `virus :: function`:
-  A virus function.
-* `host :: number | string`:
-  A local port number or `hostname:port` or a Unix domain socket or a Windows pipe.
-* `secure :: boolean`:
-* `...`:
-  Additional properties will be passed as `options` to the virus module.
-* `_ :: [string]`:
-  The command line to execute, e.g: `["main.js", "arg0", "arg1"]`.
 

@@ -9,7 +9,7 @@ const Infect = require("./infect.js");
 const Forward = require("./forward.js");
 const OnError = require("./on-error.js");
 
-module.exports = (virus, options) => {
+module.exports = (vpath, options) => {
   const emitter = new Events();
   options = options || {};
   options["server-namespace"] = options["server-namespace"] || Path.join(
@@ -18,7 +18,7 @@ module.exports = (virus, options) => {
   options["http-splitter"] = options["http-splitter"] || "otiluke-"+Math.random().toString(36).substring(2);
   options["ca"] = options["ca"] || Path.join(__dirname, "..", "ca");
   options.heartbeat = options.heartbeat || 120 * 1000;
-  const infect = Infect(virus, {
+  const infect = Infect(vpath, {
     "url-search-prefix": options["url-search-prefix"] || "otiluke-",
     "global-variable": options["global-variable"] || "otiluke_"+Math.random().toString(36).substring(2),
     "http-splitter": options["http-splitter"]

@@ -5,13 +5,13 @@ const Stream = require("stream");
 const Browserify = require("browserify");
 const OnError = require("./on-error.js");
 
-module.exports = (virus, options) => {
+module.exports = (vpath, options) => {
   var setup = "alert(\"Otiluke >> bundling not yet performed, retry in a sec...\");";
   const readable = new Stream.Readable();
   readable.push(`
     if (!global.${options["global-variable"]}) {
       const Antena = require("antena/browser");
-      const Virus = require(${JSON.stringify(Path.resolve(virus))});
+      const Virus = require(${JSON.stringify(Path.resolve(vpath))});
       let pairs = [];
       global.${options["global-variable"]} = (script, source) => {
         pairs[pairs.length] = [script, source];
