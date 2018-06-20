@@ -5,7 +5,7 @@ Toolbox for deploying JavaScript code transformers written in JavaScript themsel
 ## Virus Interface
 
 In Otiluke, code transformers should adhere to the virus interface.
-A virus is a function which receives an [Antena](https://github.com/lachrist/antena) (isomorphic http client) as well as a set of options entered by the user and it should asynchronously return a code transformation function.
+A virus is a function which receives an [Antena](https://github.com/lachrist/antena) (isomorphic http client) as well as a set of options entered by the user and it should asynchronously return a code transformation function called infect.
 A virus module is a commonjs module exporting a virus function.
 
 ```js
@@ -122,14 +122,27 @@ See [test/node.sh](test/node.sh) for example.
 
 <img src="img/node.png" align="center" title="OtilukeNode"/>
 
-### `require("otiluke/node")(virus, command, antena_options, virus_options)`
+### `require("otiluke/node/infect")(infect, command)`
 
 ```js
-require("otiluke/node")(virus, [main, ...argv], {host, secure}, virus_options);
+require("otiluke/node/infect")(infect, [main, ...argv]);
+```
+
+* `infect :: function`
+  Infect function.
+* `main :: string`:
+  Path to main module.
+* `argv :: [string]`:
+  Command line arguments.
+
+### `require("otiluke/node")(virus, options)`
+
+```js
+require("otiluke/node")(virus, {_:[main, ...argv], host, secure, ...});
 ```
 
 * `virus :: function`:
-  A virus function.
+  Virus function.
 * `main :: string`:
   Path to main module.
 * `argv :: [string]`:
@@ -140,8 +153,8 @@ require("otiluke/node")(virus, [main, ...argv], {host, secure}, virus_options);
 * `secure :: boolean`:
   Indicates whether the `antena` argument passed to `virus` should perform remote communication.
   Non applicable if `host` is `null`.
-* `virus_options :: *`:
-  The `options` argument to pass `virus`.
+* `...`:
+  Remaining properties will consistute the `options` passed to `virus`.
 
 ```
 otiluke --virus <path> [--host <number|path|host>] [--secure]  ... -- <target-command>`

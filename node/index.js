@@ -1,27 +1,17 @@
 
-const Fs = require("fs");
-const Path = require("path");
-const Module = require("module");
 const Antena = require("antena/node");
+const Infect = require("./infect.js");
 
-// https://github.com/nodejs/node/blob/v10.x/lib/internal/modules/cjs/helpers.js
-function stripBOM(content) {
-  if (content.charCodeAt(0) === 0xFEFF) {
-    content = content.slice(1);
-  }
-  return content;
-}
-
-module.exports = (Virus, command, antena_options, virus_options) => {
-  process.argv = ["node"].concat(command);
-  Virus(antena_options && antena_options.host ? new Antena(antena_options.host, antena_options.secure) : null, virus_options, (error, transform) => {
+module.exports = (Virus, options) => {
+  const command = options._;
+  const antena = "host" in options ? new Antena(options.host, options.secure) : null;
+  options = Object.assign({}, options);
+  delete options.host;
+  delete options.secure;
+  delete options._;
+  Virus(antena, options, (error, infect) => {
     if (error)
       throw error;
-    // https://github.com/nodejs/node/blob/master/lib/internal/modules/cjs/loader.js
-    Module._extensions[".js"] = function (module, filename) {
-      var content = Fs.readFileSync(filename, "utf8");
-      module._compile(stripBOM(transform(content, filename)), filename);
-    };
-    require(Path.resolve(process.argv[1]));
+    Infect(infect, command);
   });
 };
