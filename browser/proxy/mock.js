@@ -41,8 +41,8 @@ module.exports = (host, home, callback) => {
         "-sha256",
         "-nodes",
         "-newkey", "rsa:2048",
-        "-keyout", Path.join(ca, "key", hostname+".pem"),
-        "-out", Path.join(ca, "req", hostname+".pem"),
+        "-keyout", Path.join(home, "key", hostname+".pem"),
+        "-out", Path.join(home, "req", hostname+".pem"),
         "-subj", "/CN="+hostname
       ], (error) => {
         if (error)
