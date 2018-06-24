@@ -7,7 +7,7 @@ Toolbox for deploying JavaScript code transformers written in JavaScript themsel
 In Otiluke, code transformers should adhere to the virus interface.
 A virus is a function which receives an [Antena](https://github.com/lachrist/antena) (isomorphic http client) as well as a mapping of arguments entered by the user and should asynchronously return a code transformation function.
 A virus module is a commonjs module exporting a virus function.
-For instance, the virus module below creates a websocket with a path defined by  and use it to communicate the sources of the script being executed.
+For instance, the virus module below creates a websocket with a path defined by the user; later this websocket is used to communicate the sources of the script being executed.
 
 ```js
 module.exports = (antena, argm, callback) => {
@@ -25,7 +25,7 @@ module.exports = (antena, argm, callback) => {
 };
 ```
 
-The calling context of a virus function 
+Calling context of virus functions:
 
 ```
 virus(antena, argm, (error, transform) => { ... });
@@ -57,7 +57,7 @@ Examples: [test/browser-hello.sh](test/browser-hello.sh) and [test/browser-googl
 
 ### `require("otiluke/browser/ca").initialize(options)`
 
-Upon calling this module, Otiluke will prepare a directory to serve as a certificate authority.
+Upon calling this submodule, Otiluke will prepare a directory to serve as a certificate authority.
 That the end, this directory will be populated with the subdirectories: `req`, `key` and `cert` and the files: `req.pem`, `key.pem` and `cert.pem`.
 To make a browser trust Otiluke, you will need to import `cert.pem` which is Otiluke's root certificate.
 
@@ -75,6 +75,8 @@ require("otiluke/browser/ca").initialize({home, subj})
 * `subj :: string`, default `"/CN=otiluke/O=Otiluke"`:
   The `-subj` argument to pass to [`openssl -req`](https://www.openssl.org/docs/manmaster/man1/req.html).
 
+Alternatively, if Otiluke is installed globally, the `otiluke-browser-ca` command can be used:
+
 ```
 otiluke-browser-ca --initialize [--home <path>] [--subj arg]
 ```
@@ -84,7 +86,7 @@ otiluke-browser-ca --initialize [--home <path>] [--subj arg]
 * `--subj`, default `/CN=otiluke/O=Otiluke`:
   The `-subj` argument to pass to [`openssl -req`](https://www.openssl.org/docs/manmaster/man1/req.html).
 
-### `proxy = require("otiluke/browser/proxy")(vpath, options)`
+### `proxy = require("otiluke/browser/proxy")(virus_path, options)`
 
 Create a man-in-the-middle proxy.
 
@@ -167,8 +169,10 @@ require("otiluke/node")(virus, {_:[main, ...argv], host, secure, ...});
 * `...`:
   Remaining properties will be used to compute argument mapping `argm` passed to `virus`.
 
+Alternatively, if Otiluke is installed globally, the `otiluke-node` command can be used:
+
 ```
-otiluke --virus <path> [--host <number|path|host>] [--secure]  ... -- <target-command>`
+otiluke-node --virus <path> [--host <number|path|host>] [--secure]  ... -- <target-command>`
 ```
 
 * `--virus`:
@@ -187,7 +191,7 @@ otiluke --virus <path> [--host <number|path|host>] [--secure]  ... -- <target-co
 
 ### `require("otiluke/node/infect")(transform, command)`
 
-It is also possible to by-pass the virus interface and directly provide a transformation function.
+This submodule can be used to by-pass the virus interface and directly provide a transformation function.
 
 ```js
 require("otiluke/node/infect")(transform, [main, ...argv]);
