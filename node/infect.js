@@ -12,11 +12,11 @@ function stripBOM(content) {
   return content;
 }
 
-module.exports = (infect, command) => {
+module.exports = (transform, command) => {
   // https://github.com/nodejs/node/blob/master/lib/internal/modules/cjs/loader.js
   Module._extensions[".js"] = function (module, filename) {
     var content = Fs.readFileSync(filename, "utf8");
-    module._compile(stripBOM(infect(content, filename)), filename);
+    module._compile(stripBOM(transform(content, filename)), filename);
   };
   process.argv = ["node"].concat(command);
   require(Path.resolve(process.argv[1]));

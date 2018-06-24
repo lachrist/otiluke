@@ -23,11 +23,11 @@ module.exports = (vpath, options) => {
           options[key.substring(${String(options["url-search-prefix"].length)})] = url.searchParams.get(key);
         }
       }
-      Virus(new Antena().fork(${JSON.stringify(options["http-splitter"])}), options, (error, infect) => {
+      Virus(new Antena().fork(${JSON.stringify(options["http-splitter"])}), options, (error, transform) => {
         if (error)
           throw error;
         global.${options["global-variable"]} = (script, source) => {
-          global.eval(infect(script, source));
+          global.eval(transform(script, source));
         };
         for (let index=0; index<pairs.length; index++)
           global.${options["global-variable"]}(pairs[index][0], pairs[index][1]);

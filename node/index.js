@@ -9,9 +9,9 @@ module.exports = (Virus, options) => {
   delete options.host;
   delete options.secure;
   delete options._;
-  Virus(antena, options, (error, infect) => {
+  Virus(antena, options, (error, transform) => {
     if (error)
       throw error;
-    Infect(infect, command);
+    Infect(transform, command);
   });
 };

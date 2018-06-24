@@ -5,22 +5,46 @@ Toolbox for deploying JavaScript code transformers written in JavaScript themsel
 ## Virus Interface
 
 In Otiluke, code transformers should adhere to the virus interface.
-A virus is a function which receives an [Antena](https://github.com/lachrist/antena) (isomorphic http client) as well as a set of options entered by the user and it should asynchronously return a code transformation function called infect.
+A virus is a function which receives an [Antena](https://github.com/lachrist/antena) (isomorphic http client) as well as a mapping of arguments entered by the user and should asynchronously return a code transformation function.
 A virus module is a commonjs module exporting a virus function.
+For instance, the virus module below creates a websocket with a path defined by  and use it to communicate the sources of the script being executed.
 
 ```js
-module.exports = (antena, options, callback) => {
-  // Perform setup
-  if (something_went_wrong) {
-    callback(error);
-  } else {
+module.exports = (antena, argm, callback) => {
+  const websocket = antena.WebSocket(argm["websocket-path"]);
+  websocket.onerror = () => {
+    callback(new Error("Connection error"));
+  };
+  websocket.onopen = () => {
+    websocket.onerror = null;
     callback(null, (script, source) => {
-      // Transform source
-      return transformed_source;
+      websocket.send(source);
+      return script;
     });
-  }
+  };
 };
 ```
+
+The calling context of a virus function 
+
+```
+virus(antena, argm, (error, transform) => { ... });
+```
+
+* `antena :: antena.Antena`:
+  Isomorphic http client.
+* `argm :: {string}`:
+  A mapping of user-defined arguments.
+* `error :: Error`
+* `script2 = transform(script1, source)`
+  * `script1 :: string`:
+    The original script.
+  * `source :: string`
+    For `otiluke/node` it is an absolute path to a node module.
+    For `otiluke/browser`, it is either a url to a javascript file for external scripts or the current location for inline script.
+    In the later case the hash part of the url will be a number indicating the position of the inline script in the original html tree.
+  * `script2 :: string`:
+    The transformed script
 
 ## OtilukeBrowser
 
@@ -122,19 +146,6 @@ See [test/node.sh](test/node.sh) for example.
 
 <img src="img/node.png" align="center" title="OtilukeNode"/>
 
-### `require("otiluke/node/infect")(infect, command)`
-
-```js
-require("otiluke/node/infect")(infect, [main, ...argv]);
-```
-
-* `infect :: function`
-  Infect function.
-* `main :: string`:
-  Path to main module.
-* `argv :: [string]`:
-  Command line arguments.
-
 ### `require("otiluke/node")(virus, options)`
 
 ```js
@@ -154,7 +165,7 @@ require("otiluke/node")(virus, {_:[main, ...argv], host, secure, ...});
   Indicates whether the `antena` argument passed to `virus` should perform remote communication.
   Non applicable if `host` is `null`.
 * `...`:
-  Remaining properties will consistute the `options` passed to `virus`.
+  Remaining properties will be used to compute argument mapping `argm` passed to `virus`.
 
 ```
 otiluke --virus <path> [--host <number|path|host>] [--secure]  ... -- <target-command>`
@@ -170,7 +181,22 @@ otiluke --virus <path> [--host <number|path|host>] [--secure]  ... -- <target-co
 * `[--secure]`
   Tells if the `antena` passed to the virus module should perform secure communication.
 * `...`
-  Additional arguments will be passed as `options` properties to the virus module. 
+  Additional arguments will be passed as `argm` properties to the virus module. 
 * `--`:
   The double dash separates Otiluke-related arguments from the target node command.
+
+### `require("otiluke/node/infect")(transform, command)`
+
+It is also possible to by-pass the virus interface and directly provide a transformation function.
+
+```js
+require("otiluke/node/infect")(transform, [main, ...argv]);
+```
+
+* `transform:: function`
+  Transformation function.
+* `main :: string`:
+  Path to main module.
+* `argv :: [string]`:
+  Command line arguments.
 
