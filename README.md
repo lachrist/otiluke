@@ -125,7 +125,9 @@ proxy = require("otiluke/browser/proxy")(virus_path, {"ca-home":ca_home, "url-se
     * `proxy.close(callback)`
     * `proxy.address()`
 
-### Redirect Firefox requests to the man-in-the-middle proxy
+### Redirect the browser requests to the man-in-the-middle proxy
+
+#### Firefox
 
 Go to `about:preferences`, at the bottom of the *General* menu, click on *Settings...*.
 Tick the checkbox *Manual proxy configuration* and *Use this proxy server for all protocols*.
@@ -133,13 +135,40 @@ The *HTTP Proxy* field should be *localhost* and the *Port* field should refer t
 
 <img src="img/firefox-proxy.png" align="center" title="Firefox's proxy settings"/>
 
-### Make Firefox trust Otiluke's root certificate
+#### Chrome
+
+Use the `--proxy-server` switch.
+For instance, on OSX:
+
+```
+/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --proxy-server=127.0.0.1:8080
+```
+
+#### System
+
+System-level proxy settings should also work but it will redirect *every* HTTP(S) request performed by your system.
+In OSX, system-level proxy settings are available in: `System Preferences` > `Network` > `Advanced...` > `Proxies`.
+
+<img src="img/osx-proxy.png" align="center" title="Firefox's proxy settings"/>
+
+### Make browsers trust Otiluke's root certificate
 
 This step is only required if you need to infect html pages securely served over https.
+
+#### Firefox
+
 Go to `about:preferences`, at the bottom of the *Privacy & Security* menu, click on *View Certificates*.
 Import Otiluke's root certificate an restart Firefox to avoid `sec_error_reused_issuer_and_serial` error.
 
-<img src="img/firefox-cert.png" align="center" title="Firefox's proxy settings"/>
+<img src="img/firefox-cert.png" align="center" title="Firefox's certificate settings"/>
+
+#### System
+
+Otiluke's root certificate can also be trusted at the system level but that means that *every* browser will trust otiluke's signed certificate.
+If your certificate authority directory is compromised, data can be stolen from each one of your browsers.
+In OSX, go to `Keychain Access` > `Files` > `Import Items` and select Otiluke's root certificate.
+
+<img src="img/osx-certificate.png" align="center" title="OSX's certificate settings"/>
 
 ## OtilukeNode
 
