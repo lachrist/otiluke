@@ -13,7 +13,7 @@ const openssl = (argv) => {
 };
 
 module.exports = (options) => {
-  const home = options.home || Path.join(__dirname, ".." "ca-home");
+  const home = options.home || Path.join(__dirname, "..", "ca-home");
   try { Fs.mkdirSync(home) } catch (error) {}
   ["cert", "key", "req"].forEach((dirname) => {
     try { Fs.mkdirSync(Path.join(home, dirname)) } catch (error) {}
