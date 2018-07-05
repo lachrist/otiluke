@@ -149,7 +149,7 @@ For instance, on OSX:
 System-level proxy settings should also work but it will redirect *every* HTTP(S) request performed by your system.
 In OSX, system-level proxy settings are available in: `System Preferences` > `Network` > `Advanced...` > `Proxies`.
 
-<img src="img/osx-proxy.png" align="center" title="Firefox's proxy settings"/>
+<img src="img/osx-proxy.png" align="center" title="OSX's proxy settings"/>
 
 ### Make browsers trust Otiluke's root certificate
 
@@ -168,7 +168,7 @@ Otiluke's root certificate can also be trusted at the system level but that mean
 If your certificate authority directory is compromised, data can be stolen from each one of your browsers.
 In OSX, go to `Keychain Access` > `Files` > `Import Items` and select Otiluke's root certificate.
 
-<img src="img/osx-certificate.png" align="center" title="OSX's certificate settings"/>
+<img src="img/osx-cert.png" align="center" title="OSX's certificate settings"/>
 
 ## OtilukeNode
 
