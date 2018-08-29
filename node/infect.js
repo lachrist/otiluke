@@ -2,7 +2,6 @@
 const Fs = require("fs");
 const Path = require("path");
 const Module = require("module");
-const Antena = require("antena/node");
 
 // https://github.com/nodejs/node/blob/v10.x/lib/internal/modules/cjs/helpers.js
 function stripBOM(content) {

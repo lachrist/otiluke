@@ -1,1 +1,0 @@
-exports.initialize = require("./initialize");

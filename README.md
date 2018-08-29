@@ -5,57 +5,43 @@ Toolbox for deploying JavaScript code transformers written in JavaScript themsel
 ## Virus Interface
 
 In Otiluke, code transformers should adhere to the virus interface.
-A virus is a function which receives an [Antena](https://github.com/lachrist/antena) (isomorphic http client) as well as a mapping of arguments entered by the user and should asynchronously return a code transformation function.
-A virus module is a commonjs module exporting a virus function.
-For instance, the virus module below creates a websocket with a path defined by the user; later this websocket is used to communicate the sources of the script being executed.
 
 ```js
-module.exports = (antena, argm, callback) => {
-  const websocket = antena.WebSocket(argm["websocket-path"]);
-  websocket.onerror = () => {
-    callback(new Error("Connection error"));
-  };
-  websocket.onopen = () => {
-    websocket.onerror = null;
-    callback(null, (script, source) => {
-      websocket.send(source);
-      return script;
-    });
-  };
-};
+module.exports = (argm) => (source, script) => [
+  "console.log("+JSON.stringify(argm.begin+script)+");",
+  script,
+  "console.log("+JSON.stringify(argm.end+script)+");"
+].join("\n");
 ```
 
 Calling context of virus functions:
 
 ```
-virus(antena, argm, (error, transform) => { ... });
+virus = Virus(argm);
+script2 = virus(script1, source);
 ```
 
-* `antena :: antena.Antena`:
-  Isomorphic http client.
 * `argm :: {string}`:
   A mapping of user-defined arguments.
-* `error :: Error`
-* `script2 = transform(script1, source)`
-  * `script1 :: string`:
-    The original script.
-  * `source :: string`
-    For `otiluke/node` it is an absolute path to a node module.
-    For `otiluke/browser`, it is either a url to a javascript file for external scripts or the current location for inline script.
-    In the later case the hash part of the url will be a number indicating the position of the inline script in the original html tree.
-  * `script2 :: string`:
-    The transformed script
+* `script1 :: string`:
+  The original script.
+* `source :: string`
+  For `otiluke/node` it is an absolute path to a node module.
+  For `otiluke/browser`, it is either a url to a javascript file for external scripts or the url of the current page for inline script.
+  In the later case the hash part of the url will be a number indicating the position of the inline script in the original html tree.
+* `script2 :: string`:
+  The transformed script
 
 ## OtilukeBrowser
 
 OtilukeBrowser modifies html pages served over http(s) by performing a man-in-the-middle attack with a forward proxy.
 Such attack requires the browser to redirect all its request to the forward proxy.
 For pages securely served over https it also requires the browser to trust the self-signed certificate at [browser/ca/cert.pem](browser/ca/cert.pem).
-Examples: [test/browser-hello.sh](test/browser-hello.sh) and [test/browser-google.sh](test/browser-hello.sh).
+Examples: [test/browser/run-hello.sh](test/browser/run-hello.sh) and [test/browser/run-google.sh](test/browser/run-google.sh).
 
 <img src="img/browser.png" align="center" title="OtilukeBrowser"/>
 
-### `require("otiluke/browser/ca").initialize(options)`
+### `require("otiluke/browser").initialize(options)`
 
 Upon calling this submodule, Otiluke will prepare a directory to serve as a certificate authority.
 That the end, this directory will be populated with the subdirectories: `req`, `key` and `cert` and the files: `req.pem`, `key.pem` and `cert.pem`.
@@ -66,64 +52,85 @@ Making a browser trust a root certificate implies *serious* security consequence
 Everyone having access to the corresponding private key can falsify *any* identity on that browser (which is exactly what OtilukeBrowser needs to do).
 To avoid security breach, we recommend to use a dedicated browser and *never* fill in it any sensitive information.
 
-```js
-require("otiluke/browser/ca").initialize({home, subj})
-```
-
-* `home :: string`, default `"node_modules/otiluke/browser/ca-home"`:
-  Path to a certificate authority directory.
-* `subj :: string`, default `"/CN=otiluke/O=Otiluke"`:
+* `options.home :: string`, default `"node_modules/otiluke/browser/ca-home"`:
+    Path to a certificate authority directory.
+* `options.subj :: string`, default `"/CN=otiluke/O=Otiluke"`:
   The `-subj` argument to pass to [`openssl -req`](https://www.openssl.org/docs/manmaster/man1/req.html).
 
 Alternatively, if Otiluke is installed globally, the `otiluke-browser-ca` command can be used:
 
 ```
-otiluke-browser-ca --initialize [--home <path>] [--subj arg]
+otiluke-browser --initialize [--ca-home <path>] [--subj arg]
 ```
 
-* `--home`, default `node_modules/otiluke/browser/ca-home`:
+* `--ca-home`, default `node_modules/otiluke/browser/ca-home`:
   Path to a certificate authority directory.
 * `--subj`, default `/CN=otiluke/O=Otiluke`:
   The `-subj` argument to pass to [`openssl -req`](https://www.openssl.org/docs/manmaster/man1/req.html).
 
-### `proxy = require("otiluke/browser/proxy")(virus_path, options)`
+### `listeners = require("otiluke/browser/listeners")(vpath, [options])`
 
-Create a man-in-the-middle proxy.
+Create listeners for a man-in-the-middle proxy.
 
-```js
-proxy = require("otiluke/browser/proxy")(virus_path, {"ca-home":ca_home, "url-search-prefix":url_search_prefix, "http-splitter":http_splitter, "global-variable":global_variable});
-```
-
-* `virus_path :: string`:
+* `vpath :: string`:
   Path to a virus module.
-* `ca_home :: string`, default `"node_modules/otiluke/browser/ca-home"`
-  Path to a certificate authority directory.
-* `url_search_prefix :: string`, default `"otiluke-"`:
-  Url search prefix for creating the `options` object to pass to the virus module.
-  For instance, the url `http://example.com/path?otiluke-foo=123&otiluke-bar=456&qux=789` will result into `{foo:123, bar:456}` being passed to the virus module.
-* `http_splitter :: string`, default random value.
-  Marker for recognizing communication from the virus module.
-* `global_variable :: string`, default random value.
-  Global variable name used to store the transformation function asynchronously returned by the virus module.
-* `proxy :: object`
-  An imitation of a regular `http.Server`.
-    * Event: `request`
-      * `request :: http.IncomingMessage`
-      * `response :: http.ServerResponse`
-    * Event: `upgrade`
-      * `request :: http.IncomingMessage`
-      * `socket :: Net.Socket`
-      * `head :: buffer`
-    * Event: `listening`
-    * Event: `close`
-      * `hadError :: boolean`
-    * Event: `error`
-      * `error :: Error`
-      * `location :: string`
-      * `origin :: events.EventEmitter`
-    * `proxy.listen(port, callback)`
-    * `proxy.close(callback)`
-    * `proxy.address()`
+* `options :: object`
+  * `ca-home :: string`, default `"node_modules/otiluke/browser/ca-home"`
+    Path to a certificate authority directory.
+  * `ipc-dir :: string`, default `"/tmp/"` (`"\\?\pipe"` on windows).
+    Address namespace for local communication.
+  * `argm-prefix :: string`, default `"otiluke-"`:
+    Prefix to look for in the search part of the url to create the `argm` object.
+    For instance, the url `http://example.com/path?otiluke-foo=123&otiluke-bar=456&qux=789` will result into `{foo:123, bar:456}` being passed to the virus module.
+  * `virus-var :: string`, default `__OTILUKE__`.
+    Global variable name used to store the transformation function.
+  * `handlers :: object`, default `{}`.
+    A set a function defined by the user to monitor Otiluke's activity and intercept traffic.
+    In particular, these handlers can be used to filter out information gathered by the virus module.
+    * `handled = handlers.request(request, response)`
+      Called whenever a regular request is intercepted by either the proxy or one of the forged servers.
+      Unless this function return a truthy value, Otiluke will forward the regular request to the rightful address.
+      * `request :: http(s).IncomingMessage`
+      * `response :: http(s).ServerResponse`
+      * `handled :: boolean`
+    * `handled = handlers.connect(request, socket, head)`
+      Called whenever a connect request is intercepted by one of the forged servers.
+      Unless this function return a truthy value, Otiluke will forward the connect request to the rightful address and blindly relay subsequent traffic.
+      * `request :: http(s).IncomingMessage`
+      * `socket :: (net|tls).Socket`
+      * `head :: Buffer`
+      * `handled :: boolean`
+    * `handled = handlers.upgrade(request, socket, head)`
+      Called whenever a connect request is intercepted by either the proxy or one of the forged servers.
+      Unless this function return a truthy value, Otiluke will forward the upgrade request to the rightful address and blindly relay subsequent traffic.
+      * `request :: http(s).IncomingMessage`
+      * `socket :: (net|tls).Socket`
+      * `head :: Buffer`
+      * `handled :: boolean`
+    * `forgery(hostname, server)`
+      Called whenever a hostname is being impersonated.
+      * `hostname :: string`
+      * `server :: https.Server`
+    * `activity(description, origin, emitter)`
+      Called whenever
+      * `description :: string`
+        * `server-regular-request`
+        * `client-regular-request`
+        * `server-regular-response`
+        * `client-regular-response`
+        * `server-connect-request`
+        * `server-connect-socket`
+        * `client-connect-socket`
+        * `server-upgrade-request`
+        * `server-upgrade-socket`
+        * `client-upgrade-socket`
+      * `origin :: http(s).Server`
+      * `emitter :: http(s).IncomingMessage | http(s).ClientRequest | http(s).ServerResponse | (net|tls).Socket`
+* `listeners :: object`
+  These event listeners should be registered to a user-created `http.Server` to setup the man-in-the-middle attack.
+  * `listeners.request(request, response)`
+  * `listeners.upgrade(request, socket, head)`
+  * `listeners.connect(request, socket, head)`
 
 ### Redirect the browser requests to the man-in-the-middle proxy
 
@@ -177,31 +184,19 @@ See [test/node.sh](test/node.sh) for example.
 
 <img src="img/node.png" align="center" title="OtilukeNode"/>
 
-### `require("otiluke/node")(virus, options)`
+### `require("otiluke/node")(Virus, options)`
 
-```js
-require("otiluke/node")(virus, {_:[main, ...argv], host, secure, ...});
-```
-
-* `virus :: function`:
-  Virus function.
-* `main :: string`:
-  Path to main module.
-* `argv :: [string]`:
-  Command line arguments.
-* `host :: number | string | null` default `null`:
-  A local port number or `hostname:port` or a Unix domain socket or a Windows pipe.
-  If `null` the `antena` passed to the virus module will be `null`.
-* `secure :: boolean`:
-  Indicates whether the `antena` argument passed to `virus` should perform remote communication.
-  Non applicable if `host` is `null`.
-* `...`:
-  Remaining properties will be used to compute argument mapping `argm` passed to `virus`.
+* `Virus :: function`:
+  Virus constructor (function exported by a virus module).
+* `options :: object`
+  * `_ :: array`
+  * `...`:
+    Remaining properties will be used to compute argument mapping `argm` passed to `virus`.
 
 Alternatively, if Otiluke is installed globally, the `otiluke-node` command can be used:
 
 ```
-otiluke-node --virus <path> [--host <number|path|host>] [--secure]  ... -- <target-command>`
+otiluke-node --virus <path> ... -- <target-command>`
 ```
 
 * `--virus`:
@@ -217,19 +212,3 @@ otiluke-node --virus <path> [--host <number|path|host>] [--secure]  ... -- <targ
   Additional arguments will be passed as `argm` properties to the virus module. 
 * `--`:
   The double dash separates Otiluke-related arguments from the target node command.
-
-### `require("otiluke/node/infect")(transform, command)`
-
-This submodule can be used to by-pass the virus interface and directly provide a transformation function.
-
-```js
-require("otiluke/node/infect")(transform, [main, ...argv]);
-```
-
-* `transform:: function`
-  Transformation function.
-* `main :: string`:
-  Path to main module.
-* `argv :: [string]`:
-  Command line arguments.
-
