@@ -179,7 +179,7 @@ Import Otiluke's root certificate an restart Firefox to avoid `sec_error_reused_
 
 #### System
 
-Otiluke's root certificate can also be trusted at the system level but that means that *every* browser will trust otiluke's signed certificate.
+Otiluke's root certificate can also be trusted at the system level but that means that *every* browser will trust Otiluke's signed certificate.
 If your certificate authority directory is compromised, data can be stolen from each one of your browsers.
 In OSX, go to `Keychain Access` > `Files` > `Import Items` and select Otiluke's root certificate.
 
