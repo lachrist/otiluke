@@ -24,7 +24,7 @@ module.exports = (hostname, cahome, callback) => {
       });
     });
   };
-  Fs.readdir(Path.join(cahome, "key"), (error, filenames) => {
+  Fs.readdir(Path.join(cahome, "cert"), (error, filenames) => {
     if (error)
       return callback(error);
     if (filenames.includes(hostname+".pem"))

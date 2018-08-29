@@ -13,8 +13,9 @@
     "minimist": "^1.2.0"
   },
   "bin": {
-    "otiluke-node": "./node/bin.js",
-    "otiluke-browser-ca": "./browser/bin.js"
+    "otiluke-node": "node/bin.js",
+    "otiluke-browser-proxy": "browser/proxy/bin.js",
+    "otiluke-browser-ca": "browser/ca/bin.js"
   },
   "keywords": [
     "JavaScript",

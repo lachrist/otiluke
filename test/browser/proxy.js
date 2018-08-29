@@ -1,7 +1,7 @@
 const Http = require("http");
-const OtilukeBrowserListeners = require("../../browser/listeners.js");
+const OtilukeBrowserProxy = require("../../browser/proxy");
 
-const listeners = OtilukeBrowserListeners("../virus.js", {
+const listeners = OtilukeBrowserProxy("../virus.js", {
   handlers: {
     forgery: (hostname, server) => {
       server._otiluke_hostname = hostname;
