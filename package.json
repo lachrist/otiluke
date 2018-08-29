@@ -1,7 +1,7 @@
 {
   "name": "otiluke",
   "description": "Deploy JavaScript code transformers written in JavaScript themselves on node and browsers",
-  "version": "4.3.7",
+  "version": "5.0.0",
   "author": {
     "name": "Laurent Christophe",
     "email": "lachrist@vub.ac.be"
@@ -14,7 +14,7 @@
   },
   "bin": {
     "otiluke-node": "./node/bin.js",
-    "otiluke-browser-ca": "./browser/ca/bin.js"
+    "otiluke-browser-ca": "./browser/bin.js"
   },
   "keywords": [
     "JavaScript",

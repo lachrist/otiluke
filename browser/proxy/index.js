@@ -12,9 +12,9 @@ const noop = () => {};
 module.exports = (vpath, options) => {
   options = Object.assign({
     "handlers": Object.create(null),
-    "ca-home": Path.join(__dirname, "ca-home"),
-    "ipc-dir": Os.platform() === "win32" ? "\\\\?\\pipe" : "/tmp",
-    "virus-var": "__OTILUKE__",
+    "ca-home": Path.join(__dirname, "..", "ca"),
+    "socket-dir": Os.platform() === "win32" ? "\\\\?\\pipe" : "/tmp",
+    "global-var": "__OTILUKE__",
     "argm-prefix": "otiluke-"
   }, options);
   options.handlers.activity = options.handlers.activity || noop;
@@ -22,9 +22,9 @@ module.exports = (vpath, options) => {
   options.handlers.request = options.handlers.request || noop;
   options.handlers.connect = options.handlers.connect || noop;
   options.handlers.upgrade = options.handlers.upgrade || noop;
-  const infect = Infect(vpath, options["virus-var"], options["argm-prefix"]);
+  const infect = Infect(vpath, options["global-var"], options["argm-prefix"]);
   const forward = Forward(options["handlers"], infect);
-  const forge = Forge(options["ipc-dir"], options["ca-home"]);
+  const forge = Forge(options["socket-dir"], options["ca-home"]);
   return {
     request: forward.request,
     upgrade: forward.upgrade,

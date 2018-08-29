@@ -7,12 +7,12 @@ const ChildProcess = require("child_process");
 const ForgeSecure = require("./forge-secure.js");
 const ForgeSign = require("./forge-sign.js");
 
-module.exports = (ipcdir, cahome) => {
+module.exports = (sockdir, cahome) => {
   let server = [];
   const servers = Object.create(null);
   const token = Math.random().toString(36).substring(2);
   let counter = 0;
-  Http.createServer().listen(Path.join(ipcdir, token), function () {
+  Http.createServer().listen(Path.join(sockdir, token), function () {
     const temporary = server;
     server = this;
     server._otiluke_hosts = [];
@@ -39,7 +39,7 @@ module.exports = (ipcdir, cahome) => {
                 if (error) {
                   callback(error);
                 } else {
-                  Https.createServer(options).listen(Path.join(ipcdir, token+"-"+(++counter)), function () {
+                  Https.createServer(options).listen(Path.join(sockdir, token+"-"+(++counter)), function () {
                     servers[hostname].forEach((callback) => { callback(null, this) });
                     servers[hostname] = this;
                   });
