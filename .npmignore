@@ -1,2 +1,6 @@
 /test/
 /img/
+.DS_Store
+/node_modules/
+*.srl
+*.pem
