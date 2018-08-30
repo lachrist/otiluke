@@ -1,7 +1,7 @@
 {
   "name": "otiluke",
   "description": "Deploy JavaScript code transformers written in JavaScript themselves on node and browsers",
-  "version": "5.1.2",
+  "version": "5.1.3",
   "author": {
     "name": "Laurent Christophe",
     "email": "lachrist@vub.ac.be"
@@ -14,9 +14,9 @@
     "minimist": "^1.2.0"
   },
   "bin": {
-    "otiluke-node": "./node/bin.js",
-    "otiluke-browser-proxy": "./browser/proxy/bin.js",
-    "otiluke-browser-ca": "./browser/ca/bin.js"
+    "otiluke-node": "node/bin.js",
+    "otiluke-browser-proxy": "browser/proxy/bin.js",
+    "otiluke-browser-ca": "browser/ca/bin.js"
   },
   "keywords": [
     "JavaScript",
