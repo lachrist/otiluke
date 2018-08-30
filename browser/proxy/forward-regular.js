@@ -4,11 +4,11 @@ const Http = require("http");
 const Extract = require("./extract.js");
 
 function ondata (string) {
-  this._otiluke_body += string;
+  this._otiluke_body.push(string);
 }
 
 function onend () {
-  const buffer = Buffer.from(this._otiluke_transform(this._otiluke_body, this._otiluke_source), "utf8");
+  const buffer = Buffer.from(this._otiluke_transform(this._otiluke_body.join(""), this._otiluke_source), "utf8");
   this.headers["content-length"] = buffer.length;
   this._otiluke_response.writeHead(this.statusCode, this.statusMessage, this.headers);
   this._otiluke_response.end(buffer);
@@ -20,7 +20,7 @@ module.exports = (infect, handlers) => {
     const transform = infect(client_response.headers["content-type"]);
     if (transform) {
       client_response._otiluke_transform = transform;
-      client_response._otiluke_body = "";
+      client_response._otiluke_body = [];
       client_response._otiluke_source = "http://"+this.getHeader("host")+this.path;
       client_response._otiluke_response = this._otiluke_response;
       client_response.setEncoding("utf8");

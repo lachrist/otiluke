@@ -34,9 +34,12 @@ script2 = transform(script1, source);
 * `script1 :: string`:
   The original script.
 * `source :: string`
-  For `otiluke/node` it is an absolute path to a node module.
-  For `otiluke/browser`, it is either a url to a javascript file for external scripts or the url of the current page for inline script.
-  In the later case the hash part of the url will be a number indicating the position of the inline script in the original html tree.
+  * `otiluke/node`: absolute path to a node module.
+  * `otiluke/browser`
+    * inline script: the dom id (otiluke will create one of it does not exists) of the script element.
+    * inline event handler: the dom id (otiluke will create one of it does not exists) of the target element followed by a space and the handler name.
+    e.g. `"button1 onclick"`.
+    * external script: absolute url.
 * `script2 :: string`:
   The transformed script
 
