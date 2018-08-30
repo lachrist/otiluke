@@ -4,3 +4,6 @@
 /browser/ca/key.pem
 /browser/ca/req.pem
 /browser/ca/cert.pem
+/browser/ca/key/*
+/browser/ca/req/*
+/browser/ca/cert/*
