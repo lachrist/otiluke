@@ -4,25 +4,24 @@ Toolbox for deploying JavaScript code transformers written in JavaScript themsel
 
 ## Virus Interface
 
-Code transformers can be deployed in Otiluke using the Virus interface.
-A virus function accepts a mapping of arguments introduced by the user when launching the JavaScript process and return a code transformation function.
-A virus module is a CommonJS module which exports a virus function.
+Otiluke deploys on node and browsers JavaScript code transformers expressed as *virus* modules.
+Virus modules are CommonJS module which exports a function that takes an array of user-defined arguments and return JavaScript transformation function.
 For instance:
 
 ```js
 module.exports = (argm) => {
-  console.log("Initialize virus with: "+JSON.stringify(argm));
-  return (source, script) => [
-    "console.log("+JSON.stringify("Begin "+script)+");",
+  console.log("Virus initialized with: "+JSON.stringify(argm));
+  return (script, source) => [
+    "console.log("+JSON.stringify("Begin "+source)+");",
     script,
-    "console.log("+JSON.stringify("End"+script)+");"
+    "console.log("+JSON.stringify("End"+source)+");"
   ].join("\n");
 }
 ```
 
 Calling context of virus functions:
 
-```
+```js
 transform = Virus(argm);
 script2 = transform(script1, source);
 ```
@@ -41,7 +40,31 @@ script2 = transform(script1, source);
     e.g. `"button1 onclick"`.
     * external script: absolute url.
 * `script2 :: string`:
-  The transformed script
+  The transformed script.
+  
+## OtilukeNode
+
+OtilukeNode infects node applications by modifying the require procedure performed by node.
+Examples: [test/node/run.sh](test/node/run.sh).
+
+### `require("otiluke/node")(Virus, options={})`
+
+* `Virus :: function`:
+  Virus constructor (function exported by a virus module).
+* `options :: object`
+  * `_ :: [array]`
+    Array of string interpreted as the command to launch the node process to be infected.
+    For instance: `["main.js", "foo", "bar"]`.
+  * `...`:
+    Remaining properties will be used to compute argument mapping `argm` passed to `virus`.
+
+Alternatively, if Otiluke is installed globally, the `otiluke-node` command can be used:
+
+```
+otiluke-node --virus <path> ... -- <command>`
+```
+
+For instance: `otiluke-node --virus virus.js --foo=123 --bar=456 -- main.js --qux=789` will result into `{foo:123, bar:456}` being passed to the `virus.js` module, while `node main.js --qux=789` will be used to launch the node process to be infected.
 
 ## OtilukeBrowser
 
@@ -49,8 +72,6 @@ OtilukeBrowser modifies html pages served over http(s) by performing a man-in-th
 Such attack requires the browser to redirect all its requests to the forward proxy.
 For pages securely served over https it also requires the browser to trust the self-signed certificate, by default at [browser/ca-home/cert.pem](browser/ca-home/cert.pem).
 Examples: [test/browser/run-hello.sh](test/browser/run-hello.sh) and [test/browser/run-google.sh](test/browser/run-google.sh).
-
-<img src="img/browser.png" align="center" title="OtilukeBrowser"/>
 
 ### `require("otiluke/browser/ca")(options={})`
 
@@ -187,29 +208,3 @@ If your certificate authority directory is compromised, data can be stolen from 
 In OSX, go to `Keychain Access` > `Files` > `Import Items` and select Otiluke's root certificate.
 
 <img src="img/osx-cert.png" align="center" title="OSX's certificate settings"/>
-
-## OtilukeNode
-
-OtilukeNode infects node applications by modifying the require procedure performed by node.
-See [test/node.sh](test/node.sh) for example.
-
-<img src="img/node.png" align="center" title="OtilukeNode"/>
-
-### `require("otiluke/node")(Virus, options={})`
-
-* `Virus :: function`:
-  Virus constructor (function exported by a virus module).
-* `options :: object`
-  * `_ :: [array]`
-    Array of string interpreted as the command to launch the node process to be infected.
-    For instance: `["main.js", "foo", "bar"]`.
-  * `...`:
-    Remaining properties will be used to compute argument mapping `argm` passed to `virus`.
-
-Alternatively, if Otiluke is installed globally, the `otiluke-node` command can be used:
-
-```
-otiluke-node --virus <path> ... -- <command>`
-```
-
-For instance: `otiluke-node --virus virus.js --foo=123 --bar=456 -- main.js --qux=789` will result into `{foo:123, bar:456}` being passed to the `virus.js` module, while `node main.js --qux=789` will be used to launch the node process to be infected.

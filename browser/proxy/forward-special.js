@@ -1,6 +1,7 @@
 
 const Net = require("net");
 const Tls = require("tls");
+const Extract = require("./extract.js");
 
 function onconnect () {
   this.write(this._otiluke_request.method+" "+this._otiluke_request.url+" HTTP/"+this._otiluke_request.httpVersion+"\r\n");
@@ -28,7 +29,7 @@ module.exports = (event, handlers) => {
       client_socket._otiluke_socket = socket;
       client_socket._otiluke_head = head;
       const {hostname, port} = Extract(request);
-      forward_socket.connect(port, hostname, onconnect);
+      client_socket.connect(port, hostname, onconnect);
     }
   };
 };

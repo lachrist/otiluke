@@ -1,7 +1,7 @@
 {
   "name": "otiluke",
   "description": "Deploy JavaScript code transformers written in JavaScript themselves on node and browsers",
-  "version": "5.1.5",
+  "version": "5.1.6",
   "author": {
     "name": "Laurent Christophe",
     "email": "lachrist@vub.ac.be"
@@ -9,8 +9,8 @@
   "repository": "lachrist/otiluke",
   "license": "MIT",
   "dependencies": {
-    "browserify": "^16.2.2",
-    "htmlparser2": "^3.9.2",
+    "browserify": "^16.2.3",
+    "htmlparser2": "^3.10.0",
     "minimist": "^1.2.0"
   },
   "bin": {
