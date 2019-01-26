@@ -1,7 +1,7 @@
 {
   "name": "otiluke",
   "description": "Deploy JavaScript code transformers written in JavaScript themselves on node and browsers",
-  "version": "5.1.7",
+  "version": "5.1.8",
   "author": {
     "name": "Laurent Christophe",
     "email": "lachrist@vub.ac.be"
