@@ -11,7 +11,7 @@ const noop = () => {};
 
 module.exports = (vpath, options = {}) => {
   const options_ca_home = options["ca-home"] || Path.join(__dirname, "..", "ca");
-  const options_socket_dir = options["socket-dir"] || Os.platform() === "win32" ? "\\\\?\\pipe" : "/tmp";
+  const options_socket_dir = options["socket-dir"] || (Os.platform() === "win32" ? "\\\\?\\pipe" : Os.tmpdir());
   const options_global_var = options["global-var"] || "__OTILUKE__";
   const options_argm_prefix = options["argm-prefix"] || "otiluke-";
   const options_handlers = options["handlers"] || {};

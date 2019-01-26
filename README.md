@@ -101,7 +101,7 @@ Create listeners for a man-in-the-middle proxy.
   Path to a virus module.
 * `options["ca-home"] :: string`, default `"node_modules/otiluke/browser/ca-home"`
   Path to a certificate authority home directory.
-* `options["socket-dir"] :: string`, default `"/tmp/"` (`"\\?\pipe"` on windows).
+* `options["socket-dir"] :: string`, default `$TMPDIR` (`"\\?\pipe"` on windows).
   Address namespace for local sockets (aka named piped in windows).
 * `options["argm-prefix"] :: string`, default `"otiluke-"`:
   Prefix to look for in the search part of the url to create the `argm` object.

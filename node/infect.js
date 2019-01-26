@@ -11,10 +11,13 @@ function stripBOM(content) {
   return content;
 }
 
+// https://github.com/nodejs/node/blob/master/lib/internal/modules/cjs/loader.js
 module.exports = (transform, command) => {
-  // https://github.com/nodejs/node/blob/master/lib/internal/modules/cjs/loader.js
+  const wrapper = Module.wrapper;
+  Module.wrapper = ["", ""];
   Module._extensions[".js"] = function (module, filename) {
-    var content = Fs.readFileSync(filename, "utf8");
+    debugger;
+    var content = transform(wrapper[0] + Fs.readFileSync(filename, "utf8") + wrapper[1], filename);
     module._compile(stripBOM(transform(content, filename)), filename);
   };
   process.argv = ["node"].concat(command);
