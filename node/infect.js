@@ -16,8 +16,7 @@ module.exports = (transform, command) => {
   const wrapper = Module.wrapper;
   Module.wrapper = ["", ""];
   Module._extensions[".js"] = function (module, filename) {
-    debugger;
-    var content = transform(wrapper[0] + Fs.readFileSync(filename, "utf8") + wrapper[1], filename);
+    var content = wrapper[0] + Fs.readFileSync(filename, "utf8") + wrapper[1];
     module._compile(stripBOM(transform(content, filename)), filename);
   };
   process.argv = ["node"].concat(command);
