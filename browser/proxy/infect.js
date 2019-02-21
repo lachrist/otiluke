@@ -38,10 +38,16 @@ module.exports = (vpath, gvar, prefix) => {
       argm[key.substring(${prefix.length})] = array.length === 1 ? array[0] : array;
     }
   }
-  const transform = Virus(argm);
-  global.${gvar} = (script, source, handler) => {
-    geval(transform(script, source, handler));
-  };
+  let buffer = [];
+  global.${gvar} = (script, source) => { buffer.push([script, source]) };
+  Virus(argm, (error, transform) => {
+    if (error)
+      throw error;
+    global.${gvar} = (script, source) => { geval(transform(script, source)) };
+    for (let index = 0; index < buffer.length; index++)
+      global.${gvar}(buffer[index][0], buffer[index][1]);
+    buffer = null;
+  });
 }`
   );
   readable.push(null);

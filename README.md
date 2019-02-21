@@ -9,21 +9,26 @@ Virus modules are CommonJS module which exports a function that takes an array o
 For instance:
 
 ```js
-module.exports = (argm) => {
+module.exports = (argm, callback) => {
   console.log("Virus initialized with: "+JSON.stringify(argm));
-  return (script, source) => [
-    "console.log("+JSON.stringify("Begin "+source)+");",
-    script,
-    "console.log("+JSON.stringify("End"+source)+");"
-  ].join("\n");
-}
+  setTimeout(() => {
+    callback(null, (script, source) => [
+      "console.log("+JSON.stringify("Begin "+source)+");",
+      script,
+      "console.log("+JSON.stringify("End"+source)+");"
+    ].join("\n"));
+  }, 0);
+};
 ```
 
 Calling context of virus functions:
 
 ```js
-transform = Virus(argm);
-script2 = transform(script1, source);
+Virus(argm, (error, transform) => {
+  if (error)
+    throw error;
+  script2 = transform(script1, source);
+});
 ```
 
 * `argm :: {string}`:

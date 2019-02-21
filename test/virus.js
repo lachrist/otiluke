@@ -1,7 +1,7 @@
-module.exports = (argm) => {
+module.exports = (argm, callback) => {
   console.log("Initialize "+JSON.stringify(argm, null, 2));
-  return (script, source) => [
+  callback(null, (script, source) => [
     "console.log("+JSON.stringify("Evaluating: "+source)+");",
     script
-  ].join("\n");
+  ].join("\n"));
 };
