@@ -20,7 +20,7 @@ module.exports = (event, handlers) => {
   return function (request, socket, head) {
     handlers.activity(description1, this, request);
     handlers.activity(description2, this, socket);
-    if (!handlers.connect(request, socket, head)) {
+    if (!handlers[event](request, socket, head)) {
       let client_socket = new Net.Socket();
       if (request.socket.encrypted)
         client_socket = new Tls.TLSSocket(client_socket);
