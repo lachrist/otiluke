@@ -27,8 +27,6 @@ module.exports = (vpath, options = {}) => {
     request: forward.request,
     upgrade: forward.upgrade,
     connect: function (request, socket, head) {
-      options_handlers.activity("server-connect-request", this, request);
-      options_handlers.activity("server-connect-socket", this, socket);
       const {hostname, port} = Extract(request);
       forge(hostname, port, (error, server) => {
         if (error) {
@@ -43,7 +41,7 @@ module.exports = (vpath, options = {}) => {
             server.on("connect", forward.connect);
           }
           const client_socket = new Net.Socket();
-          options_handlers.activity("client-connect-socket", this, client_socket);
+          options_handlers.activity("proxy-connect", this, client_socket);
           client_socket.connect(server.address(), () => {
             socket.write("HTTP/1.1 200 Connection Established\r\n\r\n");
             client_socket.write(head);

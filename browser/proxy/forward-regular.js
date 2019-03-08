@@ -16,7 +16,6 @@ function onend () {
 
 module.exports = (infect, handlers) => {
   function onresponse (client_response) {
-    handlers.activity("client-regular-response", this._otiluke_origin, client_response);
     const transform = infect(client_response.headers["content-type"]);
     if (transform) {
       client_response._otiluke_transform = transform;
@@ -32,13 +31,11 @@ module.exports = (infect, handlers) => {
     }
   };
   return function (request, response) {
-    handlers.activity("server-regular-request", this, request);
-    handlers.activity("server-regular-response", this, response);
     if (!handlers.request(request, response)) {
       request.headers["accept-encoding"] = "identity";
       request.headers["accept-charset"] = "UTF-8";
       const client_request = (request.socket.encrypted ? Https : Http).request(Extract(request));
-      handlers.activity("client-regular-request", this, client_request);
+      handlers.activity("forward-request", this, client_request);
       client_request._otiluke_response = response;
       client_request._otiluke_origin = this;
       client_request.on("response", onresponse);
