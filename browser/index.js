@@ -5,10 +5,11 @@ const Http = require("http");
 const noop = () => {};
 
 function closeAll (callback) {
+  callback = callback || noop;
   this.close((error) => {
     if (error)
       return callback(error);
-    const counter = this._otiluke_servers.size;
+    let counter = this._otiluke_servers.size;
     if (!counter)
       return callback(null);
     const onclose = (error) => {
