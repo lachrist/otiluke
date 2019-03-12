@@ -98,7 +98,7 @@ Making a browser trust a root certificate has *serious* security consequences.
 Everyone having access to the corresponding private key can falsify *any* identity on that browser (which is exactly what OtilukeBrowser needs to do).
 To avoid security breach, we recommend to use a dedicated browser and *never* fill in it any sensitive information.
 
-### `listeners = require("otiluke/browser/proxy")(vpath, options={})`
+### `listeners = require("otiluke/browser/listeners")(vpath, options={})`
 
 Create listeners for a man-in-the-middle proxy.
 
