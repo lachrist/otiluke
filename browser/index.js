@@ -2,7 +2,26 @@
 const Listeners = require("./listeners");
 const Http = require("http");
 
-function closeAll () { for (server of this._otiluke_servers) server.close() };
+const noop = () => {};
+
+function closeAll (callback) {
+  this.close((error) => {
+    if (error)
+      return callback(error);
+    const counter = this._otiluke_servers.size;
+    if (!counter)
+      return callback(null);
+    const onclose = (error) => {
+      if (error) {
+        callback(error);
+        callback = noop;
+      } else if (!--counter) {
+        callback(null)
+      }
+    };
+    for (server of this._otiluke_servers) server.close(onclose);
+  });
+};
 
 function destroyAll () { for (socket of this._otiluke_sockets) socket.destroy() };
 
@@ -29,9 +48,7 @@ module.exports = (vpath, options) => {
   options.handlers = options.handlers || {__proto__:null};
   options.handlers.failure = options.handlers.failure || signal;
   options.handlers.forgery = (hostname, server) => {
-    server._otiluke_location = "server";
     server._otiluke_hostname = hostname;
-    server.on("error", onerror);
     server.on("connection", onconnection);
     proxy._otiluke_servers.add(server);
     server.on("close", onserverclose);
