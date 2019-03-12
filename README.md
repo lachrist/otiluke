@@ -140,23 +140,19 @@ Create listeners for a man-in-the-middle proxy.
     Called whenever a hostname is being impersonated.
     * `hostname :: string`
     * `server :: https.Server`
-  * `activity(description, origin, emitter)`
-    Called whenever an event emitter is created.
-    * `description :: string`
+  * `activity(location, server, socket)`
+    Called whenever a socket is created on behave of the proxy or one of the forged server.
+    This does *not* include sockets provided by the `connection` event on `net.Server`.
+    * `location :: string`
       One of the string:
-      * `"server-regular-request"`
-      * `"client-regular-request"`
-      * `"server-regular-response"`
-      * `"client-regular-response"`
-      * `"server-connect-request"`
-      * `"server-connect-socket"`
-      * `"client-connect-socket"`
-      * `"server-upgrade-request"`
-      * `"server-upgrade-socket"`
-      * `"client-upgrade-socket"`
-    * `origin :: http(s).Server`
-      Either the proxy server or one of the forged server.
-    * `emitter :: http(s).IncomingMessage | http(s).ClientRequest | http(s).ServerResponse | (net|tls).Socket`
+      * `"proxy-connect"`
+      * `"forward-request"`
+      * `"forward-connect"`
+      * `"forward-upgrade"`
+    * `server :: http(s).Server`
+      Either the proxy server (not for `"forward-connect"`) or one of the forged server (not for `"proxy-connect"`).
+    * `socket :: (net|tls).Socket`:
+      The created socket.
 * `listeners :: object`
   Object containing event listeners which should be attached to a user-created `http.Server` to setup the man-in-the-middle attack.
   * `listeners.request(request, response)`

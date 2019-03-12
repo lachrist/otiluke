@@ -30,12 +30,18 @@ module.exports = (infect, handlers) => {
       client_response.pipe(this._otiluke_response);  
     }
   };
+  function onsocket (socket) {
+    handlers.activity("forward-request", this._otiluke_origin, socket);
+  }
   return function (request, response) {
     if (!handlers.request(request, response)) {
       request.headers["accept-encoding"] = "identity";
       request.headers["accept-charset"] = "UTF-8";
       const client_request = (request.socket.encrypted ? Https : Http).request(Extract(request));
-      handlers.activity("forward-request", this, client_request);
+      client_request.on("error", (error) => {
+        console.log("ERROR", error);
+      })
+      client_request.on("socket", onsocket);
       client_request._otiluke_response = response;
       client_request._otiluke_origin = this;
       client_request.on("response", onresponse);

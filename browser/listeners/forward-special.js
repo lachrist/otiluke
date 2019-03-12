@@ -14,13 +14,13 @@ function onconnect () {
 };
 
 module.exports = (event, handlers) => {
-  const description = "forward-"+event;
+  const location = "forward-"+event;
   return function (request, socket, head) {
     if (!handlers[event](request, socket, head)) {
       let client_socket = new Net.Socket();
       if (request.socket.encrypted)
         client_socket = new Tls.TLSSocket(client_socket);
-      handlers.activity(description, this, client_socket);
+      handlers.activity(location, this, client_socket);
       client_socket._otiluke_request = request;
       client_socket._otiluke_socket = socket;
       client_socket._otiluke_head = head;
