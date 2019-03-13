@@ -62,8 +62,6 @@ function onactivity (location, origin, socket) {
 }
 
 module.exports = (vpath, options) => {
-  const proxy = Http.createServer();
-  const listeners = Listeners(vpath, options);
   const servers = new Set();
   const sockets = new Set();
   options.handlers = options.handlers || {__proto__:null};
@@ -72,12 +70,14 @@ module.exports = (vpath, options) => {
   options.handlers.failure = options.handlers.failure || noop;
   options.handlers.forgery = onforgery;
   options.handlers.activity = onactivity;
+  const proxy = Http.createServer();
+  proxy.destroySockets = destroySockets;
   proxy._otiluke_sockets = sockets;
   proxy._otiluke_servers = servers;
   proxy._otiluke_hostname = "PROXY";
   proxy._otiluke_handlers = options.handlers;
   proxy._otiluke_proxy = proxy;
-  proxy.destroySockets = destroySockets;
+  const listeners = Listeners(vpath, options);
   proxy.on("close", onproxyclose);
   proxy.on("connection", onconnection);
   proxy.on("request", listeners.request);

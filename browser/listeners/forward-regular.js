@@ -38,9 +38,6 @@ module.exports = (infect, handlers) => {
       request.headers["accept-encoding"] = "identity";
       request.headers["accept-charset"] = "UTF-8";
       const client_request = (request.socket.encrypted ? Https : Http).request(Extract(request));
-      client_request.on("error", (error) => {
-        console.log("ERROR", error);
-      })
       client_request.on("socket", onsocket);
       client_request._otiluke_response = response;
       client_request._otiluke_origin = this;
