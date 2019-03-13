@@ -1,72 +1,87 @@
-#!/usr/bin/env node
+
 const Listeners = require("./listeners");
 const Http = require("http");
 
 const noop = () => {};
 
-function closeAll (callback) {
-  callback = callback || noop;
-  this.close((error) => {
-    if (error)
-      return callback(error);
-    let counter = this._otiluke_servers.size;
-    if (!counter)
-      return callback(null);
-    const onclose = (error) => {
-      if (error) {
-        callback(error);
-        callback = noop;
-      } else if (!--counter) {
-        callback(null)
-      }
-    };
-    for (server of this._otiluke_servers) server.close(onclose);
-  });
+function destroySockets (error) {
+  for (socket of this._otiluke_sockets) socket.destroy(error);
 };
 
-function destroyAll () { for (socket of this._otiluke_sockets) socket.destroy() };
+function onproxyclose () {
+  for (server of this._otiluke_servers) server.close();
+  this.destroySockets();
+}
 
-const signal = (location, hostname, message) => {
-  console.error(location+" >> "+hostname+" >> "+message);
-};
+function onerror (error) {
+  this._otiluke_handlers.failure(this._otiluke_location, this._otiluke_hostname, error.message);
+}
+
+function onsocketclose () {
+  this._otiluke_sockets.delete(this);
+}
+
+function onserverclose () {
+  this._otiluke_servers.delete(this);
+}
+
+function onconnection (socket) {
+  // Error
+  socket._otiluke_handlers = this._otiluke_handlers;
+  socket._otiluke_hostname = this._otiluke_hostname;
+  socket._otiluke_location = "connection";
+  socket.on("error", onerror);
+  // Tracking
+  this._otiluke_sockets.add(socket);
+  socket._otiluke_sockets = this._otiluke_sockets;
+  socket.on("close", onsocketclose);
+}
+
+function onforgery (hostname, server) {
+  // Error
+  server._otiluke_handlers = this;
+  server._otiluke_hostname = hostname;
+  server.on("connection", onconnection);
+  // Tracking
+  this._otiluke_servers.add(server);
+  server._otiluke_servers = this._otiluke_servers;
+  server._otiluke_sockets = this._otiluke_sockets;
+  server.on("close", onserverclose);
+}
+
+function onactivity (location, origin, socket) {
+  // Error
+  socket._otiluke_handlers = origin._otiluke_handlers;
+  socket._otiluke_hostname = origin._otiluke_hostname;
+  socket._otiluke_location = location;
+  socket.on("error", onerror);
+  // Tracking
+  this._otiluke_sockets.add(socket);
+  socket._otiluke_sockets = this._otiluke_sockets;
+  socket.on("close", onsocketclose);
+}
 
 module.exports = (vpath, options) => {
   const proxy = Http.createServer();
-  proxy._otiluke_sockets = new Set();
-  proxy._otiluke_servers = new Set();
-  function onsocketclose () { proxy._otiluke_sockets.delete(this) }
-  function onserverclose () { proxy._otiluke_servers.delete(this) }
-  function onconnection (socket) {
-    socket._otiluke_location = "connection";
-    socket._otiluke_hostname = this._otiluke_hostname;
-    socket.on("error", onerror);
-    proxy._otiluke_sockets.add(socket);
-    socket.on("close", onsocketclose);
-  }
-  function onerror (error) {
-    options.handlers.failure(this._otiluke_location, this._otiluke_hostname, error.message);
-  }
-  options.handlers = options.handlers || {__proto__:null};
-  options.handlers.failure = options.handlers.failure || signal;
-  options.handlers.forgery = (hostname, server) => {
-    server._otiluke_hostname = hostname;
-    server.on("connection", onconnection);
-    proxy._otiluke_servers.add(server);
-    server.on("close", onserverclose);
-  };
-  options.handlers.activity = (location, origin, socket) => {
-    socket._otiluke_location = location;
-    socket._otiluke_hostname = origin._otiluke_hostname;
-    socket.on("error", onerror);
-    proxy._otiluke_sockets.add(socket);
-    socket.on("close", onsocketclose);
-  };
   const listeners = Listeners(vpath, options);
+  const servers = new Set();
+  const sockets = new Set();
+  options.handlers = options.handlers || {__proto__:null};
+  options.handlers._otiluke_sockets = sockets;
+  options.handlers._otiluke_servers = servers;
+  options.handlers.failure = options.handlers.failure || noop;
+  options.handlers.forgery = onforgery;
+  options.handlers.activity = onactivity;
+  proxy._otiluke_sockets = sockets;
+  proxy._otiluke_servers = servers;
+  proxy._otiluke_hostname = "PROXY";
+  proxy._otiluke_handlers = options.handlers;
+  proxy._otiluke_proxy = proxy;
+  proxy.destroySockets = destroySockets;
+  proxy.on("close", onproxyclose);
+  proxy.on("connection", onconnection);
   proxy.on("request", listeners.request);
   proxy.on("connect", listeners.connect);
   proxy.on("upgrade", listeners.upgrade);
-  proxy.on("listening", () => { options.handlers.forgery("@PROXY", proxy) });
-  proxy.closeAll = closeAll;
-  proxy.destroyAll = destroyAll;
   return proxy;
 };

@@ -10,6 +10,6 @@ proxy.listen(process.argv[2], () => {
   console.log("MITM proxy listening on: "+JSON.stringify(proxy.address()));
 });
 setTimeout(() => {
-  proxy.destroyAll();
-  proxy.closeAll(() => console.log("success"));
+  proxy.close();
+  proxy.destroySockets();
 }, 8000);
