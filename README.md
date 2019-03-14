@@ -113,46 +113,51 @@ Create listeners for a man-in-the-middle proxy.
   For instance, the url `http://example.com/path?otiluke-foo=123&otiluke-bar=456&qux=789` will result into `{foo:123, bar:456}` being passed to the virus module.
 * `options["global-var"] :: string`, default `__OTILUKE__`.
   Global variable used to store the transformation function.
-* `options["handlers"] :: object`, default `{}`.
-  A set a function defined by the user to monitor Otiluke's activity and intercept traffic.
-  In particular, these handlers can be used to filter out information gathered by the virus module.
-  * `handled = handlers.request(request, response)`
+* `options["agents"] :: object`, default `{http: new http.Agent()}`
+  Node http agent to use for performing http requests. 
+* `options["intercept"] :: object`, default `{request: () => {}, connect: () => {}, upgrade: () => {}}`.
+  A set a function defined by the user to intercept traffic passing by Otiluke servers.
+  The `this` argument is always pointing to the server that intercepted the traffic.
+  * `intercepted = intercept.request(request, response)`
     Called whenever a regular request is intercepted by either the proxy or one of the forged servers.
     Unless this function return a truthy value, Otiluke will forward the regular request to the rightful address.
     * `request :: http(s).IncomingMessage`
     * `response :: http(s).ServerResponse`
-    * `handled :: boolean`
-  * `handled = handlers.connect(request, socket, head)`
+    * `intercepted :: boolean`
+  * `intercepted = intercept.connect(request, socket, head)`
     Called whenever a connect request is intercepted by one of the forged servers.
     Unless this function return a truthy value, Otiluke will forward the connect request to the rightful address and blindly relay subsequent traffic.
     * `request :: http(s).IncomingMessage`
     * `socket :: (net|tls).Socket`
     * `head :: Buffer`
-    * `handled :: boolean`
-  * `handled = handlers.upgrade(request, socket, head)`
+    * `intercepted :: boolean`
+  * `intercepted = intercept.upgrade(request, socket, head)`
     Called whenever a connect request is intercepted by either the proxy or one of the forged servers.
     Unless this function return a truthy value, Otiluke will forward the upgrade request to the rightful address and blindly relay subsequent traffic.
     * `request :: http(s).IncomingMessage`
     * `socket :: (net|tls).Socket`
     * `head :: Buffer`
-    * `handled :: boolean`
-  * `forgery(hostname, server)`
+    * `intercepted :: boolean`
+* `options["register"] :: object`, default `{}`
+  During its lifetime Otiluke will create several objects susceptible to throw errors.
+  To help diagnose erros, these objects are passed to callback functions:
+  * `register.forgery(hostname, server)`
     Called whenever a hostname is being impersonated.
+    The `this` argument is the proxy to which Otiluke listeners are attached. 
     * `hostname :: string`
     * `server :: https.Server`
-  * `activity(location, server, socket)`
-    Called whenever a socket is created on behave of the proxy or one of the forged server.
-    This does *not* include sockets provided by the `connection` event on `net.Server`.
-    * `location :: string`
-      One of the string:
-      * `"proxy-connect"`
-      * `"forward-request"`
-      * `"forward-connect"`
-      * `"forward-upgrade"`
-    * `server :: http(s).Server`
-      Either the proxy server (not for `"forward-connect"`) or one of the forged server (not for `"proxy-connect"`).
-    * `socket :: (net|tls).Socket`:
-      The created socket.
+  * `register.request(request)`
+    Called whenever a request is forwarded to the rightful address.
+    The `this` argument is the server that intercepted the initial request.
+    * `request :: http(s).ClientRequest`
+  * `register.connect(socket)`
+    Called whenever a connect request is forwarded to the rightful address.
+    The `this` argument is the server that intercepted the initial request.
+    * `socket :: net.Socket`
+  * `register.upgrade(socket)`
+    Called whenever an upgrade request is forwarded to the rightful address.
+    The `this` argument is the server that intercepted the initial request.
+    * `socket :: net.Socket`
 * `listeners :: object`
   Object containing event listeners which should be attached to a user-created `http.Server` to setup the man-in-the-middle attack.
   * `listeners.request(request, response)`
@@ -162,8 +167,14 @@ Create listeners for a man-in-the-middle proxy.
 Alternatively, if Otiluke is installed globally, the following command can be used:
 
 ```
-otiluke-browser-proxy --vpath=<path> --port=<number> [--ca-home=<path>] [--socket-dir=<path>] [--global-var=<token>] [--argm-prefix=<token>]
+otiluke-browser-proxy --vpath=<path> --port=<number> [--intercept=<path>] [--ca-home=<path>] [--socket-dir=<path>] [--global-var=<token>] [--argm-prefix=<token>] 
 ```
+
+### `proxy = require("otiluke/browser")(vpath, options)`
+
+Similar to `require("otiluke/browser/listener")` but returns a `http.Server` already attached to Otiluke listeners.
+Also, provide `options.register` which centralises all the errors to the user-provided function `options.failure(location, hostname, message)`.
+Finally, every server/socket are being tracked and can be close/destroyed by calling `proxy.destroy`.
 
 ### Redirect the browser requests to the man-in-the-middle proxy
 

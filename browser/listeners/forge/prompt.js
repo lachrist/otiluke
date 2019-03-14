@@ -13,12 +13,12 @@ function onresponse () {
   this._otiluke_callback(null, false);
 }
 
-module.exports = (hostname, port, callback) => {
+module.exports = (agent, hostname, port, callback) => {
   const host = hostname+":"+port;
   if (host in cache) {
     callback(null, cache[host]);
   } else {
-    const request = Http.request({hostname, port, path:"/"});
+    const request = Http.request({agent, hostname, port, path:"/"});
     request._otiluke_host = host;
     request._otiluke_callback = callback;
     request.on("error", onerror);

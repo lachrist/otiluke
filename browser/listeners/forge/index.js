@@ -4,10 +4,10 @@ const Path = require("path");
 const Http = require("http");
 const Https = require("https");
 const ChildProcess = require("child_process");
-const ForgeSecure = require("./forge-secure.js");
-const ForgeSign = require("./forge-sign.js");
+const Prompt = require("./prompt.js");
+const Sign = require("./sign.js");
 
-module.exports = (sockdir, cahome) => {
+module.exports = (agent, sockdir, cahome) => {
   let server = [];
   const servers = Object.create(null);
   const token = Math.random().toString(36).substring(2);
@@ -22,7 +22,7 @@ module.exports = (sockdir, cahome) => {
     if (Array.isArray(server)) {
       server.push([hostname, port, callback]);
     } else {
-      ForgeSecure(hostname, port, (error, secure) => {
+      Prompt(agent, hostname, port, (error, secure) => {
         if (error) {
           callback(error);
         } else {
@@ -35,7 +35,7 @@ module.exports = (sockdir, cahome) => {
               }
             } else {
               servers[hostname] = [callback];
-              ForgeSign(hostname, cahome, (error, options) => {
+              Sign(hostname, cahome, (error, options) => {
                 if (error) {
                   callback(error);
                 } else {
