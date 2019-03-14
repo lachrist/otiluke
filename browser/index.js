@@ -92,12 +92,15 @@ function upgrade (socket) {
 // Return //
 ////////////
 
-function destroy () {
-  this.close();
-  for (let server of this._otiluke_servers) server.close();
+function destroyAll () {
   for (let socket of this._otiluke_sockets) socket.destroy();
   this._otiluke_agents.http.destroy();
   this._otiluke_agents.https.destroy();
+};
+
+function closeAll () {
+  this.close();
+  for (let server of this._otiluke_servers) server.close();
 };
 
 module.exports = (vpath, options) => {
@@ -117,8 +120,8 @@ module.exports = (vpath, options) => {
   proxy._otiluke_sockets = sockets;
   proxy._otiluke_servers = servers;
   proxy._otiluke_agents = agents;
-  proxy.destroy = destroy;
-  proxy.on("close", destroy);
+  proxy.destroyAll = destroyAll;
+  proxy.closeAll = closeAll;
   proxy.on("connection", onconnection);
   proxy.on("request", onrequest);
   proxy.on("connect", onconnect);
