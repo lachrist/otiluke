@@ -12,29 +12,25 @@ const Forge = require("./forge");
 const noop = () => {};
 
 module.exports = (vpath, options) => {
-  options = Object.assign({
-    "ca-home": Path.join(__dirname, "..", "ca"),
-    "socket-dir": (Os.platform() === "win32" ? "\\\\?\\pipe" : Os.tmpdir()),
-    "global-var": "__OTILUKE__",
-    "argm-prefix": "otiluke-"
-  }, options);
-  options.agents = Object.assign({
-    http: new Http.Agent({keepAlive:true}),
-    https: new Https.Agent({keepAlive:true})
-  }, options.agents);
-  options.intercept = Object.assign({
-    request: noop,
-    connect: noop,
-    upgrade: noop
-  }, options.intercept);
-  options.register = Object.assign({
-    request: noop,
-    connect: noop,
-    upgrade: noop,
-    forgery: noop
-  }, options.register);
-  const infect = Infect(vpath, options["global-var"], options["argm-prefix"]);
-  const forge = Forge(options.agents.http, options["socket-dir"], options["ca-home"]);
+  options = Object.assign({__proto__:null}, options);
+  options.cahome = options.cahome || Path.join(__dirname, "..", "ca");
+  options.sockdir = options.sockdir || (Os.platform() === "win32" ? "\\\\?\\pipe" : Os.tmpdir());
+  options.gvar = options.gvar || "__OTILUKE__";
+  options.argmpfx = options.argmpfx || "otiluke-";
+  options.agents = options.agents || {__proto__:null};
+  options.agents.http = options.agents.http || new Http.Agent({keepAlive:true});
+  options.agents.https = options.agents.https || new Https.Agent({keepAlive:true});
+  options.intercept = options.intercept || {__proto__:null};
+  options.intercept.request = options.intercept.request || noop;
+  options.intercept.connect = options.intercept.connect || noop;
+  options.intercept.upgrade = options.intercept.upgrade || noop;
+  options.register = options.register || {__proto__:null};
+  options.register.request = options.register.request || noop;
+  options.register.connect = options.register.connect || noop;
+  options.register.upgrade = options.register.upgrade || noop;
+  options.register.forgery = options.register.forgery || noop;
+  const infect = Infect(vpath, options.gvar, options.argmpfx);
+  const forge = Forge(options.agents.http, options.sockdir, options.cahome);
   const forward = Forward(options.agents, infect, options.intercept, options.register);
   return {
     request: forward.request,

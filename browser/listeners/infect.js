@@ -23,7 +23,7 @@ const onmatch2 = (string) => "<\\"+string.substring(2);
 
 const ishandler = (string) => string.startsWith("on");
 
-module.exports = (vpath, gvar, prefix) => {
+module.exports = (vpath, gvar, argmpfx) => {
   let setup = `<script>alert("Otiluke >> bundling not yet performed, retry in a sec...");</script>`;
   const readable = new Stream.Readable();
   readable.push(
@@ -33,9 +33,9 @@ module.exports = (vpath, gvar, prefix) => {
   const geval = eval;
   const url = new URL(location.href);
   for (let key of url.searchParams.keys()) {
-    if (key.startsWith(${JSON.stringify(prefix)})) {
+    if (key.startsWith(${JSON.stringify(argmpfx)})) {
       const array = url.searchParams.getAll(key);
-      argm[key.substring(${prefix.length})] = array.length === 1 ? array[0] : array;
+      argm[key.substring(${argmpfx.length})] = array.length === 1 ? array[0] : array;
     }
   }
   let buffer = [];

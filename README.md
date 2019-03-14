@@ -82,9 +82,9 @@ Examples: [test/browser/run-hello.sh](test/browser/run-hello.sh) and [test/brows
 
 This function prepares a directory to serve as the home directory of a certificate authority.
 
-* `options["ca-home"] :: string`, default `"node_modules/otiluke/browser/ca-home"`:
+* `options.cahome :: string`, default `"node_modules/otiluke/browser/ca-home"`:
   The  directory will be populated with the subdirectories: `req`, `key` and `cert` and the files: `req.pem`, `key.pem`, `cert.pem` and `serial.srl`.
-* `options["subj"] :: string`, default `"/CN=otiluke/O=Otiluke"`:
+* `options.subj :: string`, default `"/CN=otiluke/O=Otiluke"`:
   The `-subj` argument to pass to [`openssl -req`](https://www.openssl.org/docs/manmaster/man1/req.html).
 
 Alternatively, if Otiluke is installed globally, the following command can be used:
@@ -104,18 +104,18 @@ Create listeners for a man-in-the-middle proxy.
 
 * `vpath :: string`:
   Path to a virus module.
-* `options["ca-home"] :: string`, default `"node_modules/otiluke/browser/ca-home"`
+* `options.cahome :: string`, default `"node_modules/otiluke/browser/ca-home"`
   Path to a certificate authority home directory.
-* `options["socket-dir"] :: string`, default `$TMPDIR` (`"\\?\pipe"` on windows).
+* `options.sockdir :: string`, default `$TMPDIR` (`"\\?\pipe"` on windows).
   Address namespace for local sockets (aka named piped in windows).
-* `options["argm-prefix"] :: string`, default `"otiluke-"`:
+* `options.argmpfx :: string`, default `"otiluke-"`:
   Prefix to look for in the search part of the url to create the `argm` object.
   For instance, the url `http://example.com/path?otiluke-foo=123&otiluke-bar=456&qux=789` will result into `{foo:123, bar:456}` being passed to the virus module.
-* `options["global-var"] :: string`, default `__OTILUKE__`.
+* `options.gvar :: string`, default `__OTILUKE__`.
   Global variable used to store the transformation function.
-* `options["agents"] :: object`, default `{http: new http.Agent()}`
+* `options.agents :: object`, default `{http: new http.Agent()}`
   Node http agent to use for performing http requests. 
-* `options["intercept"] :: object`, default `{request: () => {}, connect: () => {}, upgrade: () => {}}`.
+* `options.intercept :: object`, default `{request: () => {}, connect: () => {}, upgrade: () => {}}`.
   A set a function defined by the user to intercept traffic passing by Otiluke servers.
   The `this` argument is always pointing to the server that intercepted the traffic.
   * `intercepted = intercept.request(request, response)`
@@ -138,7 +138,7 @@ Create listeners for a man-in-the-middle proxy.
     * `socket :: (net|tls).Socket`
     * `head :: Buffer`
     * `intercepted :: boolean`
-* `options["register"] :: object`, default `{}`
+* `options.register :: object`, default `{}`
   During its lifetime Otiluke will create several objects susceptible to throw errors.
   To help diagnose erros, these objects are passed to callback functions:
   * `register.forgery(hostname, server)`
@@ -167,14 +167,14 @@ Create listeners for a man-in-the-middle proxy.
 Alternatively, if Otiluke is installed globally, the following command can be used:
 
 ```
-otiluke-browser-proxy --vpath=<path> --port=<number> [--intercept=<path>] [--ca-home=<path>] [--socket-dir=<path>] [--global-var=<token>] [--argm-prefix=<token>] 
+otiluke-browser-proxy --vpath=<path> --port=<number> [--intercept=<path>] [--cahome=<path>] [--sockdir=<path>] [--gvar=<token>] [--argmpfx=<token>] 
 ```
 
 ### `proxy = require("otiluke/browser")(vpath, options)`
 
 Similar to `require("otiluke/browser/listener")` but returns a `http.Server` already attached to Otiluke listeners.
 Also, provide `options.register` which centralises all the errors to the user-provided function `options.failure(location, hostname, message)`.
-Finally, every server/socket are being tracked and can be close/destroyed by calling `proxy.destroy`.
+Finally every servers can closes by calling `proxy.closeAll()` and every socket can be destroyed by calling `proxy.destroyAll()`.
 
 ### Redirect the browser requests to the man-in-the-middle proxy
 
