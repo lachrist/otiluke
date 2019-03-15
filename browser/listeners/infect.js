@@ -5,6 +5,8 @@ const Stream = require("stream");
 const Browserify = require("browserify");
 const Htmlparser2 = require("htmlparser2");
 
+const basedir = Path.parse(__dirname).root;
+
 const encode = (string) => string.replace(/[&<>"]/g, onmatch1);
 
 const escape = (string) => string.replace(/<\/script>/g, onmatch2);
@@ -51,7 +53,7 @@ module.exports = (vpath, gvar, argmpfx) => {
 }`
   );
   readable.push(null);
-  Browserify(readable, {basedir:__dirname}).bundle((error, bundle) => {
+  Browserify(readable, {basedir}).bundle((error, bundle) => {
     if (error) {
       setup = 
 `<script>
